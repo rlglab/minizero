@@ -1,0 +1,25 @@
+cmake_minimum_required(VERSION 3.16)
+
+project(minizero)
+
+# specify the C++ standard
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
+find_package(Torch REQUIRED)
+find_package(Boost COMPONENTS system thread)
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE})
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE})
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -g -Wall -mpopcnt -O3")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -Wall -Wno-unused-function")
+
+add_subdirectory(minizero)
+add_subdirectory(minizero/actor)
+add_subdirectory(minizero/config)
+add_subdirectory(minizero/console)
+add_subdirectory(minizero/environment)
+add_subdirectory(minizero/learner)
+add_subdirectory(minizero/network)
+add_subdirectory(minizero/utils)
+add_subdirectory(minizero/server)
