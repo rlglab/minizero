@@ -2,7 +2,7 @@
 set -e
 
 usage() {
-	echo "Usage: setup-cmake.sh [Debug|Release] [GO|TIETACTOE]"
+	echo "Usage: setup-cmake.sh [Debug|Release] [GO|OTHELLO|TIETACTOE]"
 	exit 1
 }
 
@@ -13,7 +13,8 @@ if [ $# -eq 2 ]; then
 	fi
 
 	game_type=$2
-	if [ "${game_type}" != "GO" ] && [ "${game_type}" != "TIETACTOE" ]; then
+	support_games=("GO" "OTHELLO" "TIETACTOE")
+	if [[ ! "${support_games[*]}" =~ "${game_type}" ]]; then
 		usage
 	fi
 

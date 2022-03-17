@@ -36,7 +36,7 @@ public:
 
 private:
     void DoCPUJob();
-    void HandleSearchEndAndEnvEnd(const std::shared_ptr<Actor>& actor);
+    void HandleSearchEndAndEnvEnd(const std::shared_ptr<Actor>& actor, bool display = false);
     void DoGPUJob();
 
     int id_;

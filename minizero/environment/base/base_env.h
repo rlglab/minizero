@@ -50,7 +50,7 @@ public:
     virtual std::vector<Action> GetLegalActions() const = 0;
     virtual bool IsLegalAction(const Action& action) const = 0;
     virtual bool IsTerminal() const = 0;
-    virtual float GetEvalScore() const = 0;
+    virtual float GetEvalScore(bool is_resign = false) const = 0;
     virtual std::vector<float> GetFeatures() const = 0;
     virtual std::string ToString() const = 0;
     virtual std::string Name() const = 0;
@@ -90,8 +90,8 @@ public:
     inline bool LoadFromString(const std::string& content)
     {
         Reset();
-        size_t index = 0;
-        while (index < content.size()) {
+        size_t index = content.find('(') + 1;
+        while (index < content.size() && content[index] != ')') {
             size_t left_bracket_pos = content.find('[', index);
             size_t right_bracket_pos = content.find(']', index);
             if (left_bracket_pos == std::string::npos || right_bracket_pos == std::string::npos) { return false; }
@@ -123,12 +123,14 @@ public:
     inline std::string ToString() const
     {
         std::ostringstream oss;
+        oss << "(";
         for (const auto& t : tags_) { oss << t.first << "[" << t.second << "]"; }
         for (const auto& p : action_pairs_) {
             oss << PlayerToChar(p.first.GetPlayer())
                 << "[" << p.first.GetActionID()
                 << "|" << p.second << "]";
         }
+        oss << ")";
         return oss.str();
     }
 

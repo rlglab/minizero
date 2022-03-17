@@ -52,8 +52,13 @@ float MCTSTreeNode::GetPUCTScore(int total_simulation)
 
 std::string MCTSTreeNode::ToString() const
 {
-    // TODO
-    return "";
+    std::ostringstream oss;
+    oss.precision(4);
+    oss << std::fixed << "p = " << policy_
+        << ", v = " << value_
+        << ", mean = " << mean_
+        << ", count = " << count_;
+    return oss.str();
 }
 
 MCTSTree::MCTSTree(long long tree_node_size)

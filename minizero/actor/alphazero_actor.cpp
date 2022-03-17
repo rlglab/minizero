@@ -1,17 +1,19 @@
 #include "alphazero_actor.h"
 #include "alphazero_network.h"
 #include "configuration.h"
-
-#include <iostream>
+#include "random.h"
 
 namespace minizero::actor {
 
+using namespace minizero;
 using namespace network;
 
 void AlphaZeroActor::Reset()
 {
-    Actor::Reset();
+    env_.Reset();
+    ClearTree();
     action_distributions_.clear();
+    is_enable_resign_ = utils::Random::RandReal() < config::zero_disable_resign_ratio ? false : true;
 }
 
 bool AlphaZeroActor::Act(const Action& action)
@@ -49,7 +51,11 @@ std::string AlphaZeroActor::GetRecord() const
 {
     EnvironmentLoader env_loader;
     env_loader.LoadFromEnvironment(env_, action_distributions_);
-    return env_loader.ToString();
+    env_loader.AddTag("EV", config::nn_file_name.substr(config::nn_file_name.find_last_of('/') + 1));
+
+    // if the game is not ended, then treat the game as a resign game, where the next player is the lose side
+    if (!IsTerminal()) { env_loader.AddTag("RE", std::to_string(env_.GetEvalScore(true))); }
+    return "SelfPlay " + std::to_string(env_loader.GetActionPairs().size()) + " " + env_loader.ToString();
 }
 
 std::vector<std::pair<Action, float>> AlphaZeroActor::CalculateActionPolicy(const std::vector<float>& policy, const Environment& env_transition)

@@ -29,7 +29,7 @@ public:
     std::vector<TieTacToeAction> GetLegalActions() const override;
     bool IsLegalAction(const TieTacToeAction& action) const override;
     bool IsTerminal() const override;
-    float GetEvalScore() const override;
+    float GetEvalScore(bool is_resign = false) const override;
     std::vector<float> GetFeatures() const override;
     std::string ToString() const override;
     inline std::string Name() const override { return kTieTacToeName; }
@@ -42,7 +42,7 @@ private:
 
 class TieTacToeEnvLoader : public BaseEnvLoader<TieTacToeAction, TieTacToeEnv> {
 public:
-    inline std::vector<float> GetPolicyDistribution(int id) const
+    inline std::vector<float> GetPolicyDistribution(int id) const override
     {
         std::vector<float> policy(kTieTacToeBoardSize * kTieTacToeBoardSize, 0.0f);
         SetPolicyDistribution(id, policy);

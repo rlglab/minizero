@@ -24,7 +24,6 @@ private:
 
 const std::string kGoName = "go";
 const int kGoNumPlayer = 2;
-const int kDefaultGoBoardSize = 7;
 const int kMaxGoBoardSize = 19;
 
 typedef unsigned long long GoHashKey;

@@ -23,6 +23,7 @@ public:
     {
         num_action_channels_ = action_size_ = -1;
         batch_size_ = 0;
+        ClearTensorInput();
     }
 
     void LoadModel(const std::string& nn_file_name, const int gpu_id)
@@ -54,15 +55,19 @@ public:
             index = batch_size_++;
             tensor_input_.resize(batch_size_);
         }
-        tensor_input_[index] = torch::from_blob(features.data(), {1, GetNumInputChannels(), GetInputChannelHeight(), GetInputChannelWidth()}).clone().to(GetDevice());
+        tensor_input_[index] = torch::from_blob(features.data(), {1, GetNumInputChannels(), GetInputChannelHeight(), GetInputChannelWidth()}).clone();
+        assert(tensor_input_[index].numel() == GetNumInputChannels() * GetInputChannelHeight() * GetInputChannelWidth());
         return index;
     }
 
     std::vector<std::shared_ptr<NetworkOutput>> Forward()
     {
-        auto forward_result = network_.forward(std::vector<torch::jit::IValue>{torch::cat(tensor_input_)}).toGenericDict();
+        auto forward_result = network_.forward(std::vector<torch::jit::IValue>{torch::cat(tensor_input_).to(GetDevice())}).toGenericDict();
+
         auto policy_output = torch::softmax(forward_result.at("policy").toTensor(), 1).to(at::kCPU);
         auto value_output = forward_result.at("value").toTensor().to(at::kCPU);
+        assert(policy_output.numel() == batch_size_ * GetActionSize());
+        assert(value_output.numel() == batch_size_);
 
         const int policy_size = GetActionSize();
         std::vector<std::shared_ptr<NetworkOutput>> network_outputs;
@@ -76,7 +81,7 @@ public:
         }
 
         batch_size_ = 0;
-        tensor_input_.clear();
+        ClearTensorInput();
         return network_outputs;
     }
 
@@ -85,11 +90,19 @@ public:
     inline int GetBatchSize() const { return batch_size_; }
 
 private:
+    inline void ClearTensorInput()
+    {
+        tensor_input_.clear();
+        tensor_input_.reserve(kReserved_batch_size);
+    }
+
     int num_action_channels_;
     int action_size_;
     int batch_size_;
     std::mutex mutex_;
     std::vector<torch::Tensor> tensor_input_;
+
+    const int kReserved_batch_size = 4096;
 };
 
 } // namespace minizero::network

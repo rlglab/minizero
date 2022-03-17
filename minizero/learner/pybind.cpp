@@ -21,9 +21,9 @@ public:
     inline int GetTrainingStep() const { return config::learner_training_step; }
     inline int GetTrainingDisplayStep() const { return config::learner_training_display_step; }
     inline int GetBatchSize() const { return config::learner_batch_size; }
-    inline int GetLearningRate() const { return config::learner_learning_rate; }
-    inline int GetMomentum() const { return config::learner_momentum; }
-    inline int GetWeightDecay() const { return config::learner_weight_decay; }
+    inline float GetLearningRate() const { return config::learner_learning_rate; }
+    inline float GetMomentum() const { return config::learner_momentum; }
+    inline float GetWeightDecay() const { return config::learner_weight_decay; }
     inline int GetNumProcess() const { return config::learner_num_process; }
     inline std::string GetGameName() const { return Environment().Name(); }
     inline int GetNNNumInputChannels() const { return config::nn_num_input_channels; }

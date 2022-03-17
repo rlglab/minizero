@@ -11,8 +11,8 @@ class AlphaZeroActor : public Actor {
 public:
     AlphaZeroActor(long long tree_node_size) : Actor(tree_node_size) {}
 
-    void Reset();
-    bool Act(const Action& action);
+    void Reset() override;
+    bool Act(const Action& action) override;
     void BeforeNNEvaluation(const std::shared_ptr<network::Network>& network) override;
     void AfterNNEvaluation(const std::shared_ptr<network::NetworkOutput>& network_output) override;
     std::string GetRecord() const override;

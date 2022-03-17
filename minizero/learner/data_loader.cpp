@@ -21,7 +21,6 @@ void DataLoader::LoadDataFromDirectory(const std::string& directory_name)
 
 void DataLoader::LoadDataFromFile(const std::string& file_name)
 {
-    std::cerr << "Read " << file_name << "... ";
     std::ifstream fin(file_name, std::ifstream::in);
     for (std::string content; std::getline(fin, content);) {
         EnvironmentLoader env_loader;
@@ -29,8 +28,6 @@ void DataLoader::LoadDataFromFile(const std::string& file_name)
         int total_length = env_loaders_.empty() ? 0 : env_loaders_.back().second;
         env_loaders_.push_back({env_loader, total_length + env_loader.GetActionPairs().size()});
     }
-    if (env_loaders_.size() > 0) { std::cerr << "total has " << env_loaders_.size() << " record, " << env_loaders_.back().second << " data."; }
-    std::cerr << std::endl;
 }
 
 void DataLoader::CalculateFeaturesAndLabel(int index)

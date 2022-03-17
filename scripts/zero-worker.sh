@@ -129,7 +129,7 @@ do
 				then
 					true
 					#echo "read: $line"
-				elif [[ $line =~ ^Job_Selfplay\ (.+) ]]
+				elif [[ $line =~ ^Job_SelfPlay\ (.+) ]]
 				then
 					if [ "$TYPE" == "sp" ]
 					then
@@ -139,8 +139,8 @@ do
 						# format: Self-play train_dir conf_str
 						var=(${BASH_REMATCH[1]})
 						CONF_FILE=$(ls ${var[0]}/*.cfg)
-						CONF_STR="${var[1]}:actor_num_threads=${NUM_CPU_THREAD}:actor_num_parallel_games=${BATCH_SIZE}"
-                        CUDA_DEVICES = $(echo ${GPU_LIST} | awk '{ split($0, chars, ""); printf(chars[1]); for(i=2; i<=length(chars); ++i) { printf(","chars[i]); } }')
+						CONF_STR="${var[1]}:actor_num_threads=${NUM_CPU_THREAD}:actor_num_parallel_games=$((${BATCH_SIZE}*${NUM_GPU}))"
+						CUDA_DEVICES=$(echo ${GPU_LIST} | awk '{ split($0, chars, ""); printf(chars[1]); for(i=2; i<=length(chars); ++i) { printf(","chars[i]); } }')
 						echo "CUDA_VISIBLE_DEVICES=${CUDA_DEVICES} Release/minizero -mode sp -conf_file ${CONF_FILE} -conf_str \"${CONF_STR}\""
 						CUDA_VISIBLE_DEVICES=${CUDA_DEVICES} Release/minizero -conf_file ${CONF_FILE} -conf_str "${CONF_STR}" -mode sp 1>&$broker_fd &
 						selfPlay_pid=$!
@@ -158,8 +158,8 @@ do
 						var=(${BASH_REMATCH[1]})
 						CONF_FILE=$(ls ${var[0]}/*.cfg)
 						# py/Train.py train_dir model sgf_start sgf_end conf_file
-						echo "python py/Train.py ${var[0]} ${var[1]} ${var[2]} ${var[3]} ${CONF_FILE} 2>>${var[0]}/op.log"
-						python py/Train.py ${var[0]} ${var[1]} ${var[2]} ${var[3]} ${CONF_FILE} 1>&$broker_fd 2>>${var[0]}/op.log
+						echo "PYTHONPATH=. python minizero/learner/train.py ${var[0]} ${var[1]} ${var[2]} ${var[3]} ${CONF_FILE} 2>>${var[0]}/op.log"
+						PYTHONPATH=. python minizero/learner/train.py ${var[0]} ${var[1]} ${var[2]} ${var[3]} ${CONF_FILE} 1>&$broker_fd 2>>${var[0]}/op.log
 					fi
 				elif [ "$line" == "Job_Done" ]
 				then

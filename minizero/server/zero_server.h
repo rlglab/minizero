@@ -16,7 +16,12 @@ public:
     ZeroLogger() {}
     void CreateLog();
 
-    inline void AddTrainingLog(const std::string log) { training_log_ << TimeSystem::GetTimeString("[Y/m/d_H:i:s.f] ") << log << std::endl; }
+    inline void AddWorkerLog(const std::string& log_str) { AddLog(log_str, worker_log_); }
+    inline void AddTrainingLog(const std::string& log_str) { AddLog(log_str, training_log_); }
+    inline std::fstream& GetSelfPlayFileStream() { return self_play_game_; }
+
+private:
+    void AddLog(const std::string& log_str, std::fstream& log_file);
 
     std::fstream worker_log_;
     std::fstream training_log_;
@@ -57,11 +62,13 @@ public:
 
     inline bool IsIdle() const { return is_idle_; }
     inline std::string GetName() const { return name_; }
+    inline std::string GetType() const { return type_; }
     inline void SetIdle(bool is_idle) { is_idle_ = is_idle; }
 
 private:
     bool is_idle_;
     std::string name_;
+    std::string type_;
     ZeroWorkerSharedData& shared_data_;
 };
 
@@ -77,12 +84,12 @@ public:
 
     void Run();
     boost::shared_ptr<ZeroWorkerHandler> HandleAcceptNewConnection();
+    void SendInitialMessage(boost::shared_ptr<ZeroWorkerHandler> connection);
 
 private:
     void Initialize();
     void SelfPlay();
     void BroadCastSelfPlayJob();
-    std::string GetOneSelfPlayGame();
     void Optimization();
     void StopJob();
     void KeepAlive();
@@ -90,7 +97,6 @@ private:
 
     int seed_;
     int iteration_;
-    boost::mutex worker_mutex_;
     ZeroWorkerSharedData shared_data_;
     boost::asio::deadline_timer keep_alive_timer_;
 

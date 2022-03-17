@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base_env.h"
+#include "configuration.h"
 #include "go_block.h"
 #include "go_grid.h"
 #include "go_unit.h"
@@ -30,7 +31,7 @@ class GoEnv : public BaseEnv<GoAction> {
 public:
     friend class GoBenson;
 
-    GoEnv(int board_size = kDefaultGoBoardSize)
+    GoEnv(int board_size = minizero::config::env_go_board_size)
         : board_size_(board_size)
     {
         assert(board_size_ > 0 && board_size_ <= kMaxGoBoardSize);
@@ -46,7 +47,7 @@ public:
     std::vector<GoAction> GetLegalActions() const override;
     bool IsLegalAction(const GoAction& action) const override;
     bool IsTerminal() const override;
-    float GetEvalScore() const override;
+    float GetEvalScore(bool is_resign = false) const override;
     std::vector<float> GetFeatures() const override;
     std::string ToString() const override;
 
@@ -90,10 +91,10 @@ public:
         AddTag("SZ", std::to_string(env.GetBoardSize()));
     }
 
-    inline std::vector<float> GetPolicyDistribution(int id) const
+    inline std::vector<float> GetPolicyDistribution(int id) const override
     {
         int board_size = std::stoi(GetTag("SZ"));
-        std::vector<float> policy(board_size * board_size, 0.0f);
+        std::vector<float> policy(board_size * board_size + 1, 0.0f);
         SetPolicyDistribution(id, policy);
         return policy;
     }

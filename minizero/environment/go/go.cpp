@@ -15,8 +15,6 @@ GoPair<std::vector<GoHashKey>> grids_hash_key;
 
 void Initialize()
 {
-    std::cout << "Initialize go." << std::endl;
-
     std::mt19937_64 generator;
     generator.seed(0);
     turn_hash_key = generator();
@@ -80,7 +78,7 @@ void GoEnv::Reset(int board_size)
     assert(board_size > 0 && board_size <= kMaxGoBoardSize);
 
     board_size_ = board_size;
-    komi_ = 7.5;
+    komi_ = minizero::config::env_go_komi;
     turn_ = Player::kPlayer1;
     hash_key_ = 0;
     free_block_id_bitboard_.reset();
@@ -114,11 +112,11 @@ bool GoEnv::Act(const GoAction& action)
     // handle global status
     turn_ = action.NextPlayer();
     hash_key_ ^= GetGoTurnHashKey();
-    hash_table_.insert(hash_key_);
     actions_.push_back(action);
 
     if (IsPassAction(action)) {
         stone_bitboard_history_.push_back(stone_bitboard_);
+        hash_table_.insert(hash_key_);
         return true;
     }
 
@@ -152,6 +150,7 @@ bool GoEnv::Act(const GoAction& action)
 
     stone_bitboard_.Get(player) |= new_block->GetGridBitboard();
     stone_bitboard_history_.push_back(stone_bitboard_);
+    hash_table_.insert(hash_key_);
     assert(CheckDataStructure());
     return true;
 }
@@ -217,21 +216,31 @@ bool GoEnv::IsTerminal() const
         IsPassAction(actions_.back()) &&
         IsPassAction(actions_[actions_.size() - 2])) { return true; }
 
-    // game length exceeds 3 * boardsize * boardsize
-    if (static_cast<int>(actions_.size()) > 3 * board_size_ * board_size_) { return true; }
+    // game length exceeds 2 * boardsize * boardsize
+    if (static_cast<int>(actions_.size()) > 2 * board_size_ * board_size_) { return true; }
 
     return false;
 }
 
-float GoEnv::GetEvalScore() const
+float GoEnv::GetEvalScore(bool is_resign /*= false*/) const
 {
-    GoPair<float> territory = CalculateTrompTaylorTerritory();
-    if (territory.Get(Player::kPlayer1) > territory.Get(Player::kPlayer2)) {
-        return 1.0f;
-    } else if (territory.Get(Player::kPlayer1) < territory.Get(Player::kPlayer2)) {
-        return -1.0f;
+    Player eval;
+    if (is_resign) {
+        eval = GetNextPlayer(turn_, kGoNumPlayer);
+    } else {
+        GoPair<float> territory = CalculateTrompTaylorTerritory();
+        eval = (territory.Get(Player::kPlayer1) > territory.Get(Player::kPlayer2))
+                   ? Player::kPlayer1
+                   : ((territory.Get(Player::kPlayer1) < territory.Get(Player::kPlayer2))
+                          ? Player::kPlayer2
+                          : Player::kPlayerNone);
     }
-    return 0.0f;
+
+    switch (eval) {
+        case Player::kPlayer1: return 1.0f;
+        case Player::kPlayer2: return -1.0f;
+        default: return 0.0f;
+    }
 }
 
 std::vector<float> GoEnv::GetFeatures() const
@@ -265,27 +274,33 @@ std::vector<float> GoEnv::GetFeatures() const
 
 std::string GoEnv::ToString() const
 {
-    std::ostringstream oss;
-    TextType text_type = TextType::kBold;
-    TextColor text_color = TextColor::kBlack;
-    TextColor text_background = TextColor::kYellow;
-    std::string empty_string = GetTextWithFormat(" .", text_type, text_color, text_background);
-    GoPair<std::string> stone_string(GetTextWithFormat(" O", text_type, TextColor::kBlack, text_background),
-                                     GetTextWithFormat(" O", text_type, TextColor::kWhite, text_background));
+    int last_move_pos = -1, last2_move_pos = -1;
+    if (actions_.size() >= 1) { last_move_pos = actions_.back().GetActionID(); }
+    if (actions_.size() >= 2) { last2_move_pos = actions_[actions_.size() - 2].GetActionID(); }
 
+    std::ostringstream oss;
     oss << GetCoordinateString() << std::endl;
     for (int row = board_size_ - 1; row >= 0; --row) {
-        oss << GetTextWithFormat((row + 1 < 10 ? " " : "") + std::to_string(row + 1), text_type, text_color, text_background);
+        oss << GetTextWithFormat((row + 1 < 10 ? " " : "") + std::to_string(row + 1), TextType::kBold, TextColor::kBlack, TextColor::kYellow);
         for (int col = 0; col < board_size_; ++col) {
             int pos = row * board_size_ + col;
+            std::string prefix = GetTextWithFormat(" ", TextType::kBold, TextColor::kBlack, TextColor::kYellow);
+            if (pos == last_move_pos) {
+                prefix = GetTextWithFormat(">", TextType::kBold, TextColor::kRed, TextColor::kYellow);
+            } else if (pos == last2_move_pos) {
+                prefix = GetTextWithFormat(">", TextType::kNormal, TextColor::kRed, TextColor::kYellow);
+            }
+
             const GoGrid& grid = grids_[pos];
-            if (grid.GetPlayer() == Player::kPlayerNone) {
-                oss << empty_string;
+            if (grid.GetPlayer() == Player::kPlayer1) {
+                oss << prefix << GetTextWithFormat("O", TextType::kBold, TextColor::kBlack, TextColor::kYellow);
+            } else if (grid.GetPlayer() == Player::kPlayer2) {
+                oss << prefix << GetTextWithFormat("O", TextType::kBold, TextColor::kWhite, TextColor::kYellow);
             } else {
-                oss << stone_string.Get(grid.GetPlayer());
+                oss << prefix << GetTextWithFormat(".", TextType::kBold, TextColor::kBlack, TextColor::kYellow);
             }
         }
-        oss << GetTextWithFormat(" " + std::to_string(row + 1) + (row + 1 < 10 ? " " : ""), text_type, text_color, text_background);
+        oss << GetTextWithFormat(" " + std::to_string(row + 1) + (row + 1 < 10 ? " " : ""), TextType::kBold, TextColor::kBlack, TextColor::kYellow);
         oss << std::endl;
     }
     oss << GetCoordinateString() << std::endl;

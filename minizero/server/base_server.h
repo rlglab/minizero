@@ -21,7 +21,7 @@ public:
 
     void Write(std::string message)
     {
-        if (message.empty()) { return; }
+        if (message.empty() || IsClosed()) { return; }
 
         message += (message.back() == '\n' ? "" : "\n");
         strand_.dispatch(boost::bind(&ConnectionHandler::DoWrite, shared_from_this(), message));
@@ -39,10 +39,10 @@ public:
 
     virtual void Close()
     {
-        if (!is_closed_) {
-            is_closed_ = true;
-            socket_.close();
-        }
+        if (is_closed_) { return; }
+
+        is_closed_ = true;
+        socket_.close();
     }
 
     inline bool IsClosed() { return is_closed_; }
@@ -50,7 +50,7 @@ public:
 
     virtual void HandleReceivedMessage(const std::string& message) = 0;
 
-protected:
+private:
     void DoWrite(const std::string& message)
     {
         message_queue_.push(message);
@@ -137,6 +137,7 @@ protected:
     {
         if (!error) {
             boost::lock_guard<boost::mutex> lock(worker_mutex_);
+            SendInitialMessage(connection);
             connection->StartRead();
             connections_.push_back(connection);
             CleanUpClosedConnection();
@@ -155,6 +156,7 @@ protected:
     }
 
     virtual boost::shared_ptr<_ConnectionHandler> HandleAcceptNewConnection() = 0;
+    virtual void SendInitialMessage(boost::shared_ptr<_ConnectionHandler> connection) = 0;
 
     boost::mutex worker_mutex_;
     boost::thread_group thread_pool_;

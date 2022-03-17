@@ -53,5 +53,5 @@ fi
 
 # run zero server
 CONF_STR="zero_training_directory=${TRAIN_DIR}:zero_end_iteration=${END_ITERATION}:nn_file_name=${MODEL_FILE}:zero_start_iteration=${ZERO_START_ITERATION}"
-#gdb --ex=r --args Release/MiniZero -mode server
+#gdb --ex=r --args Release/minizero -conf_file ${TRAIN_DIR}/${NEW_CONFIGURE_FILE} -conf_str ${CONF_STR} -mode zero_server
 Release/minizero -conf_file ${TRAIN_DIR}/${NEW_CONFIGURE_FILE} -conf_str ${CONF_STR} -mode zero_server

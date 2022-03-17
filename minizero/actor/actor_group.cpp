@@ -47,18 +47,40 @@ void SlaveThread::DoCPUJob()
         int network_output_id = actor->GetEvaluationJobIndex();
         if (network_output_id >= 0) {
             actor->AfterNNEvaluation(shared_data_.network_outputs_[network_id][network_output_id]);
-            HandleSearchEndAndEnvEnd(actor);
+            HandleSearchEndAndEnvEnd(actor, actor_id == 0);
         }
         actor->BeforeNNEvaluation(shared_data_.networks_[network_id]);
         actor_id = shared_data_.GetNextActorIndex();
     }
 }
 
-void SlaveThread::HandleSearchEndAndEnvEnd(const std::shared_ptr<Actor>& actor)
+void SlaveThread::HandleSearchEndAndEnvEnd(const std::shared_ptr<Actor>& actor, bool display /*= false*/)
 {
     if (!actor->ReachMaximumSimulation()) { return; }
-    actor->Act(actor->GetMCTSTree().DecideAction());
-    if (actor->IsTerminal()) {
+    Action action = actor->GetMCTSTree().DecideAction();
+    const MCTSTreeNode* root = actor->GetMCTSTree().GetRootNode();
+    MCTSTreeNode* child = root->GetFirstChild();
+    MCTSTreeNode* action_node = nullptr;
+    for (int i = 0; i < root->GetNumChildren(); ++i, ++child) {
+        if (child->GetAction().GetActionID() != action.GetActionID()) { continue; }
+        action_node = child;
+        break;
+    }
+    assert(action_node && action_node->GetCount() > 0);
+
+    std::string root_node_info = root->ToString();
+    float win_rate = (action.GetPlayer() == env::Player::kPlayer1 ? action_node->GetMean() : -action_node->GetMean());
+    if (!actor->IsEnableResign() || win_rate >= config::actor_resign_threshold) { actor->Act(action); }
+    if (display) {
+        std::cerr << actor->GetEnvironment().ToString();
+        std::cerr << "move number: " << actor->GetEnvironment().GetActionHistory().size()
+                  << ", action id: " << action.GetActionID() << std::endl;
+        std::cerr << "  root node info: " << root_node_info << std::endl;
+        std::cerr << "action node info: " << action_node->ToString() << std::endl
+                  << std::endl;
+    }
+
+    if ((actor->IsEnableResign() && win_rate < config::actor_resign_threshold) || actor->IsTerminal()) {
         shared_data_.OutputRecord(actor->GetRecord());
         actor->Reset();
     }
@@ -99,6 +121,7 @@ ActorGroup::ActorGroup()
         mcts_tree_node_size *= std::static_pointer_cast<AlphaZeroNetwork>(network)->GetActionSize();
         for (int i = 0; i < config::actor_num_parallel_games; ++i) {
             shared_data_.actors_.emplace_back(std::make_shared<AlphaZeroActor>(mcts_tree_node_size));
+            shared_data_.actors_.back()->Reset();
         }
     } else if (network->GetNetworkTypeName() == "muzero") {
         mcts_tree_node_size *= std::static_pointer_cast<MuZeroNetwork>(network)->GetActionSize();

@@ -37,7 +37,7 @@ class MinizeroDataset(IterableDataset):
                                                                        self.conf.get_nn_input_channel_height(),
                                                                        self.conf.get_nn_input_channel_width())
             policy = torch.FloatTensor(result_dict["policy"])
-            value = result_dict["value"]
+            value = torch.FloatTensor([result_dict["value"]])
             yield features, policy, value
 
 
@@ -66,7 +66,6 @@ def load_model(training_dir, model_file, conf):
                                           gamma=0.1)
 
     if model_file:
-        eprint(f"load model {training_dir}/model/{model_file}")
         snapshot = torch.load(f"{training_dir}/model/{model_file}",
                               map_location=torch.device('cpu'))
         training_step = snapshot['training_step']
@@ -134,7 +133,9 @@ if __name__ == '__main__':
         optimizer.zero_grad()
 
         features, label_policy, label_value = next(data_loader_iterator)
-        output_policy, output_value = network(features.to(device))
+        network_output = network(features.to(device))
+        if conf.get_nn_type_name() == "alphazero":
+            output_policy, output_value = network_output["policy"], network_output["value"]
         loss_policy, loss_value = calculate_loss(output_policy, output_value, label_policy.to(device), label_value.to(device))
         loss = loss_policy + loss_value
 

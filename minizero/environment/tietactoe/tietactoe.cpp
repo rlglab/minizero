@@ -59,9 +59,9 @@ bool TieTacToeEnv::IsTerminal() const
     return (Eval() != Player::kPlayerNone || std::find(board_.begin(), board_.end(), Player::kPlayerNone) == board_.end());
 }
 
-float TieTacToeEnv::GetEvalScore() const
+float TieTacToeEnv::GetEvalScore(bool is_resign /*= false*/) const
 {
-    Player eval = Eval();
+    Player eval = (is_resign ? GetNextPlayer(turn_, kTieTacToeNumPlayer) : Eval());
     switch (eval) {
         case Player::kPlayer1: return 1.0f;
         case Player::kPlayer2: return -1.0f;

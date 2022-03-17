@@ -6,6 +6,8 @@ namespace minizero::config {
 
 extern int seed;
 extern bool auto_seed;
+
+// actor parameters
 extern int actor_num_threads;
 extern int actor_num_parallel_games;
 extern int actor_num_simulation;
@@ -17,14 +19,18 @@ extern float actor_select_action_softmax_temperature;
 extern bool actor_use_dirichlet_noise;
 extern float actor_dirichlet_noise_alpha;
 extern float actor_dirichlet_noise_epsilon;
+extern float actor_resign_threshold;
 
+// zero parameters
 extern int zero_server_port;
 extern std::string zero_training_directory;
 extern int zero_num_games_per_iteration;
 extern int zero_start_iteration;
 extern int zero_end_iteration;
 extern int zero_replay_buffer;
+extern float zero_disable_resign_ratio;
 
+// learner parameters
 extern int learner_training_step;
 extern int learner_training_display_step;
 extern int learner_batch_size;
@@ -33,6 +39,7 @@ extern float learner_momentum;
 extern float learner_weight_decay;
 extern int learner_num_process;
 
+// network parameters
 extern std::string nn_file_name;
 extern int nn_num_input_channels;
 extern int nn_input_channel_height;
@@ -44,6 +51,12 @@ extern int nn_num_blocks;
 extern int nn_num_action_channels;
 extern int nn_action_size;
 extern std::string nn_type_name;
+
+// environment parameters
+#if GO
+extern int env_go_board_size;
+extern float env_go_komi;
+#endif
 
 void SetConfiguration(ConfigureLoader& cl);
 

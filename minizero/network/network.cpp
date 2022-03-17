@@ -19,8 +19,12 @@ void Network::LoadModel(const std::string& nn_file_name, const int gpu_id)
     network_file_name_ = nn_file_name;
 
     // load model weights
-    network_ = torch::jit::load(network_file_name_, GetDevice());
-    network_.eval();
+    try {
+        network_ = torch::jit::load(network_file_name_, GetDevice());
+        network_.eval();
+    } catch (const c10::Error& e) {
+        assert(false);
+    }
 
     // network hyper-parameter
     std::vector<torch::jit::IValue> dummy;
