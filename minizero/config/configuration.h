@@ -53,10 +53,8 @@ extern int nn_action_size;
 extern std::string nn_type_name;
 
 // environment parameters
-#if GO
 extern int env_go_board_size;
 extern float env_go_komi;
-#endif
 
 void SetConfiguration(ConfigureLoader& cl);
 

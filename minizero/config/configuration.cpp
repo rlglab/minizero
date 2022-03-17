@@ -51,10 +51,8 @@ int nn_action_size = 9;
 std::string nn_type_name = "alphazero";
 
 // environment parameters
-#if GO
 int env_go_board_size = 19;
 float env_go_komi = 7.5;
-#endif
 
 void SetConfiguration(ConfigureLoader& cl)
 {
