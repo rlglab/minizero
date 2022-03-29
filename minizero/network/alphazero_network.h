@@ -23,12 +23,12 @@ public:
     {
         num_action_channels_ = action_size_ = -1;
         batch_size_ = 0;
-        ClearTensorInput();
+        clearTensorInput();
     }
 
-    void LoadModel(const std::string& nn_file_name, const int gpu_id)
+    void loadModel(const std::string& nn_file_name, const int gpu_id)
     {
-        Network::LoadModel(nn_file_name, gpu_id);
+        Network::loadModel(nn_file_name, gpu_id);
 
         std::vector<torch::jit::IValue> dummy;
         num_action_channels_ = network_.get_method("get_num_action_channels")(dummy).toInt();
@@ -36,18 +36,18 @@ public:
         batch_size_ = 0;
     }
 
-    std::string ToString() const
+    std::string toString() const
     {
         std::ostringstream oss;
-        oss << Network::ToString();
+        oss << Network::toString();
         oss << "Number of action channels: " << num_action_channels_ << std::endl;
         oss << "Action size: " << action_size_ << std::endl;
         return oss.str();
     }
 
-    int PushBack(std::vector<float> features)
+    int pushBack(std::vector<float> features)
     {
-        assert(static_cast<int>(features.size()) == GetNumInputChannels() * GetInputChannelHeight() * GetInputChannelWidth());
+        assert(static_cast<int>(features.size()) == getNumInputChannels() * getInputChannelHeight() * getInputChannelWidth());
 
         int index;
         {
@@ -55,21 +55,21 @@ public:
             index = batch_size_++;
             tensor_input_.resize(batch_size_);
         }
-        tensor_input_[index] = torch::from_blob(features.data(), {1, GetNumInputChannels(), GetInputChannelHeight(), GetInputChannelWidth()}).clone();
-        assert(tensor_input_[index].numel() == GetNumInputChannels() * GetInputChannelHeight() * GetInputChannelWidth());
+        tensor_input_[index] = torch::from_blob(features.data(), {1, getNumInputChannels(), getInputChannelHeight(), getInputChannelWidth()}).clone();
+        assert(tensor_input_[index].numel() == getNumInputChannels() * getInputChannelHeight() * getInputChannelWidth());
         return index;
     }
 
-    std::vector<std::shared_ptr<NetworkOutput>> Forward()
+    std::vector<std::shared_ptr<NetworkOutput>> forward()
     {
-        auto forward_result = network_.forward(std::vector<torch::jit::IValue>{torch::cat(tensor_input_).to(GetDevice())}).toGenericDict();
+        auto forward_result = network_.forward(std::vector<torch::jit::IValue>{torch::cat(tensor_input_).to(getDevice())}).toGenericDict();
 
         auto policy_output = torch::softmax(forward_result.at("policy").toTensor(), 1).to(at::kCPU);
         auto value_output = forward_result.at("value").toTensor().to(at::kCPU);
-        assert(policy_output.numel() == batch_size_ * GetActionSize());
+        assert(policy_output.numel() == batch_size_ * getActionSize());
         assert(value_output.numel() == batch_size_);
 
-        const int policy_size = GetActionSize();
+        const int policy_size = getActionSize();
         std::vector<std::shared_ptr<NetworkOutput>> network_outputs;
         for (int i = 0; i < batch_size_; ++i) {
             network_outputs.emplace_back(std::make_shared<AlphaZeroNetworkOutput>(policy_size));
@@ -81,16 +81,16 @@ public:
         }
 
         batch_size_ = 0;
-        ClearTensorInput();
+        clearTensorInput();
         return network_outputs;
     }
 
-    inline int GetNumActionChannels() const { return num_action_channels_; }
-    inline int GetActionSize() const { return action_size_; }
-    inline int GetBatchSize() const { return batch_size_; }
+    inline int getNumActionChannels() const { return num_action_channels_; }
+    inline int getActionSize() const { return action_size_; }
+    inline int getBatchSize() const { return batch_size_; }
 
 private:
-    inline void ClearTensorInput()
+    inline void clearTensorInput()
     {
         tensor_input_.clear();
         tensor_input_.reserve(kReserved_batch_size);

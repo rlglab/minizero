@@ -3,6 +3,7 @@
 #include "alphazero_network.h"
 #include "muzero_network.h"
 #include "random.h"
+#include "time_system.h"
 #include <iostream>
 #include <torch/cuda.h>
 
@@ -11,89 +12,85 @@ namespace minizero::actor {
 using namespace network;
 using namespace utils;
 
-int ThreadSharedData::GetNextActorIndex()
+int ThreadSharedData::getNextActorIndex()
 {
     std::lock_guard<std::mutex> lock(mutex_);
     return actor_index_++;
 }
 
-void ThreadSharedData::OutputRecord(const std::string& record)
+void ThreadSharedData::outputRecord(const std::string& record)
 {
     std::lock_guard<std::mutex> lock(mutex_);
     std::cout << record << std::endl;
 }
 
-void SlaveThread::RunThread()
+void SlaveThread::runThread()
 {
     int seed = config::auto_seed ? std::random_device()() : config::seed;
-    Random::Seed(seed);
+    Random::seed(seed);
     while (true) {
         start_barrier_.wait();
         if (shared_data_.do_cpu_job_) {
-            DoCPUJob();
+            doCPUJob();
         } else {
-            DoGPUJob();
+            doGPUJob();
         }
         finish_barrier_.wait();
     }
 }
 
-void SlaveThread::DoCPUJob()
+void SlaveThread::doCPUJob()
 {
-    size_t actor_id = shared_data_.GetNextActorIndex();
+    size_t actor_id = shared_data_.getNextActorIndex();
     while (actor_id < shared_data_.actors_.size()) {
         std::shared_ptr<Actor>& actor = shared_data_.actors_[actor_id];
         int network_id = actor_id % shared_data_.networks_.size();
-        int network_output_id = actor->GetEvaluationJobIndex();
+        int network_output_id = actor->getEvaluationJobIndex();
         if (network_output_id >= 0) {
-            actor->AfterNNEvaluation(shared_data_.network_outputs_[network_id][network_output_id]);
-            HandleSearchEndAndEnvEnd(actor, actor_id == 0);
+            actor->afterNNEvaluation(shared_data_.network_outputs_[network_id][network_output_id]);
+            handleSearchEndAndEnvEnd(actor, actor_id == 0);
         }
-        actor->BeforeNNEvaluation(shared_data_.networks_[network_id]);
-        actor_id = shared_data_.GetNextActorIndex();
+        actor->beforeNNEvaluation(shared_data_.networks_[network_id]);
+        actor_id = shared_data_.getNextActorIndex();
     }
 }
 
-void SlaveThread::HandleSearchEndAndEnvEnd(const std::shared_ptr<Actor>& actor, bool display /*= false*/)
+void SlaveThread::handleSearchEndAndEnvEnd(const std::shared_ptr<Actor>& actor, bool display /*= false*/)
 {
-    if (!actor->ReachMaximumSimulation()) { return; }
-    Action action = actor->GetMCTSTree().DecideAction();
-    const MCTSTreeNode* root = actor->GetMCTSTree().GetRootNode();
-    MCTSTreeNode* child = root->GetFirstChild();
-    MCTSTreeNode* action_node = nullptr;
-    for (int i = 0; i < root->GetNumChildren(); ++i, ++child) {
-        if (child->GetAction().GetActionID() != action.GetActionID()) { continue; }
-        action_node = child;
-        break;
-    }
-    assert(action_node && action_node->GetCount() > 0);
+    if (!actor->reachMaximumSimulation()) { return; }
+    const MCTSTreeNode* root = actor->getMCTSTree().getRootNode();
+    const MCTSTreeNode* action_node = actor->getMCTSTree().decideActionNode();
+    Action action = action_node->getAction();
 
-    std::string root_node_info = root->ToString();
-    float win_rate = (action.GetPlayer() == env::Player::kPlayer1 ? action_node->GetMean() : -action_node->GetMean());
-    if (!actor->IsEnableResign() || win_rate >= config::actor_resign_threshold) { actor->Act(action); }
+    std::string root_node_info = root->toString();
+    float win_rate = (action.getPlayer() == env::Player::kPlayer1 ? action_node->getMean() : -action_node->getMean());
+    if (!actor->isEnableResign() || win_rate >= config::actor_resign_threshold) { actor->act(action); }
     if (display) {
-        std::cerr << actor->GetEnvironment().ToString();
-        std::cerr << "move number: " << actor->GetEnvironment().GetActionHistory().size()
-                  << ", action id: " << action.GetActionID() << std::endl;
+        std::string action_id_str = ((!actor->isEnableResign() || win_rate >= config::actor_resign_threshold) ? std::to_string(action.getActionID()) : "resign");
+        std::cerr << actor->getEnvironment().toString();
+        std::cerr << TimeSystem::getTimeString("[Y/m/d H:i:s.f] ")
+                  << "move number: " << actor->getEnvironment().getActionHistory().size()
+                  << ", action id: " << action_id_str
+                  << ", action player: " << env::playerToChar(action.getPlayer()) << std::endl;
         std::cerr << "  root node info: " << root_node_info << std::endl;
-        std::cerr << "action node info: " << action_node->ToString() << std::endl
+        std::cerr << "action node info: " << action_node->toString() << std::endl
                   << std::endl;
     }
 
-    if ((actor->IsEnableResign() && win_rate < config::actor_resign_threshold) || actor->IsTerminal()) {
-        shared_data_.OutputRecord(actor->GetRecord());
-        actor->Reset();
+    if ((actor->isEnableResign() && win_rate < config::actor_resign_threshold) || actor->isTerminal()) {
+        shared_data_.outputRecord(actor->getRecord());
+        actor->reset();
     }
 }
 
-void SlaveThread::DoGPUJob()
+void SlaveThread::doGPUJob()
 {
     if (id_ >= static_cast<int>(shared_data_.networks_.size())) { return; }
 
     std::shared_ptr<Network>& network = shared_data_.networks_[id_];
-    if (network->GetNetworkTypeName() == "alphazero") {
-        shared_data_.network_outputs_[id_] = std::static_pointer_cast<AlphaZeroNetwork>(network)->Forward();
-    } else if (network->GetNetworkTypeName() == "muzero") {
+    if (network->getNetworkTypeName() == "alphazero") {
+        shared_data_.network_outputs_[id_] = std::static_pointer_cast<AlphaZeroNetwork>(network)->forward();
+    } else if (network->getNetworkTypeName() == "muzero") {
         // TODO
     }
 }
@@ -103,7 +100,7 @@ ActorGroup::ActorGroup()
     // threads
     for (int id = 0; id < config::actor_num_threads; ++id) {
         slave_threads_.emplace_back(std::make_shared<SlaveThread>(id, shared_data_));
-        thread_groups_.create_thread(boost::bind(&SlaveThread::RunThread, slave_threads_.back()));
+        thread_groups_.create_thread(boost::bind(&SlaveThread::runThread, slave_threads_.back()));
     }
 
     // networks
@@ -111,31 +108,31 @@ ActorGroup::ActorGroup()
     shared_data_.networks_.resize(torch::cuda::device_count());
     shared_data_.network_outputs_.resize(torch::cuda::device_count());
     for (size_t gpu_id = 0; gpu_id < torch::cuda::device_count(); ++gpu_id) {
-        shared_data_.networks_[gpu_id] = CreateNetwork(config::nn_file_name, gpu_id);
+        shared_data_.networks_[gpu_id] = createNetwork(config::nn_file_name, gpu_id);
     }
 
     // actors
     std::shared_ptr<Network>& network = shared_data_.networks_[0];
     long long mcts_tree_node_size = static_cast<long long>(config::actor_num_simulation);
-    if (network->GetNetworkTypeName() == "alphazero") {
-        mcts_tree_node_size *= std::static_pointer_cast<AlphaZeroNetwork>(network)->GetActionSize();
+    if (network->getNetworkTypeName() == "alphazero") {
+        mcts_tree_node_size *= std::static_pointer_cast<AlphaZeroNetwork>(network)->getActionSize();
         for (int i = 0; i < config::actor_num_parallel_games; ++i) {
             shared_data_.actors_.emplace_back(std::make_shared<AlphaZeroActor>(mcts_tree_node_size));
-            shared_data_.actors_.back()->Reset();
+            shared_data_.actors_.back()->reset();
         }
-    } else if (network->GetNetworkTypeName() == "muzero") {
-        mcts_tree_node_size *= std::static_pointer_cast<MuZeroNetwork>(network)->GetActionSize();
+    } else if (network->getNetworkTypeName() == "muzero") {
+        mcts_tree_node_size *= std::static_pointer_cast<MuZeroNetwork>(network)->getActionSize();
         // TODO
     }
 }
 
-void ActorGroup::Run()
+void ActorGroup::run()
 {
     shared_data_.do_cpu_job_ = true;
     while (true) {
         shared_data_.actor_index_ = 0;
-        for (auto t : slave_threads_) { t->Start(); }
-        for (auto t : slave_threads_) { t->Finish(); }
+        for (auto t : slave_threads_) { t->start(); }
+        for (auto t : slave_threads_) { t->finish(); }
         shared_data_.do_cpu_job_ = !shared_data_.do_cpu_job_;
     }
 }

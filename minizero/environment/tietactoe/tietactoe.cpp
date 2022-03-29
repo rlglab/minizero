@@ -1,5 +1,6 @@
 #include "tietactoe.h"
 #include "sgf_loader.h"
+#include <algorithm>
 
 namespace minizero::env::tietactoe {
 
@@ -8,12 +9,12 @@ using namespace minizero::utils;
 TieTacToeAction::TieTacToeAction(const std::vector<std::string>& action_string_args)
 {
     assert(action_string_args.size() == 2);
-    assert(action_string_args[0].size() == 1 && (CharToPlayer(action_string_args[0][0]) == Player::kPlayer1 || CharToPlayer(action_string_args[0][0]) == Player::kPlayer2));
-    player_ = CharToPlayer(action_string_args[0][0]);
-    action_id_ = SGFLoader::BoardCoordinateStringToActionID(action_string_args[1], kTieTacToeBoardSize);
+    assert(action_string_args[0].size() == 1 && (charToPlayer(action_string_args[0][0]) == Player::kPlayer1 || charToPlayer(action_string_args[0][0]) == Player::kPlayer2));
+    player_ = charToPlayer(action_string_args[0][0]);
+    action_id_ = SGFLoader::boardCoordinateStringToActionID(action_string_args[1], kTieTacToeBoardSize);
 }
 
-void TieTacToeEnv::Reset()
+void TieTacToeEnv::reset()
 {
     turn_ = Player::kPlayer1;
     actions_.clear();
@@ -21,55 +22,55 @@ void TieTacToeEnv::Reset()
     fill(board_.begin(), board_.end(), Player::kPlayerNone);
 }
 
-bool TieTacToeEnv::Act(const TieTacToeAction& action)
+bool TieTacToeEnv::act(const TieTacToeAction& action)
 {
-    if (!IsLegalAction(action)) { return false; }
+    if (!isLegalAction(action)) { return false; }
     actions_.push_back(action);
-    board_[action.GetActionID()] = action.GetPlayer();
-    turn_ = action.NextPlayer();
+    board_[action.getActionID()] = action.getPlayer();
+    turn_ = action.nextPlayer();
     return true;
 }
 
-bool TieTacToeEnv::Act(const std::vector<std::string>& action_string_args)
+bool TieTacToeEnv::act(const std::vector<std::string>& action_string_args)
 {
-    return Act(TieTacToeAction(action_string_args));
+    return act(TieTacToeAction(action_string_args));
 }
 
-std::vector<TieTacToeAction> TieTacToeEnv::GetLegalActions() const
+std::vector<TieTacToeAction> TieTacToeEnv::getLegalActions() const
 {
     std::vector<TieTacToeAction> actions;
     for (int pos = 0; pos < kTieTacToeBoardSize * kTieTacToeBoardSize; ++pos) {
         TieTacToeAction action(pos, turn_);
-        if (!IsLegalAction(action)) { continue; }
+        if (!isLegalAction(action)) { continue; }
         actions.push_back(action);
     }
     return actions;
 }
 
-bool TieTacToeEnv::IsLegalAction(const TieTacToeAction& action) const
+bool TieTacToeEnv::isLegalAction(const TieTacToeAction& action) const
 {
-    assert(action.GetActionID() >= 0 && action.GetActionID() < kTieTacToeBoardSize * kTieTacToeBoardSize);
-    assert(action.GetPlayer() == Player::kPlayer1 || action.GetPlayer() == Player::kPlayer2);
-    return (board_[action.GetActionID()] == Player::kPlayerNone);
+    assert(action.getActionID() >= 0 && action.getActionID() < kTieTacToeBoardSize * kTieTacToeBoardSize);
+    assert(action.getPlayer() == Player::kPlayer1 || action.getPlayer() == Player::kPlayer2);
+    return (board_[action.getActionID()] == Player::kPlayerNone);
 }
 
-bool TieTacToeEnv::IsTerminal() const
+bool TieTacToeEnv::isTerminal() const
 {
     // terminal: any player wins or board is filled
-    return (Eval() != Player::kPlayerNone || std::find(board_.begin(), board_.end(), Player::kPlayerNone) == board_.end());
+    return (eval() != Player::kPlayerNone || std::find(board_.begin(), board_.end(), Player::kPlayerNone) == board_.end());
 }
 
-float TieTacToeEnv::GetEvalScore(bool is_resign /*= false*/) const
+float TieTacToeEnv::getEvalScore(bool is_resign /*= false*/) const
 {
-    Player eval = (is_resign ? GetNextPlayer(turn_, kTieTacToeNumPlayer) : Eval());
-    switch (eval) {
+    Player result = (is_resign ? getNextPlayer(turn_, kTieTacToeNumPlayer) : eval());
+    switch (result) {
         case Player::kPlayer1: return 1.0f;
         case Player::kPlayer2: return -1.0f;
         default: return 0.0f;
     }
 }
 
-std::vector<float> TieTacToeEnv::GetFeatures() const
+std::vector<float> TieTacToeEnv::getFeatures(utils::Rotation rotation /*= utils::Rotation::kRotationNone*/) const
 {
     /* 4 channels:
         0. Nought position
@@ -80,10 +81,11 @@ std::vector<float> TieTacToeEnv::GetFeatures() const
     std::vector<float> vFeatures;
     for (int channel = 0; channel < 4; ++channel) {
         for (int pos = 0; pos < kTieTacToeBoardSize * kTieTacToeBoardSize; ++pos) {
+            int rotation_pos = getPositionByRotating(utils::reversed_rotation[static_cast<int>(rotation)], pos, kTieTacToeBoardSize);
             if (channel == 0) {
-                vFeatures.push_back((board_[pos] == Player::kPlayer1 ? 1.0f : 0.0f));
+                vFeatures.push_back((board_[rotation_pos] == Player::kPlayer1 ? 1.0f : 0.0f));
             } else if (channel == 1) {
-                vFeatures.push_back((board_[pos] == Player::kPlayer2 ? 1.0f : 0.0f));
+                vFeatures.push_back((board_[rotation_pos] == Player::kPlayer2 ? 1.0f : 0.0f));
             } else if (channel == 2) {
                 vFeatures.push_back((turn_ == Player::kPlayer1 ? 1.0f : 0.0f));
             } else if (channel == 3) {
@@ -94,7 +96,7 @@ std::vector<float> TieTacToeEnv::GetFeatures() const
     return vFeatures;
 }
 
-std::string TieTacToeEnv::ToString() const
+std::string TieTacToeEnv::toString() const
 {
     std::ostringstream oss;
     oss << "   A  B  C" << std::endl;
@@ -115,7 +117,7 @@ std::string TieTacToeEnv::ToString() const
     return oss.str();
 }
 
-Player TieTacToeEnv::Eval() const
+Player TieTacToeEnv::eval() const
 {
     int c;
     for (int i = 0; i < kTieTacToeBoardSize; ++i) {

@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 
-namespace minizero::env {
+namespace minizero::utils {
 
 enum class TextType {
     kNormal,
@@ -22,7 +22,7 @@ enum class TextColor {
     kSize
 };
 
-inline std::string GetTextWithFormat(std::string text, TextType text_type, TextColor text_color, TextColor text_background)
+inline std::string getColorText(std::string text, TextType text_type, TextColor text_color, TextColor text_background)
 {
     const int text_type_number[static_cast<int>(TextType::kSize)] = {0, 1, 4};
     return "\33[" + std::to_string(text_type_number[static_cast<int>(text_type)]) +

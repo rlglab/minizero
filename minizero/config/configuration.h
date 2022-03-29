@@ -47,15 +47,18 @@ extern int nn_input_channel_width;
 extern int nn_num_hidden_channels;
 extern int nn_hidden_channel_height;
 extern int nn_hidden_channel_width;
+extern int nn_num_action_feature_channels;
 extern int nn_num_blocks;
 extern int nn_num_action_channels;
 extern int nn_action_size;
+extern int nn_num_value_hidden_channels;
 extern std::string nn_type_name;
 
 // environment parameters
 extern int env_go_board_size;
 extern float env_go_komi;
+extern std::string env_go_ko_rule;
 
-void SetConfiguration(ConfigureLoader& cl);
+void setConfiguration(ConfigureLoader& cl);
 
 } // namespace minizero::config

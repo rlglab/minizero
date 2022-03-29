@@ -20,9 +20,9 @@ public:
         initial_input_batch_size_ = recurrent_input_batch_size_ = 0;
     }
 
-    void LoadModel(const std::string& nn_file_name, const int gpu_id)
+    void loadModel(const std::string& nn_file_name, const int gpu_id)
     {
-        Network::LoadModel(nn_file_name, gpu_id);
+        Network::loadModel(nn_file_name, gpu_id);
 
         std::vector<torch::jit::IValue> dummy;
         num_action_channels_ = network_.get_method("get_num_action_channels")(dummy).toInt();
@@ -31,18 +31,18 @@ public:
         recurrent_input_batch_size_ = 0;
     }
 
-    std::string ToString() const
+    std::string toString() const
     {
         std::ostringstream oss;
-        oss << Network::ToString();
+        oss << Network::toString();
         oss << "Number of action channels: " << num_action_channels_ << std::endl;
         oss << "Action size: " << action_size_ << std::endl;
         return oss.str();
     }
 
-    int PushBackInitialData(std::vector<float> features)
+    int pushBackInitialData(std::vector<float> features)
     {
-        assert(static_cast<int>(features.size()) == GetNumInputChannels() * GetInputChannelHeight() * GetInputChannelWidth());
+        assert(static_cast<int>(features.size()) == getNumInputChannels() * getInputChannelHeight() * getInputChannelWidth());
 
         int index;
         {
@@ -50,14 +50,14 @@ public:
             index = initial_input_batch_size_++;
             initial_tensor_input_.resize(initial_input_batch_size_);
         }
-        initial_tensor_input_[index] = torch::from_blob(features.data(), {1, GetNumInputChannels(), GetInputChannelHeight(), GetInputChannelWidth()}).clone().to(GetDevice());
+        initial_tensor_input_[index] = torch::from_blob(features.data(), {1, getNumInputChannels(), getInputChannelHeight(), getInputChannelWidth()}).clone().to(getDevice());
         return index;
     }
 
-    int PushBackRecurrentData(std::vector<float> features, std::vector<float> actions)
+    int pushBackRecurrentData(std::vector<float> features, std::vector<float> actions)
     {
-        assert(static_cast<int>(features.size()) == GetNumHiddenChannels() * GetHiddenChannelHeight() * GetHiddenChannelWidth());
-        assert(static_cast<int>(actions.size()) == GetNumActionChannels() * GetHiddenChannelHeight() * GetHiddenChannelWidth());
+        assert(static_cast<int>(features.size()) == getNumHiddenChannels() * getHiddenChannelHeight() * getHiddenChannelWidth());
+        assert(static_cast<int>(actions.size()) == getNumActionChannels() * getHiddenChannelHeight() * getHiddenChannelWidth());
 
         int index;
         {
@@ -66,12 +66,12 @@ public:
             recurrent_tensor_feature_input_.resize(recurrent_input_batch_size_);
             recurrent_tensor_action_input_.resize(recurrent_input_batch_size_);
         }
-        recurrent_tensor_feature_input_[index] = torch::from_blob(features.data(), {1, GetNumHiddenChannels(), GetHiddenChannelHeight(), GetHiddenChannelWidth()}).clone().to(GetDevice());
-        recurrent_tensor_action_input_[index] = torch::from_blob(actions.data(), {1, GetNumActionChannels(), GetHiddenChannelHeight(), GetHiddenChannelWidth()}).clone().to(GetDevice());
+        recurrent_tensor_feature_input_[index] = torch::from_blob(features.data(), {1, getNumHiddenChannels(), getHiddenChannelHeight(), getHiddenChannelWidth()}).clone().to(getDevice());
+        recurrent_tensor_action_input_[index] = torch::from_blob(actions.data(), {1, getNumActionChannels(), getHiddenChannelHeight(), getHiddenChannelWidth()}).clone().to(getDevice());
         return index;
     }
 
-    inline std::vector<MuZeroNetworkOutput> InitialInference()
+    inline std::vector<MuZeroNetworkOutput> initialInference()
     {
         auto outputs = forward("initial_inference", {torch::cat(initial_tensor_input_)}, initial_input_batch_size_);
         initial_tensor_input_.clear();
@@ -79,7 +79,7 @@ public:
         return outputs;
     }
 
-    inline std::vector<MuZeroNetworkOutput> RecurrentInference()
+    inline std::vector<MuZeroNetworkOutput> recurrentInference()
     {
         auto outputs = forward("recurrent_inference",
                                {{torch::cat(recurrent_tensor_feature_input_)}, {torch::cat(recurrent_tensor_action_input_)}},
@@ -90,10 +90,10 @@ public:
         return outputs;
     }
 
-    inline int GetNumActionChannels() const { return num_action_channels_; }
-    inline int GetActionSize() const { return action_size_; }
-    inline int GetInitialInputBatchSize() const { return initial_input_batch_size_; }
-    inline int GetRecurrentInputBatchSize() const { return recurrent_input_batch_size_; }
+    inline int getNumActionChannels() const { return num_action_channels_; }
+    inline int getActionSize() const { return action_size_; }
+    inline int getInitialInputBatchSize() const { return initial_input_batch_size_; }
+    inline int getRecurrentInputBatchSize() const { return recurrent_input_batch_size_; }
 
 private:
     std::vector<MuZeroNetworkOutput> forward(const std::string& method, const std::vector<torch::jit::IValue>& inputs, int batch_size)
@@ -105,8 +105,8 @@ private:
         auto value_output = forward_result.at("value").toTensor().to(at::kCPU);
         auto hidden_state_output = forward_result.at("hidden_state").toTensor().to(at::kCPU);
 
-        const int policy_size = GetActionSize();
-        const int hidden_state_size = GetNumHiddenChannels() * GetHiddenChannelHeight() * GetHiddenChannelWidth();
+        const int policy_size = getActionSize();
+        const int hidden_state_size = getNumHiddenChannels() * getHiddenChannelHeight() * getHiddenChannelWidth();
         std::vector<MuZeroNetworkOutput> network_outputs(batch_size);
         for (int i = 0; i < batch_size; ++i) {
             network_outputs[i].value_ = value_output[i].item<float>();

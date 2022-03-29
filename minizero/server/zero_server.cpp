@@ -1,4 +1,5 @@
 #include "zero_server.h"
+#include "random.h"
 #include <boost/algorithm/string.hpp>
 #include <iostream>
 
@@ -6,7 +7,7 @@ namespace minizero::server {
 
 using namespace minizero;
 
-void ZeroLogger::CreateLog()
+void ZeroLogger::createLog()
 {
     std::string worker_file_name = config::zero_training_directory + "/Worker.log";
     std::string training_file_name = config::zero_training_directory + "/Training.log";
@@ -21,13 +22,13 @@ void ZeroLogger::CreateLog()
     training_log_ << std::endl;
 }
 
-void ZeroLogger::AddLog(const std::string& log_str, std::fstream& log_file)
+void ZeroLogger::addLog(const std::string& log_str, std::fstream& log_file)
 {
-    log_file << TimeSystem::GetTimeString("[Y/m/d_H:i:s.f] ") << log_str << std::endl;
-    std::cout << TimeSystem::GetTimeString("[Y/m/d_H:i:s.f] ") << log_str << std::endl;
+    log_file << TimeSystem::getTimeString("[Y/m/d_H:i:s.f] ") << log_str << std::endl;
+    std::cout << TimeSystem::getTimeString("[Y/m/d_H:i:s.f] ") << log_str << std::endl;
 }
 
-std::string ZeroWorkerSharedData::GetSelfPlayGame()
+std::string ZeroWorkerSharedData::getSelfPlayGame()
 {
     boost::lock_guard<boost::mutex> lock(mutex_);
     std::string self_play_game = "";
@@ -38,19 +39,19 @@ std::string ZeroWorkerSharedData::GetSelfPlayGame()
     return self_play_game;
 }
 
-bool ZeroWorkerSharedData::IsOptimizationPahse()
+bool ZeroWorkerSharedData::isOptimizationPahse()
 {
     boost::lock_guard<boost::mutex> lock(mutex_);
     return is_optimization_phase_;
 }
 
-int ZeroWorkerSharedData::GetModelIetration()
+int ZeroWorkerSharedData::getModelIetration()
 {
     boost::lock_guard<boost::mutex> lock(mutex_);
     return model_iteration_;
 }
 
-void ZeroWorkerHandler::HandleReceivedMessage(const std::string& message)
+void ZeroWorkerHandler::handleReceivedMessage(const std::string& message)
 {
     std::vector<std::string> args;
     boost::split(args, message, boost::is_any_of(" "), boost::token_compress_on);
@@ -59,7 +60,7 @@ void ZeroWorkerHandler::HandleReceivedMessage(const std::string& message)
         name_ = args[1];
         type_ = args[2];
         boost::lock_guard<boost::mutex> lock(shared_data_.worker_mutex_);
-        shared_data_.logger_.AddWorkerLog("[Worker Connection] " + GetName() + " " + GetType());
+        shared_data_.logger_.addWorkerLog("[Worker Connection] " + getName() + " " + getType());
         is_idle_ = true;
     } else if (args[0] == "SelfPlay") {
         if (message.find("SelfPlay", message.find("SelfPlay", 0) + 1) != std::string::npos) { return; }
@@ -74,47 +75,48 @@ void ZeroWorkerHandler::HandleReceivedMessage(const std::string& message)
         std::string error_message = message;
         std::replace(error_message.begin(), error_message.end(), '\r', ' ');
         std::replace(error_message.begin(), error_message.end(), '\n', ' ');
-        shared_data_.logger_.AddWorkerLog("[Worker Error] " + error_message);
-        Close();
+        shared_data_.logger_.addWorkerLog("[Worker Error] " + error_message);
+        close();
     }
 }
 
-void ZeroWorkerHandler::Close()
+void ZeroWorkerHandler::close()
 {
-    if (IsClosed()) { return; }
+    if (isClosed()) { return; }
 
     boost::lock_guard<boost::mutex> lock(shared_data_.worker_mutex_);
-    shared_data_.logger_.AddWorkerLog("[Worker Disconnection] " + GetName() + " " + GetType());
-    ConnectionHandler::Close();
+    shared_data_.logger_.addWorkerLog("[Worker Disconnection] " + getName() + " " + getType());
+    ConnectionHandler::close();
 }
 
-void ZeroServer::Run()
+void ZeroServer::run()
 {
-    Initialize();
-    StartAccept();
-    std::cout << TimeSystem::GetTimeString("[Y/m/d_H:i:s.f] ") << "Server initialize over." << std::endl;
+    initialize();
+    startAccept();
+    std::cout << TimeSystem::getTimeString("[Y/m/d_H:i:s.f] ") << "Server initialize over." << std::endl;
 
     for (iteration_ = config::zero_start_iteration; iteration_ <= config::zero_end_iteration; ++iteration_) {
-        SelfPlay();
-        Optimization();
+        selfPlay();
+        optimization();
     }
 }
 
-boost::shared_ptr<ZeroWorkerHandler> ZeroServer::HandleAcceptNewConnection()
+boost::shared_ptr<ZeroWorkerHandler> ZeroServer::handleAcceptNewConnection()
 {
     boost::shared_ptr<ZeroWorkerHandler> worker = boost::make_shared<ZeroWorkerHandler>(io_service_, shared_data_);
     return worker;
 }
 
-void ZeroServer::SendInitialMessage(boost::shared_ptr<ZeroWorkerHandler> connection)
+void ZeroServer::sendInitialMessage(boost::shared_ptr<ZeroWorkerHandler> connection)
 {
-    connection->Write("Info");
+    connection->write("Info");
 }
 
-void ZeroServer::Initialize()
+void ZeroServer::initialize()
 {
-    seed_ = config::auto_seed ? static_cast<int>(time(NULL)) : config::seed;
-    shared_data_.logger_.CreateLog();
+    int seed = config::auto_seed ? static_cast<int>(time(NULL)) : config::seed;
+    utils::Random::seed(seed);
+    shared_data_.logger_.createLog();
 
     std::string nn_file_name = config::nn_file_name;
     nn_file_name = nn_file_name.substr(nn_file_name.find("weight_iter_") + std::string("weight_iter_").size());
@@ -122,24 +124,24 @@ void ZeroServer::Initialize()
     shared_data_.model_iteration_ = stoi(nn_file_name);
 }
 
-void ZeroServer::SelfPlay()
+void ZeroServer::selfPlay()
 {
     // setup
     std::string self_play_file_name = config::zero_training_directory + "/sgf/" + std::to_string(iteration_) + ".sgf";
-    shared_data_.logger_.GetSelfPlayFileStream().open(self_play_file_name.c_str(), std::ios::out);
-    shared_data_.logger_.AddTrainingLog("[Iteration] =====" + std::to_string(iteration_) + "=====");
-    shared_data_.logger_.AddTrainingLog("[SelfPlay] Start " + std::to_string(shared_data_.GetModelIetration()));
+    shared_data_.logger_.getSelfPlayFileStream().open(self_play_file_name.c_str(), std::ios::out);
+    shared_data_.logger_.addTrainingLog("[Iteration] =====" + std::to_string(iteration_) + "=====");
+    shared_data_.logger_.addTrainingLog("[SelfPlay] Start " + std::to_string(shared_data_.getModelIetration()));
 
     int num_collect_game = 0, game_length = 0;
     while (num_collect_game < config::zero_num_games_per_iteration) {
-        BroadCastSelfPlayJob();
+        broadCastSelfPlayJob();
 
         // read one selfplay game
-        std::string self_play_game = shared_data_.GetSelfPlayGame();
+        std::string self_play_game = shared_data_.getSelfPlayGame();
         if (self_play_game.empty()) {
             boost::this_thread::sleep(boost::posix_time::milliseconds(100));
             continue;
-        } else if (self_play_game.find("weight_iter_" + std::to_string(shared_data_.GetModelIetration())) == std::string::npos) {
+        } else if (self_play_game.find("weight_iter_" + std::to_string(shared_data_.getModelIetration())) == std::string::npos) {
             // discard previous self-play games
             continue;
         }
@@ -147,7 +149,7 @@ void ZeroServer::SelfPlay()
         // save record
         std::string move_number = self_play_game.substr(0, self_play_game.find("(") - 1);
         std::string game_string = self_play_game.substr(self_play_game.find("("));
-        shared_data_.logger_.GetSelfPlayFileStream() << num_collect_game << " "
+        shared_data_.logger_.getSelfPlayFileStream() << num_collect_game << " "
                                                      << move_number << " "
                                                      << game_string << std::endl;
         ++num_collect_game;
@@ -155,80 +157,78 @@ void ZeroServer::SelfPlay()
 
         // display progress
         if (num_collect_game % static_cast<int>(config::zero_num_games_per_iteration * 0.25) == 0) {
-            shared_data_.logger_.AddTrainingLog("[SelfPlay Progress] " +
+            shared_data_.logger_.addTrainingLog("[SelfPlay Progress] " +
                                                 std::to_string(num_collect_game) + " / " +
                                                 std::to_string(config::zero_num_games_per_iteration));
         }
     }
 
-    StopJob();
-    shared_data_.logger_.GetSelfPlayFileStream().close();
-    shared_data_.logger_.AddTrainingLog("[SelfPlay] Finished.");
-    shared_data_.logger_.AddTrainingLog("[SelfPlay Game Lengths] " + std::to_string(game_length * 1.0f / num_collect_game));
+    stopJob();
+    shared_data_.logger_.getSelfPlayFileStream().close();
+    shared_data_.logger_.addTrainingLog("[SelfPlay] Finished.");
+    shared_data_.logger_.addTrainingLog("[SelfPlay Game Lengths] " + std::to_string(game_length * 1.0f / num_collect_game));
 }
 
-void ZeroServer::BroadCastSelfPlayJob()
+void ZeroServer::broadCastSelfPlayJob()
 {
     std::string job_command = "Job_SelfPlay ";
     job_command += config::zero_training_directory + " ";
-    job_command += "seed=" + std::to_string(seed_);
-    job_command += ":nn_file_name=" + config::zero_training_directory + "/model/weight_iter_" + std::to_string(shared_data_.GetModelIetration()) + ".pt";
-    seed_ += kSeedStep;
+    job_command += "nn_file_name=" + config::zero_training_directory + "/model/weight_iter_" + std::to_string(shared_data_.getModelIetration()) + ".pt";
 
     boost::lock_guard<boost::mutex> lock(worker_mutex_);
     for (auto worker : connections_) {
-        if (!worker->IsIdle()) { continue; }
-        worker->SetIdle(false);
-        worker->Write(job_command);
+        if (!worker->isIdle()) { continue; }
+        worker->setIdle(false);
+        worker->write(job_command + ":auto_seed=false:seed=" + std::to_string(utils::Random::randInt()));
     }
 }
 
-void ZeroServer::Optimization()
+void ZeroServer::optimization()
 {
-    shared_data_.logger_.AddTrainingLog("[Optimization] Start.");
+    shared_data_.logger_.addTrainingLog("[Optimization] Start.");
 
     std::string job_command = "Job_Optimization ";
     job_command += config::zero_training_directory + " ";
-    job_command += "weight_iter_" + std::to_string(shared_data_.GetModelIetration()) + ".pkl";
-    job_command += " " + std::to_string(std::max(1, iteration_ - config::zero_replay_buffer));
+    job_command += "weight_iter_" + std::to_string(shared_data_.getModelIetration()) + ".pkl";
+    job_command += " " + std::to_string(std::max(1, iteration_ - config::zero_replay_buffer + 1));
     job_command += " " + std::to_string(iteration_);
 
     shared_data_.is_optimization_phase_ = true;
-    while (shared_data_.IsOptimizationPahse()) {
+    while (shared_data_.isOptimizationPahse()) {
         boost::lock_guard<boost::mutex> lock(worker_mutex_);
         for (auto worker : connections_) {
-            if (!worker->IsIdle()) { continue; }
-            worker->SetIdle(false);
-            worker->Write(job_command);
+            if (!worker->isIdle()) { continue; }
+            worker->setIdle(false);
+            worker->write(job_command);
         }
     }
-    StopJob();
+    stopJob();
 
-    shared_data_.logger_.AddTrainingLog("[Optimization] Finished.");
+    shared_data_.logger_.addTrainingLog("[Optimization] Finished.");
 }
 
-void ZeroServer::StopJob()
+void ZeroServer::stopJob()
 {
     boost::lock_guard<boost::mutex> lock(worker_mutex_);
     for (auto worker : connections_) {
-        worker->SetIdle(true);
-        worker->Write("Job_Done");
+        worker->setIdle(true);
+        worker->write("Job_Done");
     }
 }
 
-void ZeroServer::KeepAlive()
+void ZeroServer::keepAlive()
 {
     boost::lock_guard<boost::mutex> lock(worker_mutex_);
     for (auto worker : connections_) {
-        worker->Write("keep_alive");
+        worker->write("keep_alive");
     }
-    StartKeepAlive();
+    startKeepAlive();
 }
 
-void ZeroServer::StartKeepAlive()
+void ZeroServer::startKeepAlive()
 {
     keep_alive_timer_.expires_from_now(boost::posix_time::minutes(1));
-    keep_alive_timer_.async_wait(boost::bind(&ZeroServer::KeepAlive, this));
+    keep_alive_timer_.async_wait(boost::bind(&ZeroServer::keepAlive, this));
 }
 
 } // namespace minizero::server

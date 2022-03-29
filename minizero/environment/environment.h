@@ -5,11 +5,21 @@
 typedef minizero::env::go::GoAction Action;
 typedef minizero::env::go::GoEnv Environment;
 typedef minizero::env::go::GoEnvLoader EnvironmentLoader;
+#elif GOMOKU
+#include "gomoku.h"
+typedef minizero::env::gomoku::GomokuAction Action;
+typedef minizero::env::gomoku::GomokuEnv Environment;
+typedef minizero::env::gomoku::GomokuEnvLoader EnvironmentLoader;
 #elif OTHELLO
 #include "othello.h"
 typedef minizero::env::othello::OthelloAction Action;
 typedef minizero::env::othello::OthelloEnv Environment;
 typedef minizero::env::othello::OthelloEnvLoader EnvironmentLoader;
+#elif KILLALLGO
+#include "killallgo.h"
+typedef minizero::env::killallgo::KillAllGoAction Action;
+typedef minizero::env::killallgo::KillAllGoEnv Environment;
+typedef minizero::env::killallgo::KillAllGoEnvLoader EnvironmentLoader;
 #else
 #include "tietactoe.h"
 typedef minizero::env::tietactoe::TieTacToeAction Action;
@@ -19,6 +29,6 @@ typedef minizero::env::tietactoe::TieTacToeEnvLoader EnvironmentLoader;
 
 namespace minizero::env {
 
-void SetUpEnv();
+void setUpEnv();
 
 } // namespace minizero::env

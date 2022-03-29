@@ -14,14 +14,14 @@ namespace minizero::server {
 class ZeroLogger {
 public:
     ZeroLogger() {}
-    void CreateLog();
+    void createLog();
 
-    inline void AddWorkerLog(const std::string& log_str) { AddLog(log_str, worker_log_); }
-    inline void AddTrainingLog(const std::string& log_str) { AddLog(log_str, training_log_); }
-    inline std::fstream& GetSelfPlayFileStream() { return self_play_game_; }
+    inline void addWorkerLog(const std::string& log_str) { addLog(log_str, worker_log_); }
+    inline void addTrainingLog(const std::string& log_str) { addLog(log_str, training_log_); }
+    inline std::fstream& getSelfPlayFileStream() { return self_play_game_; }
 
 private:
-    void AddLog(const std::string& log_str, std::fstream& log_file);
+    void addLog(const std::string& log_str, std::fstream& log_file);
 
     std::fstream worker_log_;
     std::fstream training_log_;
@@ -35,9 +35,9 @@ public:
     {
     }
 
-    std::string GetSelfPlayGame();
-    bool IsOptimizationPahse();
-    int GetModelIetration();
+    std::string getSelfPlayGame();
+    bool isOptimizationPahse();
+    int getModelIetration();
 
     bool is_optimization_phase_;
     int total_games_;
@@ -57,13 +57,13 @@ public:
     {
     }
 
-    void HandleReceivedMessage(const std::string& message);
-    void Close();
+    void handleReceivedMessage(const std::string& message);
+    void close();
 
-    inline bool IsIdle() const { return is_idle_; }
-    inline std::string GetName() const { return name_; }
-    inline std::string GetType() const { return type_; }
-    inline void SetIdle(bool is_idle) { is_idle_ = is_idle; }
+    inline bool isIdle() const { return is_idle_; }
+    inline std::string getName() const { return name_; }
+    inline std::string getType() const { return type_; }
+    inline void setIdle(bool is_idle) { is_idle_ = is_idle; }
 
 private:
     bool is_idle_;
@@ -79,28 +79,25 @@ public:
           shared_data_(worker_mutex_),
           keep_alive_timer_(io_service_)
     {
-        StartKeepAlive();
+        startKeepAlive();
     }
 
-    void Run();
-    boost::shared_ptr<ZeroWorkerHandler> HandleAcceptNewConnection();
-    void SendInitialMessage(boost::shared_ptr<ZeroWorkerHandler> connection);
+    void run();
+    boost::shared_ptr<ZeroWorkerHandler> handleAcceptNewConnection();
+    void sendInitialMessage(boost::shared_ptr<ZeroWorkerHandler> connection);
 
 private:
-    void Initialize();
-    void SelfPlay();
-    void BroadCastSelfPlayJob();
-    void Optimization();
-    void StopJob();
-    void KeepAlive();
-    void StartKeepAlive();
+    void initialize();
+    void selfPlay();
+    void broadCastSelfPlayJob();
+    void optimization();
+    void stopJob();
+    void keepAlive();
+    void startKeepAlive();
 
-    int seed_;
     int iteration_;
     ZeroWorkerSharedData shared_data_;
     boost::asio::deadline_timer keep_alive_timer_;
-
-    const int kSeedStep = 48;
 };
 
 } // namespace minizero::server

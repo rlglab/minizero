@@ -1,12 +1,15 @@
 #pragma once
 
-#include "environment.h"
+#include "actor.h"
+#include "network.h"
 #include <map>
 #include <memory>
 #include <string>
 #include <vector>
 
 namespace minizero::console {
+
+using namespace minizero;
 
 enum class ConsoleResponse : char {
     kFail = '?',
@@ -18,7 +21,7 @@ public:
     Console();
     virtual ~Console() = default;
 
-    void ExecuteCommand(std::string command);
+    void executeCommand(std::string command);
 
 protected:
     class BaseFunction {
@@ -43,18 +46,23 @@ protected:
         function_map_.insert(std::make_pair(name, std::make_shared<Function<I, F>>(instance, function)));
     }
 
-    void CmdListCommands(const std::vector<std::string>& args);
-    void CmdName(const std::vector<std::string>& args);
-    void CmdVersion(const std::vector<std::string>& args);
-    void CmdProtocalVersion(const std::vector<std::string>& args);
-    void CmdClearBoard(const std::vector<std::string>& args);
-    void CmdShowBoard(const std::vector<std::string>& args);
-    void CmdPlay(const std::vector<std::string>& args);
+    void initialize();
+    void cmdListCommands(const std::vector<std::string>& args);
+    void cmdName(const std::vector<std::string>& args);
+    void cmdVersion(const std::vector<std::string>& args);
+    void cmdProtocalVersion(const std::vector<std::string>& args);
+    void cmdClearBoard(const std::vector<std::string>& args);
+    void cmdShowBoard(const std::vector<std::string>& args);
+    void cmdPlay(const std::vector<std::string>& args);
+    void cmdBoardSize(const std::vector<std::string>& args);
+    void cmdGenmove(const std::vector<std::string>& args);
+    void cmdRegGenmove(const std::vector<std::string>& args);
 
-    bool CheckArgument(const std::vector<std::string>& args, int min_argc, int max_argc);
-    void Reply(ConsoleResponse response, const std::string& reply);
+    bool checkArgument(const std::vector<std::string>& args, int min_argc, int max_argc);
+    void reply(ConsoleResponse response, const std::string& reply);
 
-    Environment env_;
+    std::shared_ptr<actor::Actor> actor_;
+    std::shared_ptr<network::Network> network_;
     std::map<std::string, std::shared_ptr<BaseFunction>> function_map_;
 };
 

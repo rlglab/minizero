@@ -9,33 +9,33 @@ namespace minizero::config {
 
 // parameter setter
 template <class T>
-bool SetParameter(T& ref, const std::string& value)
+bool setParameter(T& ref, const std::string& value)
 {
     std::istringstream iss(value);
     iss >> ref;
     return (iss && iss.rdbuf()->in_avail() == 0);
 }
 template <>
-bool SetParameter<bool>(bool& ref, const std::string& value);
+bool setParameter<bool>(bool& ref, const std::string& value);
 template <>
-bool SetParameter<std::string>(std::string& ref, const std::string& value);
+bool setParameter<std::string>(std::string& ref, const std::string& value);
 
 // parameter getter
 template <class T>
-std::string GetParameter(T& ref)
+std::string getParameter(T& ref)
 {
     std::ostringstream oss;
     oss << ref;
     return oss.str();
 }
 template <>
-std::string GetParameter<bool>(bool& ref);
+std::string getParameter<bool>(bool& ref);
 
 // parameter container
 class BaseParameter {
 public:
     virtual bool operator()(const std::string& value) = 0;
-    virtual std::string ToString() const = 0;
+    virtual std::string toString() const = 0;
     virtual ~BaseParameter() {}
 };
 
@@ -47,7 +47,7 @@ public:
     {
     }
 
-    std::string ToString() const override
+    std::string toString() const override
     {
         std::ostringstream oss;
         oss << key_ << "=" << getter_(ref_);
@@ -57,8 +57,8 @@ public:
     }
 
     inline bool operator()(const std::string& value) override { return setter_(ref_, value); }
-    inline std::string GetKey() const { return key_; }
-    inline std::string GetDescription() const { return description_; }
+    inline std::string getKey() const { return key_; }
+    inline std::string getDescription() const { return description_; }
 
 private:
     std::string key_;
@@ -83,7 +83,7 @@ public:
     }
 
     template <class T, class Setter, class Getter>
-    inline void AddParameter(const std::string& key, T& value, const std::string description, const std::string& group_name, Setter setter, Getter getter)
+    inline void addParameter(const std::string& key, T& value, const std::string description, const std::string& group_name, Setter setter, Getter getter)
     {
         if (parameter_groups_.count(group_name) == 0) { group_name_order_.push_back(group_name); }
         parameters_[key] = new Parameter<T, Setter, Getter>(key, value, description, setter, getter);
@@ -91,18 +91,18 @@ public:
     }
 
     template <class T>
-    inline void AddParameter(const std::string& key, T& value, const std::string description, const std::string& group_name)
+    inline void addParameter(const std::string& key, T& value, const std::string description, const std::string& group_name)
     {
-        AddParameter(key, value, description, group_name, SetParameter<T>, GetParameter<T>);
+        addParameter(key, value, description, group_name, setParameter<T>, getParameter<T>);
     }
 
-    bool LoadFromFile(std::string conf_file);
-    bool LoadFromString(std::string conf_string);
-    std::string ToString() const;
+    bool loadFromFile(std::string conf_file);
+    bool loadFromString(std::string conf_string);
+    std::string toString() const;
 
 private:
-    void Trim(std::string& s);
-    bool SetValue(std::string sLine);
+    void trim(std::string& s);
+    bool setValue(std::string sLine);
 
     std::vector<std::string> group_name_order_;
     std::map<std::string, BaseParameter*> parameters_;

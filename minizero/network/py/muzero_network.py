@@ -21,9 +21,9 @@ class MuZeroRepresentationNetwork(nn.Module):
 
 
 class MuZeroDynamicsNetwork(nn.Module):
-    def __init__(self, num_channels, num_action_channels, num_blocks):
+    def __init__(self, num_channels, num_action_feature_channels, num_blocks):
         super(MuZeroDynamicsNetwork, self).__init__()
-        self.conv = nn.Conv2d(num_channels + num_action_channels, num_channels, 3, padding=1)
+        self.conv = nn.Conv2d(num_channels + num_action_feature_channels, num_channels, 3, padding=1)
         self.bn = nn.BatchNorm2d(num_channels)
         self.residual_blocks = nn.ModuleList([ResidualBlock(num_channels) for _ in range(num_blocks)])
 
@@ -38,13 +38,13 @@ class MuZeroDynamicsNetwork(nn.Module):
 
 
 class MuZeroPredictionNetwork(nn.Module):
-    def __init__(self, num_channels, channel_height, channel_width, num_blocks, action_size):
+    def __init__(self, num_channels, channel_height, channel_width, num_blocks, num_action_channels, action_size, num_value_hidden_channels):
         super(MuZeroPredictionNetwork, self).__init__()
         self.conv = nn.Conv2d(num_channels, num_channels, 3, padding=1)
         self.bn = nn.BatchNorm2d(num_channels)
         self.residual_blocks = nn.ModuleList([ResidualBlock(num_channels) for _ in range(num_blocks)])
-        self.policy = PolicyNetwork(num_channels, channel_height, channel_width, action_size)
-        self.value = ValueNetwork(num_channels, channel_height, channel_width)
+        self.policy = PolicyNetwork(num_channels, channel_height, channel_width, num_action_channels, action_size)
+        self.value = ValueNetwork(num_channels, channel_height, channel_width, num_value_hidden_channels)
 
     def forward(self, hidden_state):
         x = self.conv(hidden_state)
@@ -67,9 +67,11 @@ class MuZeroNetwork(nn.Module):
                  num_hidden_channels,
                  hidden_channel_height,
                  hidden_channel_width,
+                 num_action_feature_channels,
                  num_blocks,
                  num_action_channels,
-                 action_size):
+                 action_size,
+                 num_value_hidden_channels):
         super(MuZeroNetwork, self).__init__()
         self.game_name = game_name
         self.num_input_channels = num_input_channels
@@ -78,20 +80,24 @@ class MuZeroNetwork(nn.Module):
         self.num_hidden_channels = num_hidden_channels
         self.hidden_channel_height = hidden_channel_height
         self.hidden_channel_width = hidden_channel_width
+        self.num_action_feature_channels = num_action_feature_channels
         self.num_blocks = num_blocks
         self.num_action_channels = num_action_channels
         self.action_size = action_size
+        self.num_value_hidden_channels = num_value_hidden_channels
 
         self.representation_network = MuZeroRepresentationNetwork(num_input_channels, num_hidden_channels, num_blocks)
-        self.dynamics_network = MuZeroDynamicsNetwork(num_hidden_channels, num_action_channels, num_blocks)
-        self.prediction_network = MuZeroPredictionNetwork(num_hidden_channels, hidden_channel_height, hidden_channel_width, num_blocks, action_size)
+        self.dynamics_network = MuZeroDynamicsNetwork(num_hidden_channels, num_action_feature_channels, num_blocks)
+        self.prediction_network = MuZeroPredictionNetwork(num_hidden_channels, hidden_channel_height, hidden_channel_width, num_blocks, num_action_channels, action_size, num_value_hidden_channels)
 
     def scale_hidden_state(self, hidden_state):
         # scale hidden state to range [0, 1] for each feature plane
         batch_size, channel, _, _ = hidden_state.shape
         min_val = hidden_state.min(-1).values.min(-1).values.view(batch_size, channel, 1, 1)
         max_val = hidden_state.max(-1).values.max(-1).values.view(batch_size, channel, 1, 1)
-        hidden_state = (hidden_state - min_val) / (max_val - min_val)
+        scale = (max_val - min_val)
+        scale[scale < 1e-5] += 1e-5
+        hidden_state = (hidden_state - min_val) / scale
         return hidden_state
 
     @torch.jit.export
@@ -139,9 +145,14 @@ class MuZeroNetwork(nn.Module):
         return self.action_size
 
     @torch.jit.export
+    def get_num_value_hidden_channels(self):
+        return self.num_value_hidden_channels
+
+    @torch.jit.export
     def initial_inference(self, state):
         # representation + prediction
         hidden_state = self.representation_network(state)
+        hidden_state = self.scale_hidden_state(hidden_state)
         policy, value = self.prediction_network(hidden_state)
         return {"policy": policy, "value": value, "hidden_state": hidden_state}
 
@@ -149,5 +160,6 @@ class MuZeroNetwork(nn.Module):
     def recurrent_inference(self, hidden_state, action_plane):
         # dynamics + prediction
         next_hidden_state = self.dynamics_network(hidden_state, action_plane)
+        next_hidden_state = self.scale_hidden_state(hidden_state)
         policy, value = self.prediction_network(next_hidden_state)
         return {"policy": policy, "value": value, "hidden_state": hidden_state}
