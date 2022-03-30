@@ -83,12 +83,15 @@ void Test()
 {
     Environment env;
     env.Reset();
+    srand(time(0));
     while (!env.IsTerminal()) {
         vector<Action> legal_actions = env.GetLegalActions();
         int index = rand() % legal_actions.size();
         env.Act(legal_actions[index]);
     }
     cout << env.ToString() << endl;
+    minizero::env::go::GoPair<minizero::env::go::GoBitboard> benson_bitboard = minizero::env::go::GoBenson::GetBensonBitboard(env);
+    cout << benson_bitboard.Get(minizero::env::Player::kPlayer1).count() << " " << benson_bitboard.Get(minizero::env::Player::kPlayer2).count() << endl;
 
     EnvironmentLoader env_loader;
     env_loader.LoadFromEnvironment(env);

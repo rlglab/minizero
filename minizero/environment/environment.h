@@ -2,6 +2,7 @@
 
 #if GO
 #include "go.h"
+#include "go_benson.h"
 typedef minizero::env::go::GoAction Action;
 typedef minizero::env::go::GoEnv Environment;
 typedef minizero::env::go::GoEnvLoader EnvironmentLoader;
