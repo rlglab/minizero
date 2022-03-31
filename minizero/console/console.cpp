@@ -1,5 +1,8 @@
 #include "console.h"
 #include "alphazero_actor.h"
+#include "alphazero_network.h"
+#include "muzero_actor.h"
+#include "muzero_network.h"
 #include "sgf_loader.h"
 #include <climits>
 #include <iostream>
@@ -46,6 +49,9 @@ void Console::initialize()
     if (network_->getNetworkTypeName() == "alphazero") {
         int action_size = std::static_pointer_cast<network::AlphaZeroNetwork>(network_)->getActionSize();
         actor_ = std::make_shared<actor::AlphaZeroActor>(config::actor_num_simulation * action_size);
+    } else if (network_->getNetworkTypeName() == "muzero") {
+        int action_size = std::static_pointer_cast<network::MuZeroNetwork>(network_)->getActionSize();
+        actor_ = std::make_shared<actor::MuZeroActor>(config::actor_num_simulation * action_size);
     }
     actor_->reset();
 }

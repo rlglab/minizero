@@ -56,6 +56,7 @@ public:
     virtual bool isTerminal() const = 0;
     virtual float getEvalScore(bool is_resign = false) const = 0;
     virtual std::vector<float> getFeatures(utils::Rotation rotation = utils::Rotation::kRotationNone) const = 0;
+    virtual std::vector<float> getActionFeatures(const Action& action, utils::Rotation rotation = utils::Rotation::kRotationNone) const = 0;
     virtual std::string toString() const = 0;
     virtual std::string name() const = 0;
 
@@ -162,7 +163,6 @@ public:
         return policy;
     }
 
-    virtual std::vector<float> getActionFeatures(int id, utils::Rotation rotation = utils::Rotation::kRotationNone) const = 0;
     virtual int getPolicySize() const = 0;
     virtual int getRotatePosition(int position, utils::Rotation rotation) const = 0;
     virtual std::string getEnvName() const = 0;

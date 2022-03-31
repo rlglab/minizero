@@ -73,8 +73,7 @@ float TieTacToeEnv::getEvalScore(bool is_resign /*= false*/) const
 std::vector<float> TieTacToeEnv::getFeatures(utils::Rotation rotation /*= utils::Rotation::kRotationNone*/) const
 {
     /* 4 channels:
-        0. Nought position
-        1. Cross position
+        0~1. own/opponent position
         2. Nought turn
         3. Cross turn
     */
@@ -83,9 +82,9 @@ std::vector<float> TieTacToeEnv::getFeatures(utils::Rotation rotation /*= utils:
         for (int pos = 0; pos < kTieTacToeBoardSize * kTieTacToeBoardSize; ++pos) {
             int rotation_pos = getPositionByRotating(utils::reversed_rotation[static_cast<int>(rotation)], pos, kTieTacToeBoardSize);
             if (channel == 0) {
-                vFeatures.push_back((board_[rotation_pos] == Player::kPlayer1 ? 1.0f : 0.0f));
+                vFeatures.push_back((board_[rotation_pos] == turn_ ? 1.0f : 0.0f));
             } else if (channel == 1) {
-                vFeatures.push_back((board_[rotation_pos] == Player::kPlayer2 ? 1.0f : 0.0f));
+                vFeatures.push_back((board_[rotation_pos] == getNextPlayer(turn_, kTieTacToeNumPlayer) ? 1.0f : 0.0f));
             } else if (channel == 2) {
                 vFeatures.push_back((turn_ == Player::kPlayer1 ? 1.0f : 0.0f));
             } else if (channel == 3) {
@@ -94,6 +93,13 @@ std::vector<float> TieTacToeEnv::getFeatures(utils::Rotation rotation /*= utils:
         }
     }
     return vFeatures;
+}
+
+std::vector<float> TieTacToeEnv::getActionFeatures(const TieTacToeAction& action, utils::Rotation rotation /*= utils::Rotation::kRotationNone*/) const
+{
+    std::vector<float> action_features(kTieTacToeBoardSize * kTieTacToeBoardSize, 0.0f);
+    action_features[getPositionByRotating(rotation, action.getActionID(), kTieTacToeBoardSize)] = 1.0f;
+    return action_features;
 }
 
 std::string TieTacToeEnv::toString() const

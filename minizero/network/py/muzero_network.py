@@ -133,6 +133,10 @@ class MuZeroNetwork(nn.Module):
         return self.hidden_channel_width
 
     @torch.jit.export
+    def get_num_action_feature_channels(self):
+        return self.num_action_feature_channels
+
+    @torch.jit.export
     def get_num_blocks(self):
         return self.num_blocks
 
@@ -160,6 +164,12 @@ class MuZeroNetwork(nn.Module):
     def recurrent_inference(self, hidden_state, action_plane):
         # dynamics + prediction
         next_hidden_state = self.dynamics_network(hidden_state, action_plane)
-        next_hidden_state = self.scale_hidden_state(hidden_state)
+        next_hidden_state = self.scale_hidden_state(next_hidden_state)
         policy, value = self.prediction_network(next_hidden_state)
-        return {"policy": policy, "value": value, "hidden_state": hidden_state}
+        return {"policy": policy, "value": value, "hidden_state": next_hidden_state}
+
+    def forward(self, state, action_plane=torch.empty(0)):
+        if action_plane.numel() == 0:
+            return self.initial_inference(state)
+        else:
+            return self.recurrent_inference(state, action_plane)

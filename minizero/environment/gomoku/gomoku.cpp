@@ -75,8 +75,7 @@ float GomokuEnv::getEvalScore(bool is_resign /*= false*/) const
 std::vector<float> GomokuEnv::getFeatures(utils::Rotation rotation /*= utils::Rotation::kRotationNone*/) const
 {
     /* 4 channels:
-        0. Black position
-        1. White position
+        0~1. own/opponent position
         2. Black's turn
         3. White's turn
     */
@@ -85,9 +84,9 @@ std::vector<float> GomokuEnv::getFeatures(utils::Rotation rotation /*= utils::Ro
         for (int pos = 0; pos < kGomokuBoardSize * kGomokuBoardSize; ++pos) {
             int rotation_pos = getPositionByRotating(utils::reversed_rotation[static_cast<int>(rotation)], pos, kGomokuBoardSize);
             if (channel == 0) {
-                vFeatures.push_back((board_[rotation_pos] == Player::kPlayer1 ? 1.0f : 0.0f));
+                vFeatures.push_back((board_[rotation_pos] == turn_ ? 1.0f : 0.0f));
             } else if (channel == 1) {
-                vFeatures.push_back((board_[rotation_pos] == Player::kPlayer2 ? 1.0f : 0.0f));
+                vFeatures.push_back((board_[rotation_pos] == getNextPlayer(turn_, kGomokuBoardSize) ? 1.0f : 0.0f));
             } else if (channel == 2) {
                 vFeatures.push_back((turn_ == Player::kPlayer1 ? 1.0f : 0.0f));
             } else if (channel == 3) {
@@ -96,6 +95,13 @@ std::vector<float> GomokuEnv::getFeatures(utils::Rotation rotation /*= utils::Ro
         }
     }
     return vFeatures;
+}
+
+std::vector<float> GomokuEnv::getActionFeatures(const GomokuAction& action, utils::Rotation rotation /*= utils::Rotation::kRotationNone*/) const
+{
+    std::vector<float> action_features(kGomokuBoardSize * kGomokuBoardSize, 0.0f);
+    action_features[getPositionByRotating(rotation, action.getActionID(), kGomokuBoardSize)] = 1.0f;
+    return action_features;
 }
 
 std::string GomokuEnv::toString() const

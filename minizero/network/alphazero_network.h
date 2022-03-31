@@ -21,7 +21,7 @@ class AlphaZeroNetwork : public Network {
 public:
     AlphaZeroNetwork()
     {
-        num_action_channels_ = action_size_ = -1;
+        action_size_ = -1;
         batch_size_ = 0;
         clearTensorInput();
     }
@@ -31,7 +31,6 @@ public:
         Network::loadModel(nn_file_name, gpu_id);
 
         std::vector<torch::jit::IValue> dummy;
-        num_action_channels_ = network_.get_method("get_num_action_channels")(dummy).toInt();
         action_size_ = network_.get_method("get_action_size")(dummy).toInt();
         batch_size_ = 0;
     }
@@ -40,7 +39,6 @@ public:
     {
         std::ostringstream oss;
         oss << Network::toString();
-        oss << "Number of action channels: " << num_action_channels_ << std::endl;
         oss << "Action size: " << action_size_ << std::endl;
         return oss.str();
     }
@@ -56,12 +54,12 @@ public:
             tensor_input_.resize(batch_size_);
         }
         tensor_input_[index] = torch::from_blob(features.data(), {1, getNumInputChannels(), getInputChannelHeight(), getInputChannelWidth()}).clone();
-        assert(tensor_input_[index].numel() == getNumInputChannels() * getInputChannelHeight() * getInputChannelWidth());
         return index;
     }
 
     std::vector<std::shared_ptr<NetworkOutput>> forward()
     {
+        assert(batch_size_ > 0);
         auto forward_result = network_.forward(std::vector<torch::jit::IValue>{torch::cat(tensor_input_).to(getDevice())}).toGenericDict();
 
         auto policy_output = torch::softmax(forward_result.at("policy").toTensor(), 1).to(at::kCPU);
@@ -85,7 +83,6 @@ public:
         return network_outputs;
     }
 
-    inline int getNumActionChannels() const { return num_action_channels_; }
     inline int getActionSize() const { return action_size_; }
     inline int getBatchSize() const { return batch_size_; }
 
@@ -96,7 +93,6 @@ private:
         tensor_input_.reserve(kReserved_batch_size);
     }
 
-    int num_action_channels_;
     int action_size_;
     int batch_size_;
     std::mutex mutex_;

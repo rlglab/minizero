@@ -1,6 +1,7 @@
 #include "actor_group.h"
 #include "alphazero_actor.h"
 #include "alphazero_network.h"
+#include "muzero_actor.h"
 #include "muzero_network.h"
 #include "random.h"
 #include "time_system.h"
@@ -47,6 +48,7 @@ void SlaveThread::doCPUJob()
         int network_id = actor_id % shared_data_.networks_.size();
         int network_output_id = actor->getEvaluationJobIndex();
         if (network_output_id >= 0) {
+            assert(network_output_id < static_cast<int>(shared_data_.network_outputs_[network_id].size()));
             actor->afterNNEvaluation(shared_data_.network_outputs_[network_id][network_output_id]);
             handleSearchEndAndEnvEnd(actor, actor_id == 0);
         }
@@ -85,20 +87,26 @@ void SlaveThread::handleSearchEndAndEnvEnd(const std::shared_ptr<Actor>& actor, 
 
 void SlaveThread::doGPUJob()
 {
-    if (id_ >= static_cast<int>(shared_data_.networks_.size())) { return; }
+    if (id_ >= static_cast<int>(shared_data_.networks_.size()) || id_ >= config::actor_num_parallel_games) { return; }
 
     std::shared_ptr<Network>& network = shared_data_.networks_[id_];
     if (network->getNetworkTypeName() == "alphazero") {
         shared_data_.network_outputs_[id_] = std::static_pointer_cast<AlphaZeroNetwork>(network)->forward();
     } else if (network->getNetworkTypeName() == "muzero") {
-        // TODO
+        if (shared_data_.actors_[0]->getMCTSTree().getRootNode()->getCount() == 0) {
+            // root forward, need to call initial inference
+            shared_data_.network_outputs_[id_] = std::static_pointer_cast<MuZeroNetwork>(network)->initialInference();
+        } else {
+            // recurrent inference
+            shared_data_.network_outputs_[id_] = std::static_pointer_cast<MuZeroNetwork>(network)->recurrentInference();
+        }
     }
 }
 
 ActorGroup::ActorGroup()
 {
     // threads
-    for (int id = 0; id < config::actor_num_threads; ++id) {
+    for (int id = 0; id < std::max(static_cast<int>(torch::cuda::device_count()), config::actor_num_threads); ++id) {
         slave_threads_.emplace_back(std::make_shared<SlaveThread>(id, shared_data_));
         thread_groups_.create_thread(boost::bind(&SlaveThread::runThread, slave_threads_.back()));
     }
@@ -122,7 +130,10 @@ ActorGroup::ActorGroup()
         }
     } else if (network->getNetworkTypeName() == "muzero") {
         mcts_tree_node_size *= std::static_pointer_cast<MuZeroNetwork>(network)->getActionSize();
-        // TODO
+        for (int i = 0; i < config::actor_num_parallel_games; ++i) {
+            shared_data_.actors_.emplace_back(std::make_shared<MuZeroActor>(mcts_tree_node_size));
+            shared_data_.actors_.back()->reset();
+        }
     }
 }
 

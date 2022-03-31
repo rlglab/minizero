@@ -50,6 +50,7 @@ public:
     bool isTerminal() const override;
     float getEvalScore(bool is_resign = false) const override;
     std::vector<float> getFeatures(utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
+    std::vector<float> getActionFeatures(const GoAction& action, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::string toString() const override;
 
     inline std::string name() const override { return kGoName; }
@@ -90,15 +91,6 @@ public:
         BaseEnvLoader<GoAction, GoEnv>::loadFromEnvironment(env, action_distributions);
         addTag("KM", std::to_string(env.getKomi()));
         addTag("SZ", std::to_string(env.getBoardSize()));
-    }
-
-    inline std::vector<float> getActionFeatures(int id, utils::Rotation rotation = utils::Rotation::kRotationNone) const override
-    {
-        assert(id < static_cast<int>(action_pairs_.size()));
-        int board_size = std::stoi(getTag("SZ"));
-        std::vector<float> action_features(board_size * board_size, 0.0f);
-        action_features[getRotatePosition(action_pairs_[id].first.getActionID(), rotation)] = 1.0f;
-        return action_features;
     }
 
     inline int getBoardSize() const { return std::stoi(getTag("SZ")); }

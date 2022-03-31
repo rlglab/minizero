@@ -25,12 +25,12 @@ class MinizeroDataset(IterableDataset):
         self.end_iter = end_iter
         self.conf = conf
         self.conf_file_name = conf_file_name
-
-    def __iter__(self):
-        self.data_loader = minizero_py.DataLoader(self.conf_file_name, get_worker_info().id)
+        self.data_loader = minizero_py.DataLoader(self.conf_file_name)
         for i in range(self.start_iter, self.end_iter + 1):
             self.data_loader.load_data_from_file(f"{self.training_dir}/sgf/{i}.sgf")
 
+    def __iter__(self):
+        self.data_loader.seed(get_worker_info().id)
         while True:
             if self.conf.get_nn_type_name() == "alphazero":
                 result_dict = self.data_loader.get_alphazero_training_data()
@@ -157,7 +157,7 @@ if __name__ == '__main__':
             add_training_info(training_info, 'loss_value', loss_value.item())
         elif conf.get_nn_type_name() == "muzero":
             features, actions, label_policy, label_value = next(data_loader_iterator)
-            network_output = network.module.initial_inference(features.to(device))
+            network_output = network(features.to(device))
             output_policy, output_value = network_output["policy"], network_output["value"]
             loss_step_policy, loss_step_value = calculate_loss(output_policy, output_value, label_policy[:, 0].to(device), label_value.to(device))
             add_training_info(training_info, 'loss_policy_0', loss_step_policy.item() / 2)
@@ -166,7 +166,7 @@ if __name__ == '__main__':
             loss_policy = loss_step_policy / 2
             loss_value = loss_step_value / 2
             for i in range(muzero_unrolling_step):
-                network_output = network.module.recurrent_inference(network_output["hidden_state"], actions[:, i].to(device))
+                network_output = network(network_output["hidden_state"], actions[:, i].to(device))
                 output_policy, output_value = network_output["policy"], network_output["value"]
                 loss_step_policy, loss_step_value = calculate_loss(output_policy, output_value, label_policy[:, i+1].to(device), label_value.to(device))
                 add_training_info(training_info, f'loss_policy_{i+1}', loss_step_policy.item() / (i+2))

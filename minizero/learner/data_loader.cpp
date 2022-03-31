@@ -1,7 +1,6 @@
 #include "data_loader.h"
 #include "configuration.h"
 #include "environment.h"
-#include "random.h"
 #include "rotation.h"
 #include <climits>
 #include <filesystem>
@@ -13,13 +12,12 @@ namespace minizero::learner {
 using namespace minizero;
 using namespace minizero::utils;
 
-DataLoader::DataLoader(std::string conf_file_name, int random_seed)
+DataLoader::DataLoader(std::string conf_file_name)
 {
     env::setUpEnv();
     config::ConfigureLoader cl;
     config::setConfiguration(cl);
     cl.loadFromFile(conf_file_name);
-    Random::seed(random_seed);
 }
 
 void DataLoader::loadDataFromFile(const std::string& file_name)
@@ -59,6 +57,11 @@ MuZeroData DataLoader::getMuZeroTrainingData(int unrolling_step)
     // random pickup one position
     std::pair<int, int> p = getEnvIDAndPosition(Random::randInt() % getDataSize());
     int env_id = p.first, pos = p.second;
+    while (pos + unrolling_step >= static_cast<int>(env_loaders_[env_id].first.getActionPairs().size())) {
+        // random again until we can unroll all steps
+        p = getEnvIDAndPosition(Random::randInt() % getDataSize());
+        env_id = p.first, pos = p.second;
+    }
 
     // replay the game until to the selected position
     const EnvironmentLoader& env_loader = env_loaders_[env_id].first;
@@ -69,21 +72,13 @@ MuZeroData DataLoader::getMuZeroTrainingData(int unrolling_step)
     MuZeroData data;
     Rotation rotation = static_cast<Rotation>(Random::randInt() % static_cast<int>(Rotation::kRotateSize));
     data.features_ = env_.getFeatures(rotation);
-    int action_feature_size = -1;
     for (int step = 0; step <= unrolling_step; ++step) {
-        std::vector<float> policy, actions;
-        if (pos + step < static_cast<int>(env_loader.getActionPairs().size())) {
-            actions = env_loader.getActionFeatures(pos + step, rotation);
-            action_feature_size = actions.size();
-            policy = env_loader.getPolicyDistribution(pos + step, rotation);
-        } else {
-            assert(action_feature_size != -1);
-            actions.resize(action_feature_size, 0.0f);
-            policy.resize(env_loader.getPolicySize(), 0.0f);
-        }
-
-        if (step < unrolling_step) { data.actions_.insert(data.actions_.end(), actions.begin(), actions.end()); }
+        const Action& action = env_loader.getActionPairs()[pos + step].first;
+        std::vector<float> action_features = env_.getActionFeatures(action, rotation);
+        std::vector<float> policy = env_loader.getPolicyDistribution(pos + step, rotation);
+        if (step < unrolling_step) { data.action_features_.insert(data.action_features_.end(), action_features.begin(), action_features.end()); }
         data.policy_.insert(data.policy_.end(), policy.begin(), policy.end());
+        env_.act(action);
     }
     data.value_ = env_loader.getReturn();
     return data;

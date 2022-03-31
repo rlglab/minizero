@@ -14,12 +14,12 @@ MCTSTreeNode::MCTSTreeNode()
 void MCTSTreeNode::reset()
 {
     num_children_ = 0;
+    hidden_state_external_data_index_ = -1;
     mean_ = 0.0f;
     count_ = 0.0f;
     policy_ = 0.0f;
     value_ = 0.0f;
     first_child_ = nullptr;
-    hidden_state_.clear();
 }
 
 void MCTSTreeNode::add(float value, float weight /*= 1.0f*/)
@@ -61,15 +61,11 @@ std::string MCTSTreeNode::toString() const
     return oss.str();
 }
 
-MCTSTree::MCTSTree(long long tree_node_size)
-{
-    nodes_.resize(tree_node_size);
-}
-
 void MCTSTree::reset()
 {
     current_tree_size_ = 1;
     getRootNode()->reset();
+    hidden_state_external_data_.reset();
 }
 
 Action MCTSTree::decideAction() const
