@@ -78,7 +78,7 @@ protected:
     GoBitboard board_right_boundary_bitboard_;
     GoBitboard free_block_id_bitboard_;
     GoPair<GoBitboard> stone_bitboard_;
-    GoPair<GoBitboard> benson_bitboard;
+    GoPair<GoBitboard> benson_bitboard_;
 
     std::vector<GoGrid> grids_;
     std::vector<GoBlock> blocks_;

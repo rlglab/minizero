@@ -77,7 +77,7 @@ void GoEnv::reset()
     hash_key_ = 0;
     free_block_id_bitboard_.reset();
     stone_bitboard_.reset();
-    benson_bitboard.reset();
+    benson_bitboard_.reset();
     board_mask_bitboard_.reset();
     for (int i = 0; i < board_size_ * board_size_; ++i) {
         grids_[i].reset(board_size_);
@@ -149,8 +149,8 @@ bool GoEnv::act(const GoAction& action)
     assert(checkDataStructure());
 
     // Benson
-    benson_bitboard = go::GoBenson::getBensonBitboard(benson_bitboard, stone_bitboard_, board_size_, board_left_boundary_bitboard_,
-                                                      board_right_boundary_bitboard_, board_mask_bitboard_);
+    benson_bitboard_ = go::GoBenson::getBensonBitboard(benson_bitboard_, stone_bitboard_, board_size_, board_left_boundary_bitboard_,
+                                                       board_right_boundary_bitboard_, board_mask_bitboard_);
     return true;
 }
 
