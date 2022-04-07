@@ -3,10 +3,12 @@
 #include "console.h"
 #include "environment.h"
 #include "zero_server.h"
+#include <chrono>
+#include <sys/time.h>
 #include <torch/script.h>
 #include <vector>
-
 using namespace std;
+using namespace minizero;
 
 void usage()
 {
@@ -18,7 +20,7 @@ void usage()
     cout << "\t-conf_str configuration_string" << endl;
 }
 
-void GenConfiguration(minizero::config::ConfigureLoader& cl, string sConfigFile)
+void genConfiguration(config::ConfigureLoader& cl, string sConfigFile)
 {
     // check configure file is exist
     ifstream f(sConfigFile);
@@ -38,64 +40,104 @@ void GenConfiguration(minizero::config::ConfigureLoader& cl, string sConfigFile)
     f.close();
 
     ofstream fout(sConfigFile);
-    fout << cl.ToString();
+    fout << cl.toString();
     fout.close();
 }
 
-bool readConfiguration(minizero::config::ConfigureLoader& cl, string sConfigFile, string sConfigString)
+bool readConfiguration(config::ConfigureLoader& cl, string sConfigFile, string sConfigString)
 {
-    if (!sConfigFile.empty() && !cl.LoadFromFile(sConfigFile)) {
+    if (!sConfigFile.empty() && !cl.loadFromFile(sConfigFile)) {
         cerr << "Failed to load configuration file." << endl;
         return false;
     }
-    if (!sConfigString.empty() && !cl.LoadFromString(sConfigString)) {
+    if (!sConfigString.empty() && !cl.loadFromString(sConfigString)) {
         cerr << "Failed to load configuration string." << endl;
         return false;
     }
 
-    cerr << cl.ToString();
+    cerr << cl.toString();
     return true;
 }
 
-void Console()
+void runConsole()
 {
-    minizero::console::Console console;
+    console::Console console;
     string command;
     while (getline(cin, command)) {
         if (command == "quit") { break; }
-        console.ExecuteCommand(command);
+        console.executeCommand(command);
     }
 }
 
-void SelfPlay()
+void runSelfPlay()
 {
-    minizero::actor::ActorGroup ag;
-    ag.Run();
+    actor::ActorGroup ag;
+    ag.run();
 }
 
-void ZeroServer()
+void runZeroServer()
 {
-    minizero::server::ZeroServer server;
-    server.Run();
+    server::ZeroServer server;
+    server.run();
 }
 
-void Test()
+#include "alphazero_actor.h"
+#include "learner/data_loader.h"
+#include "random.h"
+#include <random>
+
+void runTest()
 {
     Environment env;
-    env.Reset();
-    srand(time(0));
-    while (!env.IsTerminal()) {
-        vector<Action> legal_actions = env.GetLegalActions();
+    env.reset();
+   // srand(time(0));
+    while (!env.isTerminal()) {
+        vector<Action> legal_actions = env.getLegalActions();
         int index = rand() % legal_actions.size();
-        env.Act(legal_actions[index]);
+        env.act(legal_actions[index]);
     }
-    cout << env.ToString() << endl;
-    minizero::env::go::GoPair<minizero::env::go::GoBitboard> benson_bitboard = minizero::env::go::GoBenson::GetBensonBitboard(env);
-    cout << benson_bitboard.Get(minizero::env::Player::kPlayer1).count() << " " << benson_bitboard.Get(minizero::env::Player::kPlayer2).count() << endl;
-
+    cout << env.toString() << endl;
+    
     EnvironmentLoader env_loader;
-    env_loader.LoadFromEnvironment(env);
-    cout << env_loader.ToString() << endl;
+    env_loader.loadFromEnvironment(env);
+    cout << env_loader.toString() << endl;
+
+    /*actor::AlphaZeroActor az_actor(config::actor_num_simulation * 82);
+    std::shared_ptr<network::Network> network = network::createNetwork(config::nn_file_name, 0);
+
+    std::vector<float> dirichlet_noise;
+    std::gamma_distribution<float> gamma_distribution(config::actor_dirichlet_noise_alpha);
+    utils::Random::Seed(1);
+    for (int i = 0; i < 82; ++i) { dirichlet_noise.emplace_back(gamma_distribution(utils::Random::generator_)); }
+    float sum = std::accumulate(dirichlet_noise.begin(), dirichlet_noise.end(), 0.0f);
+    for (int i = 0; i < 82; ++i) {
+        dirichlet_noise[i] /= sum;
+        cout << dirichlet_noise[i] << " ";
+    }
+    cout << endl;
+
+    az_actor.Reset();
+    while (true) {
+        while (!az_actor.reachMaximumSimulation()) {
+            az_actor.BeforeNNEvaluation(network);
+            std::vector<std::shared_ptr<network::NetworkOutput>> network_output = std::static_pointer_cast<network::AlphaZeroNetwork>(network)->forward();
+            if (az_actor.getMCTSTree().getRootNode()->getCount() == 0) {
+                std::vector<float> p = static_pointer_cast<network::AlphaZeroNetworkOutput>(network_output[0])->policy_;
+                for (int i = 8; i >= 0; --i) {
+                    for (int j = 0; j < 9; ++j) {
+                        cout << p[i * 9 + j] << " ";
+                    }
+                    cout << endl;
+                }
+                cout << "value: " << static_pointer_cast<network::AlphaZeroNetworkOutput>(network_output[0])->value_ << endl;
+            }
+            az_actor.AfterNNEvaluation(network_output[az_actor.getEvaluationJobIndex()]);
+        }
+        az_actor.act(az_actor.getMCTSTree().decideAction());
+        cout << az_actor.getEnvironment().toString() << endl;
+        string i;
+        cin >> i;
+    }*/
 }
 
 int main(int argc, char* argv[])
@@ -105,13 +147,13 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    minizero::env::SetUpEnv();
+    env::setUpEnv();
 
     string sMode = "console";
     string sConfigFile = "";
     string sConfigString = "";
-    minizero::config::ConfigureLoader cl;
-    minizero::config::SetConfiguration(cl);
+    config::ConfigureLoader cl;
+    config::setConfiguration(cl);
 
     for (int i = 1; i < argc; i += 2) {
         string sCommand = string(argv[i]);
@@ -119,7 +161,7 @@ int main(int argc, char* argv[])
         if (sCommand == "-mode") {
             sMode = argv[i + 1];
         } else if (sCommand == "-gen") {
-            GenConfiguration(cl, argv[i + 1]);
+            genConfiguration(cl, argv[i + 1]);
             return 0;
         } else if (sCommand == "-conf_file") {
             sConfigFile = argv[i + 1];
@@ -135,13 +177,13 @@ int main(int argc, char* argv[])
     if (!readConfiguration(cl, sConfigFile, sConfigString)) { return -1; }
 
     if (sMode == "console") {
-        Console();
+        runConsole();
     } else if (sMode == "sp") {
-        SelfPlay();
+        runSelfPlay();
     } else if (sMode == "zero_server") {
-        ZeroServer();
+        runZeroServer();
     } else if (sMode == "test") {
-        Test();
+        runTest();
     } else {
         cerr << "Error mode: " << sMode << endl;
         return -1;

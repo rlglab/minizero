@@ -2,7 +2,7 @@
 
 namespace minizero::env {
 
-char PlayerToChar(Player p)
+char playerToChar(Player p)
 {
     switch (p) {
         case Player::kPlayerNone: return 'N';
@@ -12,7 +12,7 @@ char PlayerToChar(Player p)
     }
 }
 
-Player CharToPlayer(char c)
+Player charToPlayer(char c)
 {
     switch (c) {
         case 'N': return Player::kPlayerNone;
@@ -24,7 +24,7 @@ Player CharToPlayer(char c)
     }
 }
 
-Player GetNextPlayer(Player player, int num_player)
+Player getNextPlayer(Player player, int num_player)
 {
     if (num_player == 1) {
         return player;

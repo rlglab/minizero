@@ -7,25 +7,34 @@
 
 namespace minizero::learner {
 
-class DataLoader {
+class AlphaZeroData {
 public:
-    DataLoader();
-
-    void LoadDataFromDirectory(const std::string& directory_name);
-    void LoadDataFromFile(const std::string& file_name);
-    void CalculateFeaturesAndLabel(int index);
-
-    inline std::vector<float> GetFeatures() const { return features_; }
-    inline std::vector<float> GetPolicy() const { return policy_; }
-    inline float GetValue() const { return value_; }
-    inline int GetDataSize() const { return env_loaders_.back().second; }
-
-private:
-    std::pair<int, int> GetEnvIDAndPosition(int index) const;
-
     std::vector<float> features_;
     std::vector<float> policy_;
     float value_;
+};
+
+class MuZeroData {
+public:
+    std::vector<float> features_;
+    std::vector<float> actions_;
+    std::vector<float> policy_;
+    float value_;
+};
+
+class DataLoader {
+public:
+    DataLoader(std::string conf_file_name, int random_seed);
+
+    void loadDataFromFile(const std::string& file_name);
+    AlphaZeroData getAlphaZeroTrainingData();
+    MuZeroData getMuZeroTrainingData(int unrolling_step);
+
+    inline int getDataSize() const { return env_loaders_.back().second; }
+
+private:
+    std::pair<int, int> getEnvIDAndPosition(int index) const;
+
     Environment env_;
     std::vector<std::pair<EnvironmentLoader, int>> env_loaders_;
 };

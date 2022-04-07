@@ -11,34 +11,47 @@ from torch.utils.data import IterableDataset
 from torch.utils.data import get_worker_info
 from minizero.network.py.create_network import create_network
 
+muzero_unrolling_step = 5
+
 
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
 
 class MinizeroDataset(IterableDataset):
-    def __init__(self, training_dir, start_iter, end_iter, conf):
+    def __init__(self, training_dir, start_iter, end_iter, conf, conf_file_name):
         self.training_dir = training_dir
         self.start_iter = start_iter
         self.end_iter = end_iter
         self.conf = conf
+        self.conf_file_name = conf_file_name
 
     def __iter__(self):
-        np.random.seed(get_worker_info().id)
-        self.data_loader = minizero_py.DataLoader()
+        self.data_loader = minizero_py.DataLoader(self.conf_file_name, get_worker_info().id)
         for i in range(self.start_iter, self.end_iter + 1):
             self.data_loader.load_data_from_file(f"{self.training_dir}/sgf/{i}.sgf")
 
         while True:
-            index = np.random.randint(self.data_loader.get_data_size())
-            result_dict = self.data_loader.get_feature_and_label(index)
-
-            features = torch.FloatTensor(result_dict["features"]).view(self.conf.get_nn_num_input_channels(),
-                                                                       self.conf.get_nn_input_channel_height(),
-                                                                       self.conf.get_nn_input_channel_width())
-            policy = torch.FloatTensor(result_dict["policy"])
-            value = torch.FloatTensor([result_dict["value"]])
-            yield features, policy, value
+            if self.conf.get_nn_type_name() == "alphazero":
+                result_dict = self.data_loader.get_alphazero_training_data()
+                features = torch.FloatTensor(result_dict["features"]).view(self.conf.get_nn_num_input_channels(),
+                                                                           self.conf.get_nn_input_channel_height(),
+                                                                           self.conf.get_nn_input_channel_width())
+                policy = torch.FloatTensor(result_dict["policy"])
+                value = torch.FloatTensor([result_dict["value"]])
+                yield features, policy, value
+            elif self.conf.get_nn_type_name() == "muzero":
+                result_dict = self.data_loader.get_muzero_training_data(muzero_unrolling_step)
+                features = torch.FloatTensor(result_dict["features"]).view(self.conf.get_nn_num_input_channels(),
+                                                                           self.conf.get_nn_input_channel_height(),
+                                                                           self.conf.get_nn_input_channel_width())
+                actions = torch.FloatTensor(result_dict["actions"]).view(muzero_unrolling_step,
+                                                                         self.conf.get_nn_num_action_feature_channels(),
+                                                                         self.conf.get_nn_hidden_channel_height(),
+                                                                         self.conf.get_nn_hidden_channel_width())
+                policy = torch.FloatTensor(result_dict["policy"]).view(-1, self.conf.get_nn_action_size())
+                value = torch.FloatTensor([result_dict["value"]])
+                yield features, actions, policy, value
 
 
 def load_model(training_dir, model_file, conf):
@@ -51,9 +64,11 @@ def load_model(training_dir, model_file, conf):
                              conf.get_nn_num_hidden_channels(),
                              conf.get_nn_hidden_channel_height(),
                              conf.get_nn_hidden_channel_width(),
+                             conf.get_nn_num_action_feature_channels(),
                              conf.get_nn_num_blocks(),
                              conf.get_nn_num_action_channels(),
                              conf.get_nn_action_size(),
+                             conf.get_nn_num_value_hidden_channels(),
                              conf.get_nn_type_name())
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     network.to(device)
@@ -61,16 +76,14 @@ def load_model(training_dir, model_file, conf):
                           lr=conf.get_learning_rate(),
                           momentum=conf.get_momentum(),
                           weight_decay=conf.get_weight_decay())
-    scheduler = optim.lr_scheduler.StepLR(optimizer,
-                                          step_size=1000000,
-                                          gamma=0.1)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1000000, gamma=0.1)
 
     if model_file:
-        snapshot = torch.load(f"{training_dir}/model/{model_file}",
-                              map_location=torch.device('cpu'))
+        snapshot = torch.load(f"{training_dir}/model/{model_file}", map_location=torch.device('cpu'))
         training_step = snapshot['training_step']
         network.load_state_dict(snapshot['network'])
         optimizer.load_state_dict(snapshot['optimizer'])
+        optimizer.param_groups[0]["lr"] = conf.get_learning_rate()
         scheduler.load_state_dict(snapshot['scheduler'])
 
     return training_step, network, device, optimizer, scheduler
@@ -109,11 +122,12 @@ if __name__ == '__main__':
         model_file = sys.argv[2]
         start_iter = int(sys.argv[3])
         end_iter = int(sys.argv[4])
-        conf = minizero_py.Conf(sys.argv[5])
+        conf_file_name = sys.argv[5]
     else:
         eprint("python train.py training_dir model_file start_iter end_iter conf_file")
         exit(0)
 
+    conf = minizero_py.Conf(conf_file_name)
     training_step, network, device, optimizer, scheduler = load_model(training_dir, model_file, conf)
     network = nn.DataParallel(network)
 
@@ -122,38 +136,58 @@ if __name__ == '__main__':
         exit(0)
 
     # create dataset & dataloader
-    dataset = MinizeroDataset(training_dir, start_iter, end_iter, conf)
-    data_loader = DataLoader(dataset,
-                             batch_size=conf.get_batch_size(),
-                             num_workers=conf.get_num_process())
+    dataset = MinizeroDataset(training_dir, start_iter, end_iter, conf, conf_file_name)
+    data_loader = DataLoader(dataset, batch_size=conf.get_batch_size(), num_workers=conf.get_num_process())
     data_loader_iterator = iter(data_loader)
 
     training_info = {}
     for i in range(1, conf.get_training_step() + 1):
         optimizer.zero_grad()
 
-        features, label_policy, label_value = next(data_loader_iterator)
-        network_output = network(features.to(device))
         if conf.get_nn_type_name() == "alphazero":
+            features, label_policy, label_value = next(data_loader_iterator)
+            network_output = network(features.to(device))
             output_policy, output_value = network_output["policy"], network_output["value"]
-        loss_policy, loss_value = calculate_loss(output_policy, output_value, label_policy.to(device), label_value.to(device))
-        loss = loss_policy + loss_value
+            loss_policy, loss_value = calculate_loss(output_policy, output_value, label_policy.to(device), label_value.to(device))
+            loss = loss_policy + loss_value
+
+            # record training info
+            add_training_info(training_info, 'loss_policy', loss_policy.item())
+            add_training_info(training_info, 'accuracy_policy', calculate_accuracy(output_policy, label_policy, conf.get_batch_size()))
+            add_training_info(training_info, 'loss_value', loss_value.item())
+        elif conf.get_nn_type_name() == "muzero":
+            features, actions, label_policy, label_value = next(data_loader_iterator)
+            network_output = network.module.initial_inference(features.to(device))
+            output_policy, output_value = network_output["policy"], network_output["value"]
+            loss_step_policy, loss_step_value = calculate_loss(output_policy, output_value, label_policy[:, 0].to(device), label_value.to(device))
+            add_training_info(training_info, 'loss_policy_0', loss_step_policy.item() / 2)
+            add_training_info(training_info, 'accuracy_policy_0', calculate_accuracy(output_policy, label_policy[:, 0], conf.get_batch_size()))
+            add_training_info(training_info, 'loss_value_0', loss_step_value.item() / 2)
+            loss_policy = loss_step_policy / 2
+            loss_value = loss_step_value / 2
+            for i in range(muzero_unrolling_step):
+                network_output = network.module.recurrent_inference(network_output["hidden_state"], actions[:, i].to(device))
+                output_policy, output_value = network_output["policy"], network_output["value"]
+                loss_step_policy, loss_step_value = calculate_loss(output_policy, output_value, label_policy[:, i+1].to(device), label_value.to(device))
+                add_training_info(training_info, f'loss_policy_{i+1}', loss_step_policy.item() / (i+2))
+                add_training_info(training_info, f'accuracy_policy_{i+1}', calculate_accuracy(output_policy, label_policy[:, i+1], conf.get_batch_size()))
+                add_training_info(training_info, f'loss_value_{i+1}', loss_step_value.item() / (i+2))
+                loss_policy += loss_step_policy / (i+2)
+                loss_value += loss_step_value / (i+2)
+            loss = loss_policy + loss_value
+
+            add_training_info(training_info, 'loss_policy', loss_policy.item())
+            add_training_info(training_info, 'loss_value', loss_value.item())
 
         loss.backward()
         optimizer.step()
         scheduler.step()
 
-        # record training info
-        add_training_info(training_info, 'loss_policy', loss_policy.item())
-        add_training_info(training_info, 'accuracy_policy', calculate_accuracy(output_policy, label_policy, conf.get_batch_size()))
-        add_training_info(training_info, 'loss_value', loss_value.item())
-
         training_step += 1
         if training_step != 0 and training_step % conf.get_training_display_step() == 0:
-            eprint("[{}] nn step {}, lr: {}.".format(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), training_step, round(optimizer.param_groups[0]["lr"], 6)), end=" ")
+            eprint("[{}] nn step {}, lr: {}.".format(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), training_step, round(optimizer.param_groups[0]["lr"], 6)))
             for loss in training_info:
-                eprint("{}: {}".format(loss, round(training_info[loss]/conf.get_training_display_step(), 5)), end=" ")
-            eprint()
+                eprint("\t{}: {}".format(loss, round(training_info[loss]/conf.get_training_display_step(), 5)))
             training_info = {}
 
     save_model(training_step, network, optimizer, scheduler, training_dir)

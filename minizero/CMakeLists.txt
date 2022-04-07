@@ -1,4 +1,4 @@
-file(GLOB SRCS *.cpp)
+file(GLOB SRCS *.cpp learner/data_loader.cpp)
 
 add_executable(minizero ${SRCS})
 target_link_libraries(

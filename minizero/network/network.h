@@ -17,23 +17,23 @@ public:
     Network();
     virtual ~Network() = default;
 
-    void LoadModel(const std::string& nn_file_name, const int gpu_id);
-    std::string ToString() const;
+    void loadModel(const std::string& nn_file_name, const int gpu_id);
+    std::string toString() const;
 
-    inline int GetGPUID() const { return gpu_id_; }
-    inline int GetNumInputChannels() const { return num_input_channels_; }
-    inline int GetInputChannelHeight() const { return input_channel_height_; }
-    inline int GetInputChannelWidth() const { return input_channel_width_; }
-    inline int GetNumHiddenChannels() const { return num_hidden_channels_; }
-    inline int GetHiddenChannelHeight() const { return hidden_channel_height_; }
-    inline int GetHiddenChannelWidth() const { return hidden_channel_width_; }
-    inline int GetNumBlocks() const { return num_blocks_; }
-    inline std::string GetGameName() const { return game_name_; }
-    inline std::string GetNetworkTypeName() const { return network_type_name_; }
-    inline std::string GetNetworkFileName() const { return network_file_name_; }
+    inline int getGPUID() const { return gpu_id_; }
+    inline int getNumInputChannels() const { return num_input_channels_; }
+    inline int getInputChannelHeight() const { return input_channel_height_; }
+    inline int getInputChannelWidth() const { return input_channel_width_; }
+    inline int getNumHiddenChannels() const { return num_hidden_channels_; }
+    inline int getHiddenChannelHeight() const { return hidden_channel_height_; }
+    inline int getHiddenChannelWidth() const { return hidden_channel_width_; }
+    inline int getNumBlocks() const { return num_blocks_; }
+    inline std::string getGameName() const { return game_name_; }
+    inline std::string getNetworkTypeName() const { return network_type_name_; }
+    inline std::string getNetworkFileName() const { return network_file_name_; }
 
 protected:
-    inline torch::Device GetDevice() const { return (gpu_id_ == -1 ? torch::Device("cpu") : torch::Device(torch::kCUDA, gpu_id_)); }
+    inline torch::Device getDevice() const { return (gpu_id_ == -1 ? torch::Device("cpu") : torch::Device(torch::kCUDA, gpu_id_)); }
 
     int gpu_id_;
     int num_input_channels_;
@@ -49,6 +49,6 @@ protected:
     torch::jit::script::Module network_;
 };
 
-std::shared_ptr<Network> CreateNetwork(std::string nn_file_name, const int gpu_id);
+std::shared_ptr<Network> createNetwork(std::string nn_file_name, const int gpu_id);
 
 } // namespace minizero::network

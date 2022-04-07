@@ -2,10 +2,10 @@
 
 namespace minizero::env {
 
-void SetUpEnv()
+void setUpEnv()
 {
-#if GO
-    go::Initialize();
+#if GO or KILLALLGO
+    go::initialize();
 #endif
 }
 

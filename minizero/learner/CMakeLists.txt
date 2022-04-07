@@ -7,4 +7,5 @@ target_link_libraries(
     PUBLIC
     config
     environment
+    utils
 )

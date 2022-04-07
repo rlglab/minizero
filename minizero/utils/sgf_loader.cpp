@@ -1,11 +1,12 @@
 #include "sgf_loader.h"
+#include <algorithm>
 #include <cassert>
 #include <fstream>
 #include <sstream>
 
 namespace minizero::utils {
 
-bool SGFLoader::LoadFromFile(const std::string& file_name)
+bool SGFLoader::loadFromFile(const std::string& file_name)
 {
     std::ifstream fin(file_name.c_str());
     if (!fin) { return false; }
@@ -17,23 +18,23 @@ bool SGFLoader::LoadFromFile(const std::string& file_name)
         if (line.empty()) { continue; }
         sgf_content += line;
     }
-    return LoadFromString(sgf_content);
+    return loadFromString(sgf_content);
 }
 
-bool SGFLoader::LoadFromString(const std::string& sgf_content)
+bool SGFLoader::loadFromString(const std::string& sgf_content)
 {
-    Reset();
-    sgf_content_ = TrimSpace(sgf_content);
+    reset();
+    sgf_content_ = trimSpace(sgf_content);
     for (size_t index = 0; index < sgf_content_.size() && sgf_content_[index] != ')';) {
         std::pair<std::string, std::string> key_value;
-        if ((index = CalculateKeyValuePair(sgf_content_, index, key_value)) == std::string::npos) { return false; }
+        if ((index = calculateKeyValuePair(sgf_content_, index, key_value)) == std::string::npos) { return false; }
         if (key_value.first == "B" || key_value.first == "W") {
             int board_size = tags_.count("SZ") ? std::stoi(tags_["SZ"]) : -1;
             if (board_size == -1) { return false; }
-            std::vector<std::string> args{key_value.first, ActionIDToBoardCoordinateString(SGFStringToActionID(key_value.second, board_size), board_size)};
+            std::vector<std::string> args{key_value.first, actionIDToBoardCoordinateString(sgfStringToActionID(key_value.second, board_size), board_size)};
             std::string comment;
             if (index < sgf_content_.size() && sgf_content_[index] == 'C') {
-                if ((index = CalculateKeyValuePair(sgf_content_, index, key_value)) == std::string::npos) { return false; }
+                if ((index = calculateKeyValuePair(sgf_content_, index, key_value)) == std::string::npos) { return false; }
                 comment = key_value.second;
             }
             actions_.push_back({args, comment});
@@ -44,7 +45,7 @@ bool SGFLoader::LoadFromString(const std::string& sgf_content)
     return true;
 }
 
-void SGFLoader::Reset()
+void SGFLoader::reset()
 {
     file_name_ = "";
     sgf_content_ = "";
@@ -52,15 +53,19 @@ void SGFLoader::Reset()
     actions_.clear();
 }
 
-int SGFLoader::BoardCoordinateStringToActionID(const std::string& board_coordinate_string, int board_size)
+int SGFLoader::boardCoordinateStringToActionID(const std::string& board_coordinate_string, int board_size)
 {
+    std::string tmp = board_coordinate_string;
+    std::transform(tmp.begin(), tmp.end(), tmp.begin(), ::toupper);
+    if (tmp == "PASS") { return board_size * board_size; }
+
     if (board_coordinate_string.size() < 2) { return -1; }
     int x = std::toupper(board_coordinate_string[0]) - 'A' + (std::toupper(board_coordinate_string[0]) > 'I' ? -1 : 0);
     int y = atoi(board_coordinate_string.substr(1).c_str()) - 1;
     return y * board_size + x;
 }
 
-std::string SGFLoader::ActionIDToBoardCoordinateString(int action_id, int board_size)
+std::string SGFLoader::actionIDToBoardCoordinateString(int action_id, int board_size)
 {
     assert(action_id >= 0 && action_id <= board_size * board_size);
 
@@ -72,7 +77,7 @@ std::string SGFLoader::ActionIDToBoardCoordinateString(int action_id, int board_
     return oss.str();
 }
 
-int SGFLoader::SGFStringToActionID(const std::string& sgf_string, int board_size)
+int SGFLoader::sgfStringToActionID(const std::string& sgf_string, int board_size)
 {
     if (sgf_string.size() != 2) { return board_size * board_size; }
     int x = std::toupper(sgf_string[0]) - 'A';
@@ -80,7 +85,7 @@ int SGFLoader::SGFStringToActionID(const std::string& sgf_string, int board_size
     return y * board_size + x;
 }
 
-std::string SGFLoader::ActionIDToSGFString(int action_id, int board_size)
+std::string SGFLoader::actionIDToSGFString(int action_id, int board_size)
 {
     assert(action_id >= 0 && action_id <= board_size * board_size);
 
@@ -92,7 +97,7 @@ std::string SGFLoader::ActionIDToSGFString(int action_id, int board_size)
     return oss.str();
 }
 
-std::string SGFLoader::TrimSpace(const std::string& s) const
+std::string SGFLoader::trimSpace(const std::string& s) const
 {
     bool skip = false;
     std::string new_s;
@@ -103,7 +108,7 @@ std::string SGFLoader::TrimSpace(const std::string& s) const
     return new_s;
 }
 
-size_t SGFLoader::CalculateKeyValuePair(const std::string& s, size_t start_pos, std::pair<std::string, std::string>& key_value)
+size_t SGFLoader::calculateKeyValuePair(const std::string& s, size_t start_pos, std::pair<std::string, std::string>& key_value)
 {
     key_value = {"", ""};
     bool is_key = true;

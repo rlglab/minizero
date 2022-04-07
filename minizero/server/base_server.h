@@ -19,25 +19,25 @@ public:
 
     virtual ~ConnectionHandler() = default;
 
-    void Write(std::string message)
+    void write(std::string message)
     {
-        if (message.empty() || IsClosed()) { return; }
+        if (message.empty() || isClosed()) { return; }
 
         message += (message.back() == '\n' ? "" : "\n");
-        strand_.dispatch(boost::bind(&ConnectionHandler::DoWrite, shared_from_this(), message));
+        strand_.dispatch(boost::bind(&ConnectionHandler::doWrite, shared_from_this(), message));
     }
 
-    void StartRead()
+    void startRead()
     {
         boost::asio::async_read_until(socket_,
                                       read_buffer_, '\n',
-                                      boost::bind(&ConnectionHandler::HandleRead,
+                                      boost::bind(&ConnectionHandler::handleRead,
                                                   shared_from_this(),
                                                   boost::asio::placeholders::error,
                                                   boost::asio::placeholders::bytes_transferred));
     }
 
-    virtual void Close()
+    virtual void close()
     {
         if (is_closed_) { return; }
 
@@ -45,50 +45,50 @@ public:
         socket_.close();
     }
 
-    inline bool IsClosed() { return is_closed_; }
-    inline boost::asio::ip::tcp::socket& GetSocket() { return socket_; }
+    inline bool isClosed() { return is_closed_; }
+    inline boost::asio::ip::tcp::socket& getSocket() { return socket_; }
 
-    virtual void HandleReceivedMessage(const std::string& message) = 0;
+    virtual void handleReceivedMessage(const std::string& message) = 0;
 
 private:
-    void DoWrite(const std::string& message)
+    void doWrite(const std::string& message)
     {
         message_queue_.push(message);
-        if (message_queue_.size() == 1) { WriteNext(); }
+        if (message_queue_.size() == 1) { writeNext(); }
     }
 
-    void WriteNext()
+    void writeNext()
     {
         const std::string& message = message_queue_.front();
         boost::asio::async_write(socket_,
                                  boost::asio::buffer(message),
-                                 strand_.wrap(boost::bind(&ConnectionHandler::HandleWrite,
+                                 strand_.wrap(boost::bind(&ConnectionHandler::handleWrite,
                                                           shared_from_this(),
                                                           boost::asio::placeholders::error)));
     }
 
-    void HandleWrite(const boost::system::error_code& error)
+    void handleWrite(const boost::system::error_code& error)
     {
         message_queue_.pop();
         if (error) {
-            Close();
+            close();
             return;
         }
-        if (!message_queue_.empty()) { WriteNext(); }
+        if (!message_queue_.empty()) { writeNext(); }
     }
 
-    void HandleRead(const boost::system::error_code& error, size_t bytes_read)
+    void handleRead(const boost::system::error_code& error, size_t bytes_read)
     {
         if (error) {
-            Close();
+            close();
             return;
         }
 
         std::istream is(&read_buffer_);
         std::string line;
         std::getline(is, line);
-        HandleReceivedMessage(line);
-        StartRead();
+        handleReceivedMessage(line);
+        startRead();
     }
 
     bool is_closed_;
@@ -113,50 +113,50 @@ public:
 
         const int num_threads = 1;
         for (int i = 0; i < num_threads; ++i) {
-            thread_pool_.create_thread(boost::bind(&BaseServer::Run, this));
+            thread_pool_.create_thread(boost::bind(&BaseServer::run, this));
         }
     }
 
     ~BaseServer() { thread_pool_.join_all(); }
 
-    void StartAccept()
+    void startAccept()
     {
-        boost::shared_ptr<_ConnectionHandler> connection = HandleAcceptNewConnection();
-        acceptor_.async_accept(connection->GetSocket(),
-                               boost::bind(&BaseServer::HandleAccept,
+        boost::shared_ptr<_ConnectionHandler> connection = handleAcceptNewConnection();
+        acceptor_.async_accept(connection->getSocket(),
+                               boost::bind(&BaseServer::handleAccept,
                                            this,
                                            connection,
                                            boost::asio::placeholders::error));
     }
 
-    void Run() { io_service_.run(); }
-    void Stop() { io_service_.stop(); }
+    void run() { io_service_.run(); }
+    void stop() { io_service_.stop(); }
 
 protected:
-    void HandleAccept(boost::shared_ptr<_ConnectionHandler> connection, const boost::system::error_code& error)
+    void handleAccept(boost::shared_ptr<_ConnectionHandler> connection, const boost::system::error_code& error)
     {
         if (!error) {
             boost::lock_guard<boost::mutex> lock(worker_mutex_);
-            SendInitialMessage(connection);
-            connection->StartRead();
+            sendInitialMessage(connection);
+            connection->startRead();
             connections_.push_back(connection);
-            CleanUpClosedConnection();
+            cleanUpClosedConnection();
         }
-        StartAccept();
+        startAccept();
     }
 
-    void CleanUpClosedConnection()
+    void cleanUpClosedConnection()
     {
         std::vector<boost::shared_ptr<_ConnectionHandler>> connections;
         for (auto connection : connections_) {
-            if (connection->IsClosed()) { continue; }
+            if (connection->isClosed()) { continue; }
             connections.push_back(connection);
         }
         connections_ = connections;
     }
 
-    virtual boost::shared_ptr<_ConnectionHandler> HandleAcceptNewConnection() = 0;
-    virtual void SendInitialMessage(boost::shared_ptr<_ConnectionHandler> connection) = 0;
+    virtual boost::shared_ptr<_ConnectionHandler> handleAcceptNewConnection() = 0;
+    virtual void sendInitialMessage(boost::shared_ptr<_ConnectionHandler> connection) = 0;
 
     boost::mutex worker_mutex_;
     boost::thread_group thread_pool_;

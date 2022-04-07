@@ -45,7 +45,7 @@ fi
 
 # friendly notify
 yn="?"
-echo "Start training from iteration: ${ZERO_START_ITERATION}, model file: ${MODEL_FILE}, configuration: ${NEW_CONFIGURE_FILE}. Sure? (y/n)"
+echo "Start training from iteration: ${ZERO_START_ITERATION}, model file: ${MODEL_FILE}, configuration: ${TRAIN_DIR}/${NEW_CONFIGURE_FILE}. Sure? (y/n)"
 read -n1 yn
 if [[ ${yn} != "y" ]]; then
     exit

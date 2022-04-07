@@ -24,32 +24,33 @@ class ResidualBlock(nn.Module):
 
 
 class PolicyNetwork(nn.Module):
-    def __init__(self, num_channels, channel_height, channel_width, action_size):
+    def __init__(self, num_channels, channel_height, channel_width, num_output_channels, action_size):
         super(PolicyNetwork, self).__init__()
         self.channel_height = channel_height
         self.channel_width = channel_width
-        self.conv = nn.Conv2d(num_channels, 2, 1)
-        self.bn = nn.BatchNorm2d(2)
-        self.fc = nn.Linear(2*channel_height*channel_width, action_size)
+        self.num_output_channels = num_output_channels
+        self.conv = nn.Conv2d(num_channels, num_output_channels, 1)
+        self.bn = nn.BatchNorm2d(num_output_channels)
+        self.fc = nn.Linear(num_output_channels*channel_height*channel_width, action_size)
 
     def forward(self, x):
         x = self.conv(x)
         x = self.bn(x)
         x = F.relu(x)
-        x = x.view(-1, 2*self.channel_height*self.channel_width)
+        x = x.view(-1, self.num_output_channels*self.channel_height*self.channel_width)
         x = self.fc(x)
         return x
 
 
 class ValueNetwork(nn.Module):
-    def __init__(self, num_channels, channel_height, channel_width):
+    def __init__(self, num_channels, channel_height, channel_width, num_output_channels):
         super(ValueNetwork, self).__init__()
         self.channel_height = channel_height
         self.channel_width = channel_width
         self.conv = nn.Conv2d(num_channels, 1, 1)
         self.bn = nn.BatchNorm2d(1)
-        self.fc1 = nn.Linear(channel_height*channel_width, num_channels)
-        self.fc2 = nn.Linear(num_channels, 1)
+        self.fc1 = nn.Linear(channel_height*channel_width, num_output_channels)
+        self.fc2 = nn.Linear(num_output_channels, 1)
         self.tanh = nn.Tanh()
 
     def forward(self, x):

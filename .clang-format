@@ -1,0 +1,13 @@
+BasedOnStyle: LLVM
+BreakBeforeBraces: WebKit
+IndentWidth: 4
+PointerAlignment: Left
+AccessModifierOffset: -4
+ColumnLimit: 0
+AllowShortBlocksOnASingleLine: true
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: true
+AllowShortIfStatementsOnASingleLine: true
+AllowShortLoopsOnASingleLine: true
+NamespaceIndentation: Inner
+IndentCaseLabels: true

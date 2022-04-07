@@ -1,4 +1,6 @@
 #include "console.h"
+#include "alphazero_actor.h"
+#include "sgf_loader.h"
 #include <climits>
 #include <iostream>
 #include <sstream>
@@ -7,17 +9,23 @@ namespace minizero::console {
 
 Console::Console()
 {
-    RegisterFunction("list_commands", this, &Console::CmdListCommands);
-    RegisterFunction("name", this, &Console::CmdName);
-    RegisterFunction("version", this, &Console::CmdVersion);
-    RegisterFunction("protocol_version", this, &Console::CmdProtocalVersion);
-    RegisterFunction("clear_board", this, &Console::CmdClearBoard);
-    RegisterFunction("showboard", this, &Console::CmdShowBoard);
-    RegisterFunction("play", this, &Console::CmdPlay);
+    RegisterFunction("list_commands", this, &Console::cmdListCommands);
+    RegisterFunction("name", this, &Console::cmdName);
+    RegisterFunction("version", this, &Console::cmdVersion);
+    RegisterFunction("protocol_version", this, &Console::cmdProtocalVersion);
+    RegisterFunction("clear_board", this, &Console::cmdClearBoard);
+    RegisterFunction("showboard", this, &Console::cmdShowBoard);
+    RegisterFunction("play", this, &Console::cmdPlay);
+    RegisterFunction("boardsize", this, &Console::cmdBoardSize);
+    RegisterFunction("genmove", this, &Console::cmdGenmove);
+    RegisterFunction("reg_genmove", this, &Console::cmdRegGenmove);
+
+    initialize();
 }
 
-void Console::ExecuteCommand(std::string command)
+void Console::executeCommand(std::string command)
 {
+    if (command.back() == '\r') { command.pop_back(); }
     if (command.empty()) { return; }
 
     // parse command to args
@@ -28,58 +36,91 @@ void Console::ExecuteCommand(std::string command)
     while (std::getline(ss, tmp, ' ')) { args.push_back(tmp); }
 
     // execute function
-    if (function_map_.count(first_command) == 0) { return Reply(ConsoleResponse::kFail, "Unknown command: " + command); }
+    if (function_map_.count(first_command) == 0) { return reply(ConsoleResponse::kFail, "Unknown command: " + command); }
     (*function_map_[first_command])(args);
 }
 
-void Console::CmdListCommands(const std::vector<std::string>& args)
+void Console::initialize()
 {
-    if (!CheckArgument(args, 0, 0)) { return; }
+    network_ = network::createNetwork(config::nn_file_name, 0);
+    if (network_->getNetworkTypeName() == "alphazero") {
+        int action_size = std::static_pointer_cast<network::AlphaZeroNetwork>(network_)->getActionSize();
+        actor_ = std::make_shared<actor::AlphaZeroActor>(config::actor_num_simulation * action_size);
+    }
+    actor_->reset();
+}
+
+void Console::cmdListCommands(const std::vector<std::string>& args)
+{
+    if (!checkArgument(args, 0, 0)) { return; }
     std::ostringstream oss;
     for (const auto& command : function_map_) { oss << command.first << std::endl; }
-    Reply(ConsoleResponse::kSuccess, oss.str());
+    reply(ConsoleResponse::kSuccess, oss.str());
 }
 
-void Console::CmdName(const std::vector<std::string>& args)
+void Console::cmdName(const std::vector<std::string>& args)
 {
-    if (!CheckArgument(args, 0, 0)) { return; }
-    Reply(ConsoleResponse::kSuccess, "minizero");
+    if (!checkArgument(args, 0, 0)) { return; }
+    reply(ConsoleResponse::kSuccess, "minizero");
 }
 
-void Console::CmdVersion(const std::vector<std::string>& args)
+void Console::cmdVersion(const std::vector<std::string>& args)
 {
-    if (!CheckArgument(args, 0, 0)) { return; }
-    Reply(ConsoleResponse::kSuccess, "1.0");
+    if (!checkArgument(args, 0, 0)) { return; }
+    reply(ConsoleResponse::kSuccess, "1.0");
 }
 
-void Console::CmdProtocalVersion(const std::vector<std::string>& args)
+void Console::cmdProtocalVersion(const std::vector<std::string>& args)
 {
-    if (!CheckArgument(args, 0, 0)) { return; }
-    Reply(ConsoleResponse::kSuccess, "2");
+    if (!checkArgument(args, 0, 0)) { return; }
+    reply(ConsoleResponse::kSuccess, "2");
 }
 
-void Console::CmdClearBoard(const std::vector<std::string>& args)
+void Console::cmdClearBoard(const std::vector<std::string>& args)
 {
-    if (!CheckArgument(args, 0, 0)) { return; }
-    env_.Reset();
-    Reply(ConsoleResponse::kSuccess, "");
+    if (!checkArgument(args, 0, 0)) { return; }
+    actor_->reset();
+    reply(ConsoleResponse::kSuccess, "");
 }
 
-void Console::CmdShowBoard(const std::vector<std::string>& args)
+void Console::cmdShowBoard(const std::vector<std::string>& args)
 {
-    if (!CheckArgument(args, 0, 0)) { return; }
-    Reply(ConsoleResponse::kSuccess, "\n" + env_.ToString());
+    if (!checkArgument(args, 0, 0)) { return; }
+    reply(ConsoleResponse::kSuccess, "\n" + actor_->getEnvironment().toString());
 }
 
-void Console::CmdPlay(const std::vector<std::string>& args)
+void Console::cmdPlay(const std::vector<std::string>& args)
 {
-    if (!CheckArgument(args, 1, INT_MAX)) { return; }
+    if (!checkArgument(args, 1, INT_MAX)) { return; }
     std::string action_string = args[1];
-    if (!env_.Act(args)) { return Reply(ConsoleResponse::kFail, "Invalid action: \"" + action_string + "\""); }
-    Reply(ConsoleResponse::kSuccess, "");
+    if (!actor_->act(args)) { return reply(ConsoleResponse::kFail, "Invalid action: \"" + action_string + "\""); }
+    reply(ConsoleResponse::kSuccess, "");
 }
 
-bool Console::CheckArgument(const std::vector<std::string>& args, int min_argc, int max_argc)
+void Console::cmdBoardSize(const std::vector<std::string>& args)
+{
+    if (!checkArgument(args, 1, 1)) { return; }
+    reply(ConsoleResponse::kSuccess, "");
+}
+
+void Console::cmdGenmove(const std::vector<std::string>& args)
+{
+    if (!checkArgument(args, 1, 1)) { return; }
+    const actor::MCTSTreeNode* action_node = actor_->runMCTS(network_);
+    std::cerr << action_node->toString() << std::endl;
+    actor_->act(action_node->getAction());
+    reply(ConsoleResponse::kSuccess, action_node->getAction().toConsoleString());
+}
+
+void Console::cmdRegGenmove(const std::vector<std::string>& args)
+{
+    if (!checkArgument(args, 1, 1)) { return; }
+    const actor::MCTSTreeNode* action_node = actor_->runMCTS(network_);
+    std::cerr << action_node->toString() << std::endl;
+    reply(ConsoleResponse::kSuccess, action_node->getAction().toConsoleString());
+}
+
+bool Console::checkArgument(const std::vector<std::string>& args, int min_argc, int max_argc)
 {
     int size = args.size();
     if (size >= min_argc && size <= max_argc) { return true; }
@@ -92,11 +133,11 @@ bool Console::CheckArgument(const std::vector<std::string>& args, int min_argc, 
         oss << min_argc << " to " << max_argc << " arguments";
     }
 
-    Reply(ConsoleResponse::kFail, oss.str());
+    reply(ConsoleResponse::kFail, oss.str());
     return false;
 }
 
-void Console::Reply(ConsoleResponse response, const std::string& reply)
+void Console::reply(ConsoleResponse response, const std::string& reply)
 {
     std::cout << static_cast<char>(response) << " " << reply << "\n\n";
 }

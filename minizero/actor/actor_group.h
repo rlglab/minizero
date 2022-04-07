@@ -10,8 +10,8 @@ namespace minizero::actor {
 
 class ThreadSharedData {
 public:
-    int GetNextActorIndex();
-    void OutputRecord(const std::string& record);
+    int getNextActorIndex();
+    void outputRecord(const std::string& record);
 
     bool do_cpu_job_;
     int actor_index_;
@@ -29,15 +29,15 @@ public:
           start_barrier_(2),
           finish_barrier_(2) {}
 
-    void RunThread();
+    void runThread();
 
-    inline void Start() { start_barrier_.wait(); }
-    inline void Finish() { finish_barrier_.wait(); }
+    inline void start() { start_barrier_.wait(); }
+    inline void finish() { finish_barrier_.wait(); }
 
 private:
-    void DoCPUJob();
-    void HandleSearchEndAndEnvEnd(const std::shared_ptr<Actor>& actor, bool display = false);
-    void DoGPUJob();
+    void doCPUJob();
+    void handleSearchEndAndEnvEnd(const std::shared_ptr<Actor>& actor, bool display = false);
+    void doGPUJob();
 
     int id_;
     ThreadSharedData& shared_data_;
@@ -49,7 +49,7 @@ class ActorGroup {
 public:
     ActorGroup();
 
-    void Run();
+    void run();
 
 private:
     ThreadSharedData shared_data_;

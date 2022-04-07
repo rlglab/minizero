@@ -6,6 +6,8 @@ target_include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
     base
     go
+    gomoku
+    killallgo
     othello
     tietactoe
 )

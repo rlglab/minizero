@@ -7,9 +7,9 @@
 
 class TimeSystem {
 public:
-    static boost::posix_time::ptime GetLocalTime() { return boost::posix_time::microsec_clock::local_time(); }
+    static boost::posix_time::ptime getLocalTime() { return boost::posix_time::microsec_clock::local_time(); }
 
-    static std::string GetTimeString(std::string format = "Y/m/d H:i:s", boost::posix_time::ptime local_time = GetLocalTime())
+    static std::string getTimeString(std::string format = "Y/m/d H:i:s", boost::posix_time::ptime local_time = getLocalTime())
     {
         std::string time_string;
         bool is_escape = false;
@@ -20,15 +20,15 @@ public:
                 is_escape = false;
             } else {
                 switch (format.at(i)) {
-                    case 'Y': time_string += TranslateIntToString(local_time.date().year()); break;
-                    case 'y': time_string += TranslateIntToString(local_time.date().year() % 100, 2); break;
-                    case 'm': time_string += TranslateIntToString(local_time.date().month(), 2); break;
-                    case 'd': time_string += TranslateIntToString(local_time.date().day(), 2); break;
-                    case 'H': time_string += TranslateIntToString(local_time.time_of_day().hours(), 2); break;
-                    case 'i': time_string += TranslateIntToString(local_time.time_of_day().minutes(), 2); break;
-                    case 's': time_string += TranslateIntToString(local_time.time_of_day().seconds(), 2); break;
-                    case 'f': time_string += TranslateIntToString(local_time.time_of_day().total_milliseconds() % 1000, 3); break;
-                    case 'u': time_string += TranslateIntToString(local_time.time_of_day().total_microseconds() % 1000000, 6); break;
+                    case 'Y': time_string += translateIntToString(local_time.date().year()); break;
+                    case 'y': time_string += translateIntToString(local_time.date().year() % 100, 2); break;
+                    case 'm': time_string += translateIntToString(local_time.date().month(), 2); break;
+                    case 'd': time_string += translateIntToString(local_time.date().day(), 2); break;
+                    case 'H': time_string += translateIntToString(local_time.time_of_day().hours(), 2); break;
+                    case 'i': time_string += translateIntToString(local_time.time_of_day().minutes(), 2); break;
+                    case 's': time_string += translateIntToString(local_time.time_of_day().seconds(), 2); break;
+                    case 'f': time_string += translateIntToString(local_time.time_of_day().total_milliseconds() % 1000, 3); break;
+                    case 'u': time_string += translateIntToString(local_time.time_of_day().total_microseconds() % 1000000, 6); break;
                     case '\\': is_escape = true; break;
                     default: time_string += format.at(i); break;
                 }
@@ -38,7 +38,7 @@ public:
     }
 
 private:
-    static std::string TranslateIntToString(int value, int width = 0)
+    static std::string translateIntToString(int value, int width = 0)
     {
         char buf[16];
         static char zero_fill_format[] = "%0*d", non_zero_fill_format[] = "%*d";

@@ -5,6 +5,7 @@
 #include "go_block.h"
 #include "go_grid.h"
 #include "go_unit.h"
+#include "sgf_loader.h"
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -14,9 +15,9 @@ namespace minizero::env::go {
 extern GoHashKey turn_hash_key;
 extern GoPair<std::vector<GoHashKey>> grids_hash_key;
 
-void Initialize();
-GoHashKey GetGoTurnHashKey();
-GoHashKey GetGoGridHashKey(int position, Player p);
+void initialize();
+GoHashKey getGoTurnHashKey();
+GoHashKey getGoGridHashKey(int position, Player p);
 
 class GoAction : public BaseAction {
 public:
@@ -24,7 +25,8 @@ public:
     GoAction(int action_id, Player player) : BaseAction(action_id, player) {}
     GoAction(const std::vector<std::string>& action_string_args, int board_size);
 
-    inline Player NextPlayer() const override { return GetNextPlayer(player_, kGoNumPlayer); }
+    inline Player nextPlayer() const override { return getNextPlayer(player_, kGoNumPlayer); }
+    inline std::string toConsoleString() const override { return minizero::utils::SGFLoader::actionIDToBoardCoordinateString(getActionID(), minizero::config::env_go_board_size); }
 };
 
 class GoEnv : public BaseEnv<GoAction> {
@@ -35,38 +37,37 @@ public:
         : board_size_(board_size)
     {
         assert(board_size_ > 0 && board_size_ <= kMaxGoBoardSize);
-        Initialize();
-        Reset();
+        initialize();
+        reset();
     }
     GoEnv(const GoEnv& env);
 
-    void Reset() override;
-    void Reset(int board_size);
-    bool Act(const GoAction& action) override;
-    bool Act(const std::vector<std::string>& action_string_args) override;
-    std::vector<GoAction> GetLegalActions() const override;
-    bool IsLegalAction(const GoAction& action) const override;
-    bool IsTerminal() const override;
-    float GetEvalScore(bool is_resign = false) const override;
-    std::vector<float> GetFeatures() const override;
-    std::string ToString() const override;
+    void reset() override;
+    bool act(const GoAction& action) override;
+    bool act(const std::vector<std::string>& action_string_args) override;
+    std::vector<GoAction> getLegalActions() const override;
+    virtual bool isLegalAction(const GoAction& action) const override;
+    bool isTerminal() const override;
+    float getEvalScore(bool is_resign = false) const override;
+    std::vector<float> getFeatures(utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
+    std::string toString() const override;
 
-    inline std::string Name() const override { return kGoName; }
-    inline float GetKomi() const { return komi_; }
-    inline int GetBoardSize() const { return board_size_; }
+    inline std::string name() const override { return kGoName; }
+    inline float getKomi() const { return komi_; }
+    inline int getBoardSize() const { return board_size_; }
 
-private:
-    void Initialize();
-    GoBlock* NewBlock();
-    void RemoveBlock(GoBlock* block);
-    void RemoveBlockFromBoard(GoBlock* block);
-    GoBlock* CombineBlocks(GoBlock* block1, GoBlock* block2);
-    std::string GetCoordinateString() const;
-    GoBitboard DilateBitboard(const GoBitboard& bitboard) const;
-    GoPair<float> CalculateTrompTaylorTerritory() const;
-    bool CheckDataStructure() const;
+protected:
+    void initialize();
+    GoBlock* newBlock();
+    void removeBlock(GoBlock* block);
+    void removeBlockFromBoard(GoBlock* block);
+    GoBlock* combineBlocks(GoBlock* block1, GoBlock* block2);
+    std::string getCoordinateString() const;
+    GoBitboard dilateBitboard(const GoBitboard& bitboard) const;
+    GoPair<float> calculateTrompTaylorTerritory() const;
+    bool checkDataStructure() const;
 
-    inline bool IsPassAction(const GoAction& action) const { return (action.GetActionID() == board_size_ * board_size_); }
+    inline bool isPassAction(const GoAction& action) const { return (action.getActionID() == board_size_ * board_size_); }
 
     int board_size_;
     float komi_;
@@ -76,6 +77,9 @@ private:
     GoBitboard board_right_boundary_bitboard_;
     GoBitboard free_block_id_bitboard_;
     GoPair<GoBitboard> stone_bitboard_;
+    GoPair<GoBitboard> benson_bitboard;
+    GoPair<GoBitboard>* benson_bitboard_p = &benson_bitboard;
+
     std::vector<GoGrid> grids_;
     std::vector<GoBlock> blocks_;
     std::vector<GoPair<GoBitboard>> stone_bitboard_history_;
@@ -84,22 +88,26 @@ private:
 
 class GoEnvLoader : public BaseEnvLoader<GoAction, GoEnv> {
 public:
-    void LoadFromEnvironment(const GoEnv& env, const std::vector<std::string> action_distributions = {})
+    void loadFromEnvironment(const GoEnv& env, const std::vector<std::string> action_distributions = {})
     {
-        BaseEnvLoader<GoAction, GoEnv>::LoadFromEnvironment(env, action_distributions);
-        AddTag("KM", std::to_string(env.GetKomi()));
-        AddTag("SZ", std::to_string(env.GetBoardSize()));
+        BaseEnvLoader<GoAction, GoEnv>::loadFromEnvironment(env, action_distributions);
+        addTag("KM", std::to_string(env.getKomi()));
+        addTag("SZ", std::to_string(env.getBoardSize()));
     }
 
-    inline std::vector<float> GetPolicyDistribution(int id) const override
+    inline std::vector<float> getActionFeatures(int id, utils::Rotation rotation = utils::Rotation::kRotationNone) const override
     {
-        int board_size = std::stoi(GetTag("SZ"));
-        std::vector<float> policy(board_size * board_size + 1, 0.0f);
-        SetPolicyDistribution(id, policy);
-        return policy;
+        assert(id < static_cast<int>(action_pairs_.size()));
+        int board_size = std::stoi(getTag("SZ"));
+        std::vector<float> action_features(board_size * board_size, 0.0f);
+        action_features[getRotatePosition(action_pairs_[id].first.getActionID(), rotation)] = 1.0f;
+        return action_features;
     }
 
-    inline std::string GetEnvName() const { return kGoName; }
+    inline int getBoardSize() const { return std::stoi(getTag("SZ")); }
+    inline int getPolicySize() const override { return getBoardSize() * getBoardSize() + 1; }
+    inline int getRotatePosition(int position, utils::Rotation rotation) const override { return getPositionByRotating(rotation, position, getBoardSize()); }
+    inline std::string getEnvName() const { return kGoName; }
 };
 
 } // namespace minizero::env::go

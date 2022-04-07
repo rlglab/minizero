@@ -11,9 +11,11 @@ def create_network(game_name="tietactoe",
                    num_hidden_channels=16,
                    hidden_channel_height=3,
                    hidden_channel_width=3,
+                   num_action_feature_channels=1,
                    num_blocks=1,
                    num_action_channels=1,
                    action_size=9,
+                   num_value_hidden_channels=256,
                    network_type_name="alphazero"):
 
     network = None
@@ -27,7 +29,8 @@ def create_network(game_name="tietactoe",
                                    hidden_channel_width,
                                    num_blocks,
                                    num_action_channels,
-                                   action_size)
+                                   action_size,
+                                   num_value_hidden_channels)
     elif network_type_name == "muzero":
         network = MuZeroNetwork(game_name,
                                 num_input_channels,
@@ -36,8 +39,10 @@ def create_network(game_name="tietactoe",
                                 num_hidden_channels,
                                 hidden_channel_height,
                                 hidden_channel_width,
+                                num_action_feature_channels,
                                 num_blocks,
                                 num_action_channels,
-                                action_size)
+                                action_size,
+                                num_value_hidden_channels)
 
     return network

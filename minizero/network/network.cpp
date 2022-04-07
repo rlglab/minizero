@@ -13,14 +13,14 @@ Network::Network()
     network_type_name_ = network_file_name_ = "";
 }
 
-void Network::LoadModel(const std::string& nn_file_name, const int gpu_id)
+void Network::loadModel(const std::string& nn_file_name, const int gpu_id)
 {
     gpu_id_ = gpu_id;
     network_file_name_ = nn_file_name;
 
     // load model weights
     try {
-        network_ = torch::jit::load(network_file_name_, GetDevice());
+        network_ = torch::jit::load(network_file_name_, getDevice());
         network_.eval();
     } catch (const c10::Error& e) {
         assert(false);
@@ -39,7 +39,7 @@ void Network::LoadModel(const std::string& nn_file_name, const int gpu_id)
     network_type_name_ = network_.get_method("get_type_name")(dummy).toString()->string();
 }
 
-std::string Network::ToString() const
+std::string Network::toString() const
 {
     std::ostringstream oss;
     oss << "GPU ID: " << gpu_id_ << std::endl;
@@ -56,19 +56,19 @@ std::string Network::ToString() const
     return oss.str();
 }
 
-std::shared_ptr<Network> CreateNetwork(std::string nn_file_name, const int gpu_id)
+std::shared_ptr<Network> createNetwork(std::string nn_file_name, const int gpu_id)
 {
     // TODO: how to speed up?
     Network base_network;
-    base_network.LoadModel(nn_file_name, gpu_id);
+    base_network.loadModel(nn_file_name, -1);
 
     std::shared_ptr<Network> network;
-    if (base_network.GetNetworkTypeName() == "alphazero") {
+    if (base_network.getNetworkTypeName() == "alphazero") {
         network = std::make_shared<AlphaZeroNetwork>();
-        std::dynamic_pointer_cast<AlphaZeroNetwork>(network)->LoadModel(nn_file_name, gpu_id);
-    } else if (base_network.GetNetworkTypeName() == "muzero") {
+        std::dynamic_pointer_cast<AlphaZeroNetwork>(network)->loadModel(nn_file_name, gpu_id);
+    } else if (base_network.getNetworkTypeName() == "muzero") {
         network = std::make_shared<MuZeroNetwork>();
-        std::dynamic_pointer_cast<MuZeroNetwork>(network)->LoadModel(nn_file_name, gpu_id);
+        std::dynamic_pointer_cast<MuZeroNetwork>(network)->loadModel(nn_file_name, gpu_id);
     } else {
         // should not be here
         assert(false);
