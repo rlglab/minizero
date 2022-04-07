@@ -49,6 +49,8 @@ public:
     inline void setMean(float mean) { mean_ = mean; }
     inline void setCount(float count) { count_ = count; }
     inline void setPolicy(float policy) { policy_ = policy; }
+    inline void setPolicyLogit(float policy_logit) { policy_logit_ = policy_logit; }
+    inline void setPolicyNoise(float policy_noise) { policy_noise_ = policy_noise; }
     inline void setValue(float value) { value_ = value; }
     inline void setFirstChild(MCTSTreeNode* first_child) { first_child_ = first_child; }
 
@@ -60,6 +62,8 @@ public:
     inline float getMean() const { return mean_; }
     inline float getCount() const { return count_; }
     inline float getPolicy() const { return policy_; }
+    inline float getPolicyLogit() const { return policy_logit_; }
+    inline float getPolicyNoise() const { return policy_noise_; }
     inline float getValue() const { return value_; }
     inline MCTSTreeNode* getFirstChild() const { return first_child_; }
 
@@ -70,12 +74,23 @@ private:
     float mean_;
     float count_;
     float policy_;
+    float policy_logit_;
+    float policy_noise_;
     float value_;
     MCTSTreeNode* first_child_;
 };
 
 class MCTSTree {
 public:
+    class ActionCandidate {
+    public:
+        Action action_;
+        float policy_;
+        float policy_logit_;
+        ActionCandidate(const Action& action, const float& policy, const float& policy_logit)
+            : action_(action), policy_(policy), policy_logit_(policy_logit) {}
+    };
+
     MCTSTree(long long tree_node_size)
         : hidden_state_external_data_(config::actor_num_simulation)
     {
@@ -83,11 +98,11 @@ public:
     }
 
     void reset();
-    Action decideAction() const;
-    MCTSTreeNode* decideActionNode() const;
-    std::string getActionDistributionString() const;
+    MCTSTreeNode* selectChildByMaxCount(const MCTSTreeNode* node) const;
+    MCTSTreeNode* selectChildBySoftmaxCount(const MCTSTreeNode* node, float temperature = 1.0f) const;
+    std::string getSearchDistributionString() const;
     std::vector<MCTSTreeNode*> select();
-    void expand(MCTSTreeNode* leaf_node, const std::vector<std::pair<Action, float>>& action_policy);
+    void expand(MCTSTreeNode* leaf_node, const std::vector<ActionCandidate>& action_candidates);
     void backup(std::vector<MCTSTreeNode*>& node_path, const float value);
 
     inline bool reachMaximumSimulation() const { return (getRootNode()->getCount() == config::actor_num_simulation); }
@@ -97,11 +112,7 @@ public:
 
 private:
     MCTSTreeNode* selectChildByPUCTScore(const MCTSTreeNode* node) const;
-    MCTSTreeNode* selectChildByMaxCount(const MCTSTreeNode* node) const;
-    MCTSTreeNode* selectChildBySoftmaxCount(const MCTSTreeNode* node, float temperature = 1.0f) const;
-    void addNoiseToNode(MCTSTreeNode* node);
     float calculateInitQValue(const MCTSTreeNode* node) const;
-    std::vector<float> calculateDirichletNoise(int size, float alpha) const;
     MCTSTreeNode* allocateNewNodes(int size);
 
     int current_tree_size_;

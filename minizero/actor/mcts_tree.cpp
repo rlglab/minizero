@@ -18,6 +18,8 @@ void MCTSTreeNode::reset()
     mean_ = 0.0f;
     count_ = 0.0f;
     policy_ = 0.0f;
+    policy_logit_ = 0.0f;
+    policy_noise_ = 0.0f;
     value_ = 0.0f;
     first_child_ = nullptr;
 }
@@ -55,6 +57,8 @@ std::string MCTSTreeNode::toString() const
     std::ostringstream oss;
     oss.precision(4);
     oss << std::fixed << "p = " << policy_
+        << ", p_logit = " << policy_logit_
+        << ", p_noise = " << policy_noise_
         << ", v = " << value_
         << ", mean = " << mean_
         << ", count = " << count_;
@@ -68,24 +72,43 @@ void MCTSTree::reset()
     hidden_state_external_data_.reset();
 }
 
-Action MCTSTree::decideAction() const
+MCTSTreeNode* MCTSTree::selectChildByMaxCount(const MCTSTreeNode* node) const
 {
-    return decideActionNode()->getAction();
-}
+    assert(node && !node->isLeaf());
 
-MCTSTreeNode* MCTSTree::decideActionNode() const
-{
-    if (config::actor_select_action_by_count) {
-        return selectChildByMaxCount(getRootNode());
-    } else if (config::actor_select_action_by_softmax_count) {
-        return selectChildBySoftmaxCount(getRootNode(), config::actor_select_action_softmax_temperature);
+    float max_count = 0.0f;
+    MCTSTreeNode* selected_node = nullptr;
+    MCTSTreeNode* child = node->getFirstChild();
+    for (int i = 0; i < node->getNumChildren(); ++i, ++child) {
+        if (child->getCount() <= max_count) { continue; }
+        max_count = child->getCount();
+        selected_node = child;
     }
 
-    assert(false);
-    return nullptr;
+    assert(selected_node != nullptr);
+    return selected_node;
 }
 
-std::string MCTSTree::getActionDistributionString() const
+MCTSTreeNode* MCTSTree::selectChildBySoftmaxCount(const MCTSTreeNode* node, float temperature /*= 1.0f*/) const
+{
+    assert(node && !node->isLeaf());
+
+    float sum = 0.0f;
+    MCTSTreeNode* selected_node = nullptr;
+    MCTSTreeNode* child = node->getFirstChild();
+    for (int i = 0; i < node->getNumChildren(); ++i, ++child) {
+        float count = std::pow(child->getCount(), 1 / temperature);
+        if (count == 0) { continue; }
+        sum += count;
+        float rand = Random::randReal(sum);
+        if (rand < count) { selected_node = child; }
+    }
+
+    assert(selected_node != nullptr);
+    return selected_node;
+}
+
+std::string MCTSTree::getSearchDistributionString() const
 {
     const MCTSTreeNode* root = getRootNode();
     MCTSTreeNode* child = root->getFirstChild();
@@ -109,22 +132,20 @@ std::vector<MCTSTreeNode*> MCTSTree::select()
     return node_path;
 }
 
-void MCTSTree::expand(MCTSTreeNode* leaf_node, const std::vector<std::pair<Action, float>>& action_policy)
+void MCTSTree::expand(MCTSTreeNode* leaf_node, const std::vector<ActionCandidate>& action_candidates)
 {
-    assert(leaf_node && action_policy.size() > 0);
+    assert(leaf_node && action_candidates.size() > 0);
 
-    MCTSTreeNode* child_node = allocateNewNodes(action_policy.size());
+    MCTSTreeNode* child_node = allocateNewNodes(action_candidates.size());
     leaf_node->setFirstChild(child_node);
-    leaf_node->setNumChildren(action_policy.size());
-    for (const auto& p : action_policy) {
+    leaf_node->setNumChildren(action_candidates.size());
+    for (const auto& candidate : action_candidates) {
         child_node->reset();
-        child_node->setPolicy(p.second);
-        child_node->setAction(p.first);
+        child_node->setAction(candidate.action_);
+        child_node->setPolicy(candidate.policy_);
+        child_node->setPolicyLogit(candidate.policy_logit_);
         ++child_node;
     }
-
-    // add noise to root's children
-    if (config::actor_use_dirichlet_noise && leaf_node == getRootNode()) { addNoiseToNode(leaf_node); }
 }
 
 void MCTSTree::backup(std::vector<MCTSTreeNode*>& node_path, const float value)
@@ -158,50 +179,6 @@ MCTSTreeNode* MCTSTree::selectChildByPUCTScore(const MCTSTreeNode* node) const
     return best_node;
 }
 
-MCTSTreeNode* MCTSTree::selectChildByMaxCount(const MCTSTreeNode* node) const
-{
-    assert(node && !node->isLeaf());
-
-    float max_count = 0.0f;
-    MCTSTreeNode* selected = nullptr;
-    MCTSTreeNode* child = node->getFirstChild();
-    for (int i = 0; i < node->getNumChildren(); ++i, ++child) {
-        if (child->getCount() <= max_count) { continue; }
-        max_count = child->getCount();
-        selected = child;
-    }
-    return selected;
-}
-
-MCTSTreeNode* MCTSTree::selectChildBySoftmaxCount(const MCTSTreeNode* node, float temperature /*= 1.0f*/) const
-{
-    assert(node && !node->isLeaf());
-
-    float sum = 0.0f;
-    MCTSTreeNode* selected = nullptr;
-    MCTSTreeNode* child = node->getFirstChild();
-    for (int i = 0; i < node->getNumChildren(); ++i, ++child) {
-        float count = std::pow(child->getCount(), 1 / temperature);
-        if (count == 0) { continue; }
-        sum += count;
-        float rand = Random::randReal(sum);
-        if (rand < count) { selected = child; }
-    }
-    return selected;
-}
-
-void MCTSTree::addNoiseToNode(MCTSTreeNode* node)
-{
-    assert(node && !node->isLeaf());
-
-    const float epsilon = config::actor_dirichlet_noise_epsilon;
-    std::vector<float> dirichlet_noise = calculateDirichletNoise(node->getNumChildren(), config::actor_dirichlet_noise_alpha);
-    MCTSTreeNode* child = node->getFirstChild();
-    for (int i = 0; i < node->getNumChildren(); ++i, ++child) {
-        child->setPolicy((1 - epsilon) * child->getPolicy() + epsilon * dirichlet_noise[i]);
-    }
-}
-
 float MCTSTree::calculateInitQValue(const MCTSTreeNode* node) const
 {
     assert(node && !node->isLeaf());
@@ -216,17 +193,6 @@ float MCTSTree::calculateInitQValue(const MCTSTreeNode* node) const
     }
     sum_of_win = (node->getFirstChild()->getAction().getPlayer() == env::Player::kPlayer1 ? sum_of_win : -sum_of_win);
     return (sum_of_win - 1) / (sum + 1);
-}
-
-std::vector<float> MCTSTree::calculateDirichletNoise(int size, float alpha) const
-{
-    std::gamma_distribution<float> gamma_distribution(alpha);
-    std::vector<float> dirichlet_noise;
-    for (int i = 0; i < size; ++i) { dirichlet_noise.emplace_back(gamma_distribution(Random::generator_)); }
-    float sum = std::accumulate(dirichlet_noise.begin(), dirichlet_noise.end(), 0.0f);
-    if (sum < std::numeric_limits<float>::min()) { return dirichlet_noise; }
-    for (int i = 0; i < size; ++i) { dirichlet_noise[i] /= sum; }
-    return dirichlet_noise;
 }
 
 MCTSTreeNode* MCTSTree::allocateNewNodes(int size)

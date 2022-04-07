@@ -28,6 +28,7 @@ public:
     inline int getHiddenChannelHeight() const { return hidden_channel_height_; }
     inline int getHiddenChannelWidth() const { return hidden_channel_width_; }
     inline int getNumBlocks() const { return num_blocks_; }
+    inline int getActionSize() const { return action_size_; }
     inline std::string getGameName() const { return game_name_; }
     inline std::string getNetworkTypeName() const { return network_type_name_; }
     inline std::string getNetworkFileName() const { return network_file_name_; }
@@ -43,12 +44,13 @@ protected:
     int hidden_channel_height_;
     int hidden_channel_width_;
     int num_blocks_;
+    int action_size_;
     std::string game_name_;
     std::string network_type_name_;
     std::string network_file_name_;
     torch::jit::script::Module network_;
 };
 
-std::shared_ptr<Network> createNetwork(std::string nn_file_name, const int gpu_id);
+std::shared_ptr<Network> createNetwork(const std::string& nn_file_name, const int gpu_id);
 
 } // namespace minizero::network

@@ -8,12 +8,14 @@ class MuZeroActor : public Actor {
 public:
     MuZeroActor(long long tree_node_size): Actor(tree_node_size) {}
 
-    MCTSTreeNode* runMCTS(std::shared_ptr<network::Network>& network) override;
+    Action think(std::shared_ptr<network::Network>& network, bool with_play = false, bool display_board = false) override;
+    MCTSTreeNode* decideActionNode() override;
+    std::string getActionComment() override;
     void beforeNNEvaluation(const std::shared_ptr<network::Network>& network) override;
     void afterNNEvaluation(const std::shared_ptr<network::NetworkOutput>& network_output) override;
 
 private:
-    std::vector<std::pair<Action, float>> calculateActionPolicy(const std::vector<float>& policy, const env::Player& turn);
+    std::vector<MCTSTree::ActionCandidate> calculateActionPolicy(const std::vector<float>& policy, const std::vector<float>& policy_logits, const env::Player& turn);
 };
 
 } // namespace minizero::actor

@@ -11,11 +11,14 @@ namespace minizero::actor {
 class ThreadSharedData {
 public:
     int getNextActorIndex();
+    void resetActor(int actor_id);
+    bool isActorResign(int actor_id, const MCTSTreeNode* root, const MCTSTreeNode* selected_node);
     void outputRecord(const std::string& record);
 
     bool do_cpu_job_;
     int actor_index_;
     std::mutex mutex_;
+    std::vector<int> actors_enable_resign_;
     std::vector<std::shared_ptr<Actor>> actors_;
     std::vector<std::shared_ptr<network::Network>> networks_;
     std::vector<std::vector<std::shared_ptr<network::NetworkOutput>>> network_outputs_;
@@ -36,7 +39,7 @@ public:
 
 private:
     void doCPUJob();
-    void handleSearchEndAndEnvEnd(const std::shared_ptr<Actor>& actor, bool display = false);
+    void handleSearchEndAndEnvEnd(int actor_id);
     void doGPUJob();
 
     int id_;

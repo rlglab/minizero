@@ -6,17 +6,37 @@ namespace minizero::actor {
 using namespace minizero;
 using namespace network;
 
-MCTSTreeNode* AlphaZeroActor::runMCTS(std::shared_ptr<Network>& network)
+Action AlphaZeroActor::think(std::shared_ptr<network::Network>& network, bool with_play /*= false*/, bool display_board /*= false*/)
 {
     std::shared_ptr<AlphaZeroNetwork> az_network = std::static_pointer_cast<AlphaZeroNetwork>(network);
-    tree_.reset();
-    evaluation_jobs_ = {{}, -1};
+    resetSearch();
     while (!reachMaximumSimulation()) {
         beforeNNEvaluation(network);
         std::vector<std::shared_ptr<NetworkOutput>> outputs = az_network->forward();
         afterNNEvaluation(outputs[getEvaluationJobIndex()]);
     }
-    return getMCTSTree().decideActionNode();
+
+    MCTSTreeNode* selected_node = decideActionNode();
+    if (with_play) { act(selected_node->getAction()); }
+    if (display_board) { displayBoard(selected_node); }
+    return selected_node->getAction();
+}
+
+MCTSTreeNode* AlphaZeroActor::decideActionNode()
+{
+    if (config::actor_select_action_by_count) {
+        return tree_.selectChildByMaxCount(tree_.getRootNode());
+    } else if (config::actor_select_action_by_softmax_count) {
+        return tree_.selectChildBySoftmaxCount(tree_.getRootNode(), config::actor_select_action_softmax_temperature);
+    }
+
+    assert(false);
+    return nullptr;
+}
+
+std::string AlphaZeroActor::getActionComment()
+{
+    return tree_.getSearchDistributionString();
 }
 
 void AlphaZeroActor::beforeNNEvaluation(const std::shared_ptr<Network>& network)
@@ -33,22 +53,27 @@ void AlphaZeroActor::afterNNEvaluation(const std::shared_ptr<NetworkOutput>& net
     Environment env_transition = getEnvironmentTransition(evaluation_jobs_.first);
     if (!env_transition.isTerminal()) {
         std::shared_ptr<AlphaZeroNetworkOutput> output = std::static_pointer_cast<AlphaZeroNetworkOutput>(network_output);
-        tree_.expand(node_path.back(), calculateActionPolicy(output->policy_, env_transition));
+        MCTSTreeNode* leaf_node = node_path.back();
+        tree_.expand(leaf_node, calculateActionPolicy(output->policy_, output->policy_logits_, env_transition));
         tree_.backup(node_path, output->value_);
+        if (leaf_node == getMCTSTree().getRootNode()) { addNoiseToNodeChildren(leaf_node); }
     } else {
         tree_.backup(node_path, env_transition.getEvalScore());
     }
 }
 
-std::vector<std::pair<Action, float>> AlphaZeroActor::calculateActionPolicy(const std::vector<float>& policy, const Environment& env_transition)
+std::vector<MCTSTree::ActionCandidate> AlphaZeroActor::calculateActionPolicy(const std::vector<float>& policy, const std::vector<float>& policy_logits, const Environment& env_transition)
 {
-    std::vector<std::pair<Action, float>> action_policy;
+    std::vector<MCTSTree::ActionCandidate> action_candidates;
     for (size_t action_id = 0; action_id < policy.size(); ++action_id) {
         Action action(action_id, env_transition.getTurn());
         if (!env_transition.isLegalAction(action)) { continue; }
-        action_policy.push_back({action, policy[action_id]});
+        action_candidates.push_back(MCTSTree::ActionCandidate(action, policy[action_id], policy_logits[action_id]));
     }
-    return action_policy;
+    sort(action_candidates.begin(), action_candidates.end(), [](const MCTSTree::ActionCandidate& lhs, const MCTSTree::ActionCandidate& rhs) {
+        return lhs.policy_ > rhs.policy_;
+    });
+    return action_candidates;
 }
 
 Environment AlphaZeroActor::getEnvironmentTransition(const std::vector<MCTSTreeNode*>& node_path)

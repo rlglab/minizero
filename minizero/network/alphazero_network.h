@@ -9,11 +9,13 @@ class AlphaZeroNetworkOutput : public NetworkOutput {
 public:
     float value_;
     std::vector<float> policy_;
+    std::vector<float> policy_logits_;
 
     AlphaZeroNetworkOutput(int policy_size)
     {
         value_ = 0.0f;
         policy_.resize(policy_size, 0.0f);
+        policy_logits_.resize(policy_size, 0.0f);
     }
 };
 
@@ -21,7 +23,6 @@ class AlphaZeroNetwork : public Network {
 public:
     AlphaZeroNetwork()
     {
-        action_size_ = -1;
         batch_size_ = 0;
         clearTensorInput();
     }
@@ -29,9 +30,6 @@ public:
     void loadModel(const std::string& nn_file_name, const int gpu_id)
     {
         Network::loadModel(nn_file_name, gpu_id);
-
-        std::vector<torch::jit::IValue> dummy;
-        action_size_ = network_.get_method("get_action_size")(dummy).toInt();
         batch_size_ = 0;
     }
 
@@ -39,7 +37,6 @@ public:
     {
         std::ostringstream oss;
         oss << Network::toString();
-        oss << "Action size: " << action_size_ << std::endl;
         return oss.str();
     }
 
@@ -63,8 +60,10 @@ public:
         auto forward_result = network_.forward(std::vector<torch::jit::IValue>{torch::cat(tensor_input_).to(getDevice())}).toGenericDict();
 
         auto policy_output = torch::softmax(forward_result.at("policy").toTensor(), 1).to(at::kCPU);
+        auto policy_logits_output = forward_result.at("policy").toTensor().to(at::kCPU);
         auto value_output = forward_result.at("value").toTensor().to(at::kCPU);
         assert(policy_output.numel() == batch_size_ * getActionSize());
+        assert(policy_logits_output.numel() == batch_size_ * getActionSize());
         assert(value_output.numel() == batch_size_);
 
         const int policy_size = getActionSize();
@@ -76,6 +75,9 @@ public:
             std::copy(policy_output.data_ptr<float>() + i * policy_size,
                       policy_output.data_ptr<float>() + (i + 1) * policy_size,
                       alphazero_network_output->policy_.begin());
+            std::copy(policy_logits_output.data_ptr<float>() + i * policy_size,
+                      policy_logits_output.data_ptr<float>() + (i + 1) * policy_size,
+                      alphazero_network_output->policy_logits_.begin());
         }
 
         batch_size_ = 0;
@@ -83,7 +85,6 @@ public:
         return network_outputs;
     }
 
-    inline int getActionSize() const { return action_size_; }
     inline int getBatchSize() const { return batch_size_; }
 
 private:
@@ -93,7 +94,6 @@ private:
         tensor_input_.reserve(kReserved_batch_size);
     }
 
-    int action_size_;
     int batch_size_;
     std::mutex mutex_;
     std::vector<torch::Tensor> tensor_input_;

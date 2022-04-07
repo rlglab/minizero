@@ -19,6 +19,9 @@ extern float actor_select_action_softmax_temperature;
 extern bool actor_use_dirichlet_noise;
 extern float actor_dirichlet_noise_alpha;
 extern float actor_dirichlet_noise_epsilon;
+extern bool actor_use_gumbel_noise;
+extern float actor_gumbel_sigma_visit_c;
+extern float actor_gumbel_sigma_scale_c;
 extern float actor_resign_threshold;
 
 // zero parameters

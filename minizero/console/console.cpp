@@ -1,7 +1,6 @@
 #include "console.h"
-#include "alphazero_actor.h"
+#include "actor.h"
 #include "alphazero_network.h"
-#include "muzero_actor.h"
 #include "muzero_network.h"
 #include "sgf_loader.h"
 #include <climits>
@@ -46,13 +45,8 @@ void Console::executeCommand(std::string command)
 void Console::initialize()
 {
     network_ = network::createNetwork(config::nn_file_name, 0);
-    if (network_->getNetworkTypeName() == "alphazero") {
-        int action_size = std::static_pointer_cast<network::AlphaZeroNetwork>(network_)->getActionSize();
-        actor_ = std::make_shared<actor::AlphaZeroActor>(config::actor_num_simulation * action_size);
-    } else if (network_->getNetworkTypeName() == "muzero") {
-        int action_size = std::static_pointer_cast<network::MuZeroNetwork>(network_)->getActionSize();
-        actor_ = std::make_shared<actor::MuZeroActor>(config::actor_num_simulation * action_size);
-    }
+    long long tree_node_size = static_cast<long long>(config::actor_num_simulation) * network_->getActionSize();
+    actor_ = actor::createActor(tree_node_size, network_->getNetworkTypeName());
     actor_->reset();
 }
 
@@ -112,18 +106,15 @@ void Console::cmdBoardSize(const std::vector<std::string>& args)
 void Console::cmdGenmove(const std::vector<std::string>& args)
 {
     if (!checkArgument(args, 1, 1)) { return; }
-    const actor::MCTSTreeNode* action_node = actor_->runMCTS(network_);
-    std::cerr << action_node->toString() << std::endl;
-    actor_->act(action_node->getAction());
-    reply(ConsoleResponse::kSuccess, action_node->getAction().toConsoleString());
+    const Action action = actor_->think(network_, true, true);
+    reply(ConsoleResponse::kSuccess, action.toConsoleString());
 }
 
 void Console::cmdRegGenmove(const std::vector<std::string>& args)
 {
     if (!checkArgument(args, 1, 1)) { return; }
-    const actor::MCTSTreeNode* action_node = actor_->runMCTS(network_);
-    std::cerr << action_node->toString() << std::endl;
-    reply(ConsoleResponse::kSuccess, action_node->getAction().toConsoleString());
+    const Action action = actor_->think(network_, false, true);
+    reply(ConsoleResponse::kSuccess, action.toConsoleString());
 }
 
 bool Console::checkArgument(const std::vector<std::string>& args, int min_argc, int max_argc)

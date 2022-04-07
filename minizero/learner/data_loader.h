@@ -38,6 +38,8 @@ public:
 
 private:
     std::pair<int, int> getEnvIDAndPosition(int index) const;
+    std::vector<float> getPolicyDistribution(const EnvironmentLoader& env_loader, int pos, utils::Rotation rotation = utils::Rotation::kRotationNone);
+    std::vector<float> getGumbelPolicyDistribution(const EnvironmentLoader& env_loader, int pos, utils::Rotation rotation = utils::Rotation::kRotationNone);
 
     Environment env_;
     std::vector<std::pair<EnvironmentLoader, int>> env_loaders_;

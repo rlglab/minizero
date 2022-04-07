@@ -176,26 +176,6 @@ public:
     inline void addTag(const std::string& key, const std::string& value) { tags_[key] = value; }
 
 protected:
-    void setPolicyDistribution(int id, std::vector<float>& policy) const
-    {
-        assert(id < static_cast<int>(action_pairs_.size()));
-        std::string distribution = action_pairs_[id].second;
-        if (distribution.empty()) {
-            policy[action_pairs_[id].first.getActionID()] = 1.0f;
-        } else {
-            float total = 0.0f;
-            std::string tmp;
-            std::istringstream iss(getActionPairs()[id].second);
-            while (std::getline(iss, tmp, ',')) {
-                int position = std::stoi(tmp.substr(0, tmp.find(":")));
-                float count = std::stoi(tmp.substr(tmp.find(":") + 1));
-                policy[position] = count;
-                total += count;
-            }
-            for (auto& p : policy) { p /= total; }
-        }
-    }
-
     std::string content_;
     std::unordered_map<std::string, std::string> tags_;
     std::vector<std::pair<Action, std::string>> action_pairs_;
