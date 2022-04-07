@@ -13,18 +13,10 @@ public:
                                                 const GoBitboard& board_right_boundary_bitboard_, const GoBitboard& board_mask_bitboard_)
     {
         GoPair<GoBitboard> result;
-        // GoPair<GoBitboard> benson_stone_bitboard_;
-        // benson_stone_bitboard_.set(Player::kPlayer1, (~benson_bitboard.get(Player::kPlayer2)) & stone_bitboard_.get(Player::kPlayer1));
-        // benson_stone_bitboard_.set(Player::kPlayer2, stone_bitboard_.get(Player::kPlayer2));
         result.set(Player::kPlayer1, compute1ColorBensonBitboard(stone_bitboard_, board_size_, board_left_boundary_bitboard_,
                                                                  board_right_boundary_bitboard_, board_mask_bitboard_, Player::kPlayer1));
-        // benson_stone_bitboard_.set(Player::kPlayer2, (~result.get(Player::kPlayer1)) & stone_bitboard_.get(Player::kPlayer2));
-        // benson_stone_bitboard_.set(Player::kPlayer1, stone_bitboard_.get(Player::kPlayer1));
         result.set(Player::kPlayer2, compute1ColorBensonBitboard(stone_bitboard_, board_size_, board_left_boundary_bitboard_,
                                                                  board_right_boundary_bitboard_, board_mask_bitboard_, Player::kPlayer2));
-        // printboard(stone_bitboard_.get(Player::kPlayer1) | stone_bitboard_.get(Player::kPlayer2), board_size_, Player::kPlayerNone);
-        // printboard(result.get(Player::kPlayer1), board_size_, Player::kPlayer1);
-        // printboard(result.get(Player::kPlayer2), board_size_, Player::kPlayer2);
         return result;
     }
     static GoBitboard dilateBitboard(const GoBitboard& bitboard, int board_size_, const GoBitboard& board_left_boundary_bitboard_,
@@ -145,30 +137,6 @@ public:
             ret |= vcolor_reg_bitboard[XR.first];
         }
         return ret;
-    }
-    static void printboard(GoBitboard b, const int b_sz, Player player)
-    {
-        std::string board_str = "";
-        std::string piece = "O";
-        if (player == Player::kPlayer2) {
-            std::cout << "===========================\nwhite:\n\n";
-            piece = "X";
-        } else if (player == Player::kPlayer1) {
-            std::cout << "===========================\nblack:\n\n";
-        } else {
-            std::cout << "===========================\ntotal:\n\n";
-        }
-        for (int i = b_sz - 1; i >= 0; --i) {
-            for (int j = 0; j < b_sz; ++j) {
-                if (b[i * b_sz + j] == 1)
-                    std::cout << piece << " ";
-                else
-                    std::cout << ". ";
-            }
-            std::cout << "\n";
-        }
-        std::cout << "\n";
-        return;
     }
 };
 

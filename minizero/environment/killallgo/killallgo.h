@@ -1,7 +1,6 @@
 #pragma once
 
 #include "go.h"
-#include "go_benson.h"
 
 namespace minizero::env::killallgo {
 
@@ -16,6 +15,7 @@ public:
     KillAllGoEnv()
         : go::GoEnv(kKillAllGoBoardSize)
     {
+        minizero::config::env_go_board_size = kKillAllGoBoardSize;
     }
 
     bool isLegalAction(const KillAllGoAction& action) const override
@@ -25,9 +25,6 @@ public:
     }
     bool isTerminal() const override
     {
-        // TODO: rewrite this
-        (*benson_bitboard_p) = go::GoBenson::getBensonBitboard(benson_bitboard, stone_bitboard_, board_size_, board_left_boundary_bitboard_,
-                                                               board_right_boundary_bitboard_, board_mask_bitboard_);
         // all black's benson or any white's benson
         if (benson_bitboard.get(Player::kPlayer1).count() == board_size_ * board_size_ || benson_bitboard.get(Player::kPlayer2).count() > 0)
             return true;
@@ -36,7 +33,6 @@ public:
 
     float getEvalScore(bool is_resign = false) const override
     {
-        // TODO: rewrite this
         if (stone_bitboard_.get(Player::kPlayer2).count() == 0 || benson_bitboard.get(Player::kPlayer1).count() == board_size_ * board_size_)
             return 1.0f;// player1 wins
         else

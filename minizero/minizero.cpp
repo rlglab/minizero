@@ -85,7 +85,6 @@ void runTest()
 {
     Environment env;
     env.reset();
-   // srand(time(0));
     while (!env.isTerminal()) {
         vector<Action> legal_actions = env.getLegalActions();
         int index = rand() % legal_actions.size();

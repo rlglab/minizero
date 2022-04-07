@@ -147,6 +147,10 @@ bool GoEnv::act(const GoAction& action)
     stone_bitboard_history_.push_back(stone_bitboard_);
     hash_table_.insert(hash_key_);
     assert(checkDataStructure());
+
+    // Benson
+    benson_bitboard = go::GoBenson::getBensonBitboard(benson_bitboard, stone_bitboard_, board_size_, board_left_boundary_bitboard_,
+                                                      board_right_boundary_bitboard_, board_mask_bitboard_);
     return true;
 }
 
@@ -306,11 +310,6 @@ std::string GoEnv::toString() const
         oss << std::endl;
     }
     oss << getCoordinateString() << std::endl;
-    (*benson_bitboard_p) = GoBenson::getBensonBitboard(benson_bitboard, stone_bitboard_, board_size_, board_left_boundary_bitboard_,
-                                                       board_right_boundary_bitboard_, board_mask_bitboard_);
-    GoBenson::printboard(benson_bitboard.get(Player::kPlayer1), board_size_, Player::kPlayer1);
-    GoBenson::printboard(benson_bitboard.get(Player::kPlayer2), board_size_, Player::kPlayer2);
-    oss << benson_bitboard.get(Player::kPlayer1).count() << " " << benson_bitboard.get(Player::kPlayer2).count() << std::endl;
     return oss.str();
 }
 
