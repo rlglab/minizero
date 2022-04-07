@@ -34,9 +34,9 @@ public:
     float getEvalScore(bool is_resign = false) const override
     {
         if (stone_bitboard_.get(Player::kPlayer2).count() == 0 || benson_bitboard.get(Player::kPlayer1).count() == board_size_ * board_size_)
-            return 1.0f;// player1 wins
+            return 1.0f; // player1 wins
         else
-           return -1.0f;// player2 wins
+            return -1.0f; // player2 wins
     }
 
     inline std::string name() const override { return kKillAllGoName; }
