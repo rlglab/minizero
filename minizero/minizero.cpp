@@ -3,10 +3,9 @@
 #include "console.h"
 #include "environment.h"
 #include "zero_server.h"
-#include <chrono>
-#include <sys/time.h>
 #include <torch/script.h>
 #include <vector>
+
 using namespace std;
 using namespace minizero;
 
@@ -91,7 +90,7 @@ void runTest()
         env.act(legal_actions[index]);
     }
     cout << env.toString() << endl;
-    
+
     EnvironmentLoader env_loader;
     env_loader.loadFromEnvironment(env);
     cout << env_loader.toString() << endl;
