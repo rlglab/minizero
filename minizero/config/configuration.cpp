@@ -17,6 +17,9 @@ float actor_select_action_softmax_temperature = 1.0f;
 bool actor_use_dirichlet_noise = true;
 float actor_dirichlet_noise_alpha = 0.03f;
 float actor_dirichlet_noise_epsilon = 0.25f;
+bool actor_use_gumbel_noise = false;
+float actor_gumbel_sigma_visit_c = 50;
+float actor_gumbel_sigma_scale_c = 1;
 float actor_resign_threshold = -0.9f;
 
 // zero parameters
@@ -74,6 +77,9 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("actor_use_dirichlet_noise", actor_use_dirichlet_noise, "", "Actor");
     cl.addParameter("actor_dirichlet_noise_alpha", actor_dirichlet_noise_alpha, "", "Actor");
     cl.addParameter("actor_dirichlet_noise_epsilon", actor_dirichlet_noise_epsilon, "", "Actor");
+    cl.addParameter("actor_use_gumbel_noise", actor_use_gumbel_noise, "", "Actor");
+    cl.addParameter("actor_gumbel_sigma_visit_c", actor_gumbel_sigma_visit_c, "", "Actor");
+    cl.addParameter("actor_gumbel_sigma_scale_c", actor_gumbel_sigma_scale_c, "", "Actor");
     cl.addParameter("actor_resign_threshold", actor_resign_threshold, "", "Actor");
 
     // zero parameters

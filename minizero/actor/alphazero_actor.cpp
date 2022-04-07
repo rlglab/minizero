@@ -1,54 +1,45 @@
 #include "alphazero_actor.h"
 #include "alphazero_network.h"
-#include "configuration.h"
-#include "random.h"
 
 namespace minizero::actor {
 
 using namespace minizero;
 using namespace network;
 
-void AlphaZeroActor::reset()
+Action AlphaZeroActor::think(std::shared_ptr<network::Network>& network, bool with_play /*= false*/, bool display_board /*= false*/)
 {
-    env_.reset();
-    clearTree();
-    action_distributions_.clear();
-    is_enable_resign_ = utils::Random::randReal() < config::zero_disable_resign_ratio ? false : true;
-}
-
-bool AlphaZeroActor::act(const Action& action)
-{
-    bool can_act = env_.act(action);
-    if (can_act) {
-        action_distributions_.push_back(tree_.getActionDistributionString());
-        clearTree();
-    }
-    return can_act;
-}
-
-bool AlphaZeroActor::act(const std::vector<std::string>& action_string_args)
-{
-    bool can_act = env_.act(action_string_args);
-    if (can_act) {
-        action_distributions_.push_back(tree_.getActionDistributionString());
-        clearTree();
-    }
-    return can_act;
-}
-
-MCTSTreeNode* AlphaZeroActor::runMCTS(std::shared_ptr<Network>& network)
-{
-    std::shared_ptr<AlphaZeroNetwork> az_network = std::static_pointer_cast<network::AlphaZeroNetwork>(network);
-    clearTree();
+    std::shared_ptr<AlphaZeroNetwork> az_network = std::static_pointer_cast<AlphaZeroNetwork>(network);
+    resetSearch();
     while (!reachMaximumSimulation()) {
         beforeNNEvaluation(network);
         std::vector<std::shared_ptr<NetworkOutput>> outputs = az_network->forward();
         afterNNEvaluation(outputs[getEvaluationJobIndex()]);
     }
-    return getMCTSTree().decideActionNode();
+
+    MCTSTreeNode* selected_node = decideActionNode();
+    if (with_play) { act(selected_node->getAction()); }
+    if (display_board) { displayBoard(selected_node); }
+    return selected_node->getAction();
 }
 
-void AlphaZeroActor::beforeNNEvaluation(const std::shared_ptr<network::Network>& network)
+MCTSTreeNode* AlphaZeroActor::decideActionNode()
+{
+    if (config::actor_select_action_by_count) {
+        return tree_.selectChildByMaxCount(tree_.getRootNode());
+    } else if (config::actor_select_action_by_softmax_count) {
+        return tree_.selectChildBySoftmaxCount(tree_.getRootNode(), config::actor_select_action_softmax_temperature);
+    }
+
+    assert(false);
+    return nullptr;
+}
+
+std::string AlphaZeroActor::getActionComment()
+{
+    return tree_.getSearchDistributionString();
+}
+
+void AlphaZeroActor::beforeNNEvaluation(const std::shared_ptr<Network>& network)
 {
     std::vector<MCTSTreeNode*> node_path = tree_.select();
     Environment env_transition = getEnvironmentTransition(node_path);
@@ -62,33 +53,27 @@ void AlphaZeroActor::afterNNEvaluation(const std::shared_ptr<NetworkOutput>& net
     Environment env_transition = getEnvironmentTransition(evaluation_jobs_.first);
     if (!env_transition.isTerminal()) {
         std::shared_ptr<AlphaZeroNetworkOutput> output = std::static_pointer_cast<AlphaZeroNetworkOutput>(network_output);
-        tree_.expand(node_path.back(), calculateActionPolicy(output->policy_, env_transition));
+        MCTSTreeNode* leaf_node = node_path.back();
+        tree_.expand(leaf_node, calculateActionPolicy(output->policy_, output->policy_logits_, env_transition));
         tree_.backup(node_path, output->value_);
+        if (leaf_node == getMCTSTree().getRootNode()) { addNoiseToNodeChildren(leaf_node); }
     } else {
         tree_.backup(node_path, env_transition.getEvalScore());
     }
 }
 
-std::string AlphaZeroActor::getRecord() const
+std::vector<MCTSTree::ActionCandidate> AlphaZeroActor::calculateActionPolicy(const std::vector<float>& policy, const std::vector<float>& policy_logits, const Environment& env_transition)
 {
-    EnvironmentLoader env_loader;
-    env_loader.loadFromEnvironment(env_, action_distributions_);
-    env_loader.addTag("EV", config::nn_file_name.substr(config::nn_file_name.find_last_of('/') + 1));
-
-    // if the game is not ended, then treat the game as a resign game, where the next player is the lose side
-    if (!isTerminal()) { env_loader.addTag("RE", std::to_string(env_.getEvalScore(true))); }
-    return "SelfPlay " + std::to_string(env_loader.getActionPairs().size()) + " " + env_loader.toString();
-}
-
-std::vector<std::pair<Action, float>> AlphaZeroActor::calculateActionPolicy(const std::vector<float>& policy, const Environment& env_transition)
-{
-    std::vector<std::pair<Action, float>> action_policy;
+    std::vector<MCTSTree::ActionCandidate> action_candidates;
     for (size_t action_id = 0; action_id < policy.size(); ++action_id) {
         Action action(action_id, env_transition.getTurn());
         if (!env_transition.isLegalAction(action)) { continue; }
-        action_policy.push_back({action, policy[action_id]});
+        action_candidates.push_back(MCTSTree::ActionCandidate(action, policy[action_id], policy_logits[action_id]));
     }
-    return action_policy;
+    sort(action_candidates.begin(), action_candidates.end(), [](const MCTSTree::ActionCandidate& lhs, const MCTSTree::ActionCandidate& rhs) {
+        return lhs.policy_ > rhs.policy_;
+    });
+    return action_candidates;
 }
 
 Environment AlphaZeroActor::getEnvironmentTransition(const std::vector<MCTSTreeNode*>& node_path)

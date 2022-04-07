@@ -268,6 +268,13 @@ std::vector<float> GoEnv::getFeatures(utils::Rotation rotation /*= utils::Rotati
     return vFeatures;
 }
 
+std::vector<float> GoEnv::getActionFeatures(const GoAction& action, utils::Rotation rotation /*= utils::Rotation::kRotationNone*/) const
+{
+    std::vector<float> action_features(board_size_ * board_size_, 0.0f);
+    if (!isPassAction(action)) { action_features[getPositionByRotating(rotation, action.getActionID(), board_size_)] = 1.0f; }
+    return action_features;
+}
+
 std::string GoEnv::toString() const
 {
     int last_move_pos = -1, last2_move_pos = -1;

@@ -81,11 +81,6 @@ void runZeroServer()
     server.run();
 }
 
-#include "alphazero_actor.h"
-#include "learner/data_loader.h"
-#include "random.h"
-#include <random>
-
 void runTest()
 {
     Environment env;
@@ -101,43 +96,6 @@ void runTest()
     EnvironmentLoader env_loader;
     env_loader.loadFromEnvironment(env);
     cout << env_loader.toString() << endl;
-
-    /*actor::AlphaZeroActor az_actor(config::actor_num_simulation * 82);
-    std::shared_ptr<network::Network> network = network::createNetwork(config::nn_file_name, 0);
-
-    std::vector<float> dirichlet_noise;
-    std::gamma_distribution<float> gamma_distribution(config::actor_dirichlet_noise_alpha);
-    utils::Random::Seed(1);
-    for (int i = 0; i < 82; ++i) { dirichlet_noise.emplace_back(gamma_distribution(utils::Random::generator_)); }
-    float sum = std::accumulate(dirichlet_noise.begin(), dirichlet_noise.end(), 0.0f);
-    for (int i = 0; i < 82; ++i) {
-        dirichlet_noise[i] /= sum;
-        cout << dirichlet_noise[i] << " ";
-    }
-    cout << endl;
-
-    az_actor.Reset();
-    while (true) {
-        while (!az_actor.reachMaximumSimulation()) {
-            az_actor.BeforeNNEvaluation(network);
-            std::vector<std::shared_ptr<network::NetworkOutput>> network_output = std::static_pointer_cast<network::AlphaZeroNetwork>(network)->forward();
-            if (az_actor.getMCTSTree().getRootNode()->getCount() == 0) {
-                std::vector<float> p = static_pointer_cast<network::AlphaZeroNetworkOutput>(network_output[0])->policy_;
-                for (int i = 8; i >= 0; --i) {
-                    for (int j = 0; j < 9; ++j) {
-                        cout << p[i * 9 + j] << " ";
-                    }
-                    cout << endl;
-                }
-                cout << "value: " << static_pointer_cast<network::AlphaZeroNetworkOutput>(network_output[0])->value_ << endl;
-            }
-            az_actor.AfterNNEvaluation(network_output[az_actor.getEvaluationJobIndex()]);
-        }
-        az_actor.act(az_actor.getMCTSTree().decideAction());
-        cout << az_actor.getEnvironment().toString() << endl;
-        string i;
-        cin >> i;
-    }*/
 }
 
 int main(int argc, char* argv[])

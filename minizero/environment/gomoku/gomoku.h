@@ -32,6 +32,7 @@ public:
     bool isTerminal() const override;
     float getEvalScore(bool is_resign = false) const override;
     std::vector<float> getFeatures(utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
+    std::vector<float> getActionFeatures(const GomokuAction& action, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::string toString() const override;
     inline std::string name() const override { return kGomokuName; }
 
@@ -46,14 +47,6 @@ private:
 
 class GomokuEnvLoader : public BaseEnvLoader<GomokuAction, GomokuEnv> {
 public:
-    inline std::vector<float> getActionFeatures(int id, utils::Rotation rotation = utils::Rotation::kRotationNone) const override
-    {
-        assert(id < static_cast<int>(action_pairs_.size()));
-        std::vector<float> action_features(kGomokuBoardSize * kGomokuBoardSize, 0.0f);
-        action_features[getRotatePosition(action_pairs_[id].first.getActionID(), rotation)] = 1.0f;
-        return action_features;
-    }
-
     inline int getPolicySize() const override { return kGomokuBoardSize * kGomokuBoardSize; }
     inline int getRotatePosition(int position, utils::Rotation rotation) const override { return getPositionByRotating(rotation, position, kGomokuBoardSize); }
     inline std::string getEnvName() const override { return kGomokuName; }

@@ -65,7 +65,8 @@ PYBIND11_MODULE(minizero_py, m)
         .def("get_nn_type_name", &Conf::getNNTypeName);
 
     py::class_<learner::DataLoader>(m, "DataLoader")
-        .def(py::init<std::string, int>())
+        .def(py::init<std::string>())
+        .def("seed", &learner::DataLoader::seed)
         .def("load_data_from_file", &learner::DataLoader::loadDataFromFile)
         .def("get_alphazero_training_data", [](learner::DataLoader& data_loader) {
             learner::AlphaZeroData data = data_loader.getAlphaZeroTrainingData();
@@ -79,7 +80,7 @@ PYBIND11_MODULE(minizero_py, m)
             learner::MuZeroData data = data_loader.getMuZeroTrainingData(unrolling_step);
             py::dict res;
             res["features"] = py::cast(data.features_);
-            res["actions"] = py::cast(data.actions_);
+            res["actions"] = py::cast(data.action_features_);
             res["policy"] = py::cast(data.policy_);
             res["value"] = data.value_;
             return res;

@@ -56,6 +56,7 @@ public:
     virtual bool isTerminal() const = 0;
     virtual float getEvalScore(bool is_resign = false) const = 0;
     virtual std::vector<float> getFeatures(utils::Rotation rotation = utils::Rotation::kRotationNone) const = 0;
+    virtual std::vector<float> getActionFeatures(const Action& action, utils::Rotation rotation = utils::Rotation::kRotationNone) const = 0;
     virtual std::string toString() const = 0;
     virtual std::string name() const = 0;
 
@@ -162,7 +163,6 @@ public:
         return policy;
     }
 
-    virtual std::vector<float> getActionFeatures(int id, utils::Rotation rotation = utils::Rotation::kRotationNone) const = 0;
     virtual int getPolicySize() const = 0;
     virtual int getRotatePosition(int position, utils::Rotation rotation) const = 0;
     virtual std::string getEnvName() const = 0;
@@ -176,26 +176,6 @@ public:
     inline void addTag(const std::string& key, const std::string& value) { tags_[key] = value; }
 
 protected:
-    void setPolicyDistribution(int id, std::vector<float>& policy) const
-    {
-        assert(id < static_cast<int>(action_pairs_.size()));
-        std::string distribution = action_pairs_[id].second;
-        if (distribution.empty()) {
-            policy[action_pairs_[id].first.getActionID()] = 1.0f;
-        } else {
-            float total = 0.0f;
-            std::string tmp;
-            std::istringstream iss(getActionPairs()[id].second);
-            while (std::getline(iss, tmp, ',')) {
-                int position = std::stoi(tmp.substr(0, tmp.find(":")));
-                float count = std::stoi(tmp.substr(tmp.find(":") + 1));
-                policy[position] = count;
-                total += count;
-            }
-            for (auto& p : policy) { p /= total; }
-        }
-    }
-
     std::string content_;
     std::unordered_map<std::string, std::string> tags_;
     std::vector<std::pair<Action, std::string>> action_pairs_;
