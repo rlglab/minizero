@@ -1,4 +1,4 @@
-#include "mcts_tree.h"
+#include "mcts.h"
 #include "random.h"
 #include <cmath>
 
@@ -6,15 +6,10 @@ namespace minizero::actor {
 
 using namespace minizero::utils;
 
-MCTSTreeNode::MCTSTreeNode()
-{
-    reset();
-}
-
-void MCTSTreeNode::reset()
+void MCTSNode::reset()
 {
     num_children_ = 0;
-    hidden_state_external_data_index_ = -1;
+    extra_data_index_ = -1;
     mean_ = 0.0f;
     count_ = 0.0f;
     policy_ = 0.0f;
@@ -24,7 +19,7 @@ void MCTSTreeNode::reset()
     first_child_ = nullptr;
 }
 
-void MCTSTreeNode::add(float value, float weight /*= 1.0f*/)
+void MCTSNode::add(float value, float weight /*= 1.0f*/)
 {
     if (count_ + weight <= 0) {
         reset();
@@ -34,7 +29,7 @@ void MCTSTreeNode::add(float value, float weight /*= 1.0f*/)
     }
 }
 
-void MCTSTreeNode::remove(float value, float weight /*= 1.0f*/)
+void MCTSNode::remove(float value, float weight /*= 1.0f*/)
 {
     if (count_ + weight <= 0) {
         reset();
@@ -44,7 +39,7 @@ void MCTSTreeNode::remove(float value, float weight /*= 1.0f*/)
     }
 }
 
-float MCTSTreeNode::getPUCTScore(int total_simulation, float init_q_value /*= -1.0f*/)
+float MCTSNode::getPUCTScore(int total_simulation, float init_q_value /*= -1.0f*/)
 {
     float puct_bias = config::actor_mcts_puct_init + log((1 + total_simulation + config::actor_mcts_puct_base) / config::actor_mcts_puct_base);
     float value_u = (puct_bias * getPolicy() * sqrt(total_simulation)) / (1 + getCount());
@@ -52,7 +47,7 @@ float MCTSTreeNode::getPUCTScore(int total_simulation, float init_q_value /*= -1
     return value_u + value_q;
 }
 
-std::string MCTSTreeNode::toString() const
+std::string MCTSNode::toString() const
 {
     std::ostringstream oss;
     oss.precision(4);
@@ -65,53 +60,60 @@ std::string MCTSTreeNode::toString() const
     return oss.str();
 }
 
-void MCTSTree::reset()
+void MCTS::reset()
 {
-    current_tree_size_ = 1;
-    getRootNode()->reset();
-    hidden_state_external_data_.reset();
+    tree_.reset();
+    tree_extra_data_.reset();
 }
 
-MCTSTreeNode* MCTSTree::selectChildByMaxCount(const MCTSTreeNode* node) const
+bool MCTS::isResign(const MCTSNode* selected_node) const
+{
+    const Action& action = selected_node->getAction();
+    float root_win_rate = (action.getPlayer() == env::Player::kPlayer1 ? tree_.getRootNode()->getMean() : -tree_.getRootNode()->getMean());
+    float action_win_rate = (action.getPlayer() == env::Player::kPlayer1 ? selected_node->getMean() : -selected_node->getMean());
+    return (root_win_rate < config::actor_resign_threshold && action_win_rate < config::actor_resign_threshold);
+}
+
+MCTSNode* MCTS::selectChildByMaxCount(const MCTSNode* node) const
 {
     assert(node && !node->isLeaf());
 
     float max_count = 0.0f;
-    MCTSTreeNode* selected_node = nullptr;
-    MCTSTreeNode* child = node->getFirstChild();
+    MCTSNode* selected = nullptr;
+    MCTSNode* child = node->getFirstChild();
     for (int i = 0; i < node->getNumChildren(); ++i, ++child) {
         if (child->getCount() <= max_count) { continue; }
         max_count = child->getCount();
-        selected_node = child;
+        selected = child;
     }
 
-    assert(selected_node != nullptr);
-    return selected_node;
+    assert(selected != nullptr);
+    return selected;
 }
 
-MCTSTreeNode* MCTSTree::selectChildBySoftmaxCount(const MCTSTreeNode* node, float temperature /*= 1.0f*/) const
+MCTSNode* MCTS::selectChildBySoftmaxCount(const MCTSNode* node, float temperature /*= 1.0f*/) const
 {
     assert(node && !node->isLeaf());
 
     float sum = 0.0f;
-    MCTSTreeNode* selected_node = nullptr;
-    MCTSTreeNode* child = node->getFirstChild();
+    MCTSNode* selected = nullptr;
+    MCTSNode* child = node->getFirstChild();
     for (int i = 0; i < node->getNumChildren(); ++i, ++child) {
         float count = std::pow(child->getCount(), 1 / temperature);
         if (count == 0) { continue; }
         sum += count;
         float rand = Random::randReal(sum);
-        if (rand < count) { selected_node = child; }
+        if (rand < count) { selected = child; }
     }
 
-    assert(selected_node != nullptr);
-    return selected_node;
+    assert(selected != nullptr);
+    return selected;
 }
 
-std::string MCTSTree::getSearchDistributionString() const
+std::string MCTS::getSearchDistributionString() const
 {
-    const MCTSTreeNode* root = getRootNode();
-    MCTSTreeNode* child = root->getFirstChild();
+    const MCTSNode* root = getRootNode();
+    MCTSNode* child = root->getFirstChild();
     std::ostringstream oss;
     for (int i = 0; i < root->getNumChildren(); ++i, ++child) {
         if (child->getCount() == 0) { continue; }
@@ -121,10 +123,16 @@ std::string MCTSTree::getSearchDistributionString() const
     return oss.str();
 }
 
-std::vector<MCTSTreeNode*> MCTSTree::select()
+std::vector<MCTSNode*> MCTS::select()
 {
-    MCTSTreeNode* node = getRootNode();
-    std::vector<MCTSTreeNode*> node_path{node};
+    return selectFromNode(getRootNode());
+}
+
+std::vector<MCTSNode*> MCTS::selectFromNode(MCTSNode* start_node)
+{
+    assert(start_node);
+    MCTSNode* node = start_node;
+    std::vector<MCTSNode*> node_path{node};
     while (!node->isLeaf()) {
         node = selectChildByPUCTScore(node);
         node_path.push_back(node);
@@ -132,60 +140,59 @@ std::vector<MCTSTreeNode*> MCTSTree::select()
     return node_path;
 }
 
-void MCTSTree::expand(MCTSTreeNode* leaf_node, const std::vector<ActionCandidate>& action_candidates)
+void MCTS::expand(MCTSNode* leaf_node, const std::vector<ActionCandidate>& action_candidates)
 {
     assert(leaf_node && action_candidates.size() > 0);
 
-    MCTSTreeNode* child_node = allocateNewNodes(action_candidates.size());
-    leaf_node->setFirstChild(child_node);
+    MCTSNode* child = tree_.allocateNodes(action_candidates.size());
+    leaf_node->setFirstChild(child);
     leaf_node->setNumChildren(action_candidates.size());
     for (const auto& candidate : action_candidates) {
-        child_node->reset();
-        child_node->setAction(candidate.action_);
-        child_node->setPolicy(candidate.policy_);
-        child_node->setPolicyLogit(candidate.policy_logit_);
-        ++child_node;
+        child->reset();
+        child->setAction(candidate.action_);
+        child->setPolicy(candidate.policy_);
+        child->setPolicyLogit(candidate.policy_logit_);
+        ++child;
     }
 }
 
-void MCTSTree::backup(std::vector<MCTSTreeNode*>& node_path, const float value)
+void MCTS::backup(const std::vector<MCTSNode*>& node_path, const float value)
 {
     assert(node_path.size() > 0);
-
     node_path.back()->setValue(value);
     for (int i = static_cast<int>(node_path.size() - 1); i >= 0; --i) {
-        MCTSTreeNode* node = node_path[i];
+        MCTSNode* node = node_path[i];
         node->add(value);
     }
 }
 
-MCTSTreeNode* MCTSTree::selectChildByPUCTScore(const MCTSTreeNode* node) const
+MCTSNode* MCTS::selectChildByPUCTScore(const MCTSNode* node) const
 {
     assert(node && !node->isLeaf());
 
     float best_score = -1.0f;
-    MCTSTreeNode* best_node = nullptr;
-    MCTSTreeNode* child_node = node->getFirstChild();
+    MCTSNode* selected = nullptr;
+    MCTSNode* child = node->getFirstChild();
     int total_simulation = node->getCount();
     float init_q_value = calculateInitQValue(node);
-    for (int i = 0; i < node->getNumChildren(); ++i, ++child_node) {
-        float score = child_node->getPUCTScore(total_simulation, init_q_value);
+    for (int i = 0; i < node->getNumChildren(); ++i, ++child) {
+        float score = child->getPUCTScore(total_simulation, init_q_value);
         if (score <= best_score) { continue; }
         best_score = score;
-        best_node = child_node;
+        selected = child;
     }
 
-    assert(best_node != nullptr);
-    return best_node;
+    assert(selected != nullptr);
+    return selected;
 }
 
-float MCTSTree::calculateInitQValue(const MCTSTreeNode* node) const
+float MCTS::calculateInitQValue(const MCTSNode* node) const
 {
     assert(node && !node->isLeaf());
 
     // init Q value = avg Q value of all visited children + one loss
     float sum_of_win = 0.0f, sum = 0.0f;
-    MCTSTreeNode* child = node->getFirstChild();
+    MCTSNode* child = node->getFirstChild();
     for (int i = 0; i < node->getNumChildren(); ++i, ++child) {
         if (child->getCount() == 0) { continue; }
         sum_of_win += child->getMean();
@@ -193,14 +200,6 @@ float MCTSTree::calculateInitQValue(const MCTSTreeNode* node) const
     }
     sum_of_win = (node->getFirstChild()->getAction().getPlayer() == env::Player::kPlayer1 ? sum_of_win : -sum_of_win);
     return (sum_of_win - 1) / (sum + 1);
-}
-
-MCTSTreeNode* MCTSTree::allocateNewNodes(int size)
-{
-    assert(current_tree_size_ + size <= static_cast<int>(nodes_.size()));
-    MCTSTreeNode* node = &nodes_[current_tree_size_];
-    current_tree_size_ += size;
-    return node;
 }
 
 } // namespace minizero::actor

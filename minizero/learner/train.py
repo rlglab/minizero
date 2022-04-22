@@ -1,3 +1,4 @@
+from multiprocessing import reduction
 import os
 import sys
 import time
@@ -98,8 +99,11 @@ def save_model(training_step, network, optimizer, scheduler, training_dir):
     torch.jit.script(network.module).save(f"{training_dir}/model/weight_iter_{training_step}.pt")
 
 
-def calculate_loss(output_policy, output_value, label_policy, label_value):
-    loss_policy = -(label_policy * nn.functional.log_softmax(output_policy, dim=1)).sum() / output_policy.shape[0]
+def calculate_loss(conf, output_policy, output_value, label_policy, label_value):
+    if conf.use_gumbel_noise():
+        loss_policy = nn.functional.kl_div(nn.functional.log_softmax(output_policy, dim=1), label_policy, reduction='batchmean')
+    else:
+        loss_policy = -(label_policy * nn.functional.log_softmax(output_policy, dim=1)).sum() / output_policy.shape[0]
     loss_value = torch.nn.functional.mse_loss(output_value, label_value)
     return loss_policy, loss_value
 
@@ -148,7 +152,7 @@ if __name__ == '__main__':
             features, label_policy, label_value = next(data_loader_iterator)
             network_output = network(features.to(device))
             output_policy, output_value = network_output["policy"], network_output["value"]
-            loss_policy, loss_value = calculate_loss(output_policy, output_value, label_policy.to(device), label_value.to(device))
+            loss_policy, loss_value = calculate_loss(conf, output_policy, output_value, label_policy.to(device), label_value.to(device))
             loss = loss_policy + loss_value
 
             # record training info
@@ -159,7 +163,7 @@ if __name__ == '__main__':
             features, actions, label_policy, label_value = next(data_loader_iterator)
             network_output = network(features.to(device))
             output_policy, output_value = network_output["policy"], network_output["value"]
-            loss_step_policy, loss_step_value = calculate_loss(output_policy, output_value, label_policy[:, 0].to(device), label_value.to(device))
+            loss_step_policy, loss_step_value = calculate_loss(conf, output_policy, output_value, label_policy[:, 0].to(device), label_value.to(device))
             add_training_info(training_info, 'loss_policy_0', loss_step_policy.item() / 2)
             add_training_info(training_info, 'accuracy_policy_0', calculate_accuracy(output_policy, label_policy[:, 0], conf.get_batch_size()))
             add_training_info(training_info, 'loss_value_0', loss_step_value.item() / 2)
@@ -168,7 +172,7 @@ if __name__ == '__main__':
             for i in range(muzero_unrolling_step):
                 network_output = network(network_output["hidden_state"], actions[:, i].to(device))
                 output_policy, output_value = network_output["policy"], network_output["value"]
-                loss_step_policy, loss_step_value = calculate_loss(output_policy, output_value, label_policy[:, i+1].to(device), label_value.to(device))
+                loss_step_policy, loss_step_value = calculate_loss(conf, output_policy, output_value, label_policy[:, i+1].to(device), label_value.to(device))
                 add_training_info(training_info, f'loss_policy_{i+1}', loss_step_policy.item() / (i+2))
                 add_training_info(training_info, f'accuracy_policy_{i+1}', calculate_accuracy(output_policy, label_policy[:, i+1], conf.get_batch_size()))
                 add_training_info(training_info, f'loss_value_{i+1}', loss_step_value.item() / (i+2))

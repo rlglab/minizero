@@ -109,16 +109,16 @@ std::vector<float> DataLoader::getPolicyDistribution(const EnvironmentLoader& en
         const Action& action = env_loader.getActionPairs()[pos].first;
         policy[env_loader.getRotatePosition(action.getActionID(), rotation)] = 1.0f;
     } else {
-        float total = 0.0f;
+        float sum = 0.0f;
         std::string tmp;
         std::istringstream iss(distribution);
         while (std::getline(iss, tmp, ',')) {
             int position = env_loader.getRotatePosition(std::stoi(tmp.substr(0, tmp.find(":"))), rotation);
             float count = std::stof(tmp.substr(tmp.find(":") + 1));
             policy[position] = count;
-            total += count;
+            sum += count;
         }
-        for (auto& p : policy) { p /= total; }
+        for (auto& p : policy) { p /= sum; }
     }
     return policy;
 }
@@ -131,26 +131,16 @@ std::vector<float> DataLoader::getGumbelPolicyDistribution(const EnvironmentLoad
         const Action& action = env_loader.getActionPairs()[pos].first;
         policy[env_loader.getRotatePosition(action.getActionID(), rotation)] = 1.0f;
     } else {
-        float max_value = -std::numeric_limits<float>::max();
+        float sum = 0.0f;
         std::string tmp;
         std::istringstream iss(distribution);
-        std::vector<int> is_legal(policy.size(), 0);
         while (std::getline(iss, tmp, ',')) {
             int position = env_loader.getRotatePosition(std::stoi(tmp.substr(0, tmp.find(":"))), rotation);
             float count = std::stof(tmp.substr(tmp.find(":") + 1));
-            policy[position] = count;
-            is_legal[position] = 1;
-            max_value = fmax(max_value, count);
+            policy[position] = exp(count);
+            sum += policy[position];
         }
-
-        // apply softmax function
-        float total = 0.0f;
-        for (size_t i = 0; i < policy.size(); ++i) {
-            if (is_legal[i] == 0) { continue; }
-            policy[i] = exp(policy[i] - max_value);
-            total += policy[i];
-        }
-        for (auto& p : policy) { p /= total; }
+        for (auto& p : policy) { p /= sum; }
     }
     return policy;
 }

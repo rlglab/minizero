@@ -1,7 +1,7 @@
 #pragma once
 
 #include "environment.h"
-#include "mcts_tree.h"
+#include "mcts.h"
 #include "network.h"
 #include <vector>
 
@@ -12,7 +12,7 @@ using namespace minizero;
 class Actor {
 public:
     Actor(long long tree_node_size)
-        : tree_(tree_node_size)
+        : mcts_(tree_node_size)
     {
     }
 
@@ -22,30 +22,32 @@ public:
     void resetSearch();
     bool act(const Action& action, const std::string action_comment = "");
     bool act(const std::vector<std::string>& action_string_args, const std::string action_comment = "");
-    void displayBoard(const MCTSTreeNode* selected_node);
+    void displayBoard(const MCTSNode* selected_node);
     std::string getRecord() const;
 
+    inline int getCurrentSimulation() const { return mcts_.getNumSimulation(); }
+    inline bool isResign(const MCTSNode* selected_node) const { return mcts_.isResign(selected_node); }
     inline bool isTerminal() const { return env_.isTerminal(); }
-    inline bool reachMaximumSimulation() const { return tree_.reachMaximumSimulation(); }
-    inline const MCTSTree& getMCTSTree() const { return tree_; }
+    inline bool reachMaximumSimulation() const { return mcts_.reachMaximumSimulation(); }
     inline const Environment& getEnvironment() const { return env_; }
     inline const int getEvaluationJobIndex() const { return evaluation_jobs_.second; }
 
-    virtual Action think(std::shared_ptr<network::Network>& network, bool with_play = false, bool display_board = false) = 0;
-    virtual MCTSTreeNode* decideActionNode() = 0;
+    virtual Action think(bool with_play = false, bool display_board = false) = 0;
+    virtual MCTSNode* decideActionNode() = 0;
     virtual std::string getActionComment() = 0;
-    virtual void beforeNNEvaluation(const std::shared_ptr<network::Network>& network) = 0;
+    virtual void beforeNNEvaluation() = 0;
     virtual void afterNNEvaluation(const std::shared_ptr<network::NetworkOutput>& network_output) = 0;
+    virtual void setNetwork(const std::shared_ptr<network::Network>& network) = 0;
 
 protected:
-    void addNoiseToNodeChildren(MCTSTreeNode* node);
+    void addNoiseToNodeChildren(MCTSNode* node);
 
-    MCTSTree tree_;
+    MCTS mcts_;
     Environment env_;
     std::vector<std::string> action_comments_;
-    std::pair<std::vector<MCTSTreeNode*>, int> evaluation_jobs_;
+    std::pair<std::vector<MCTSNode*>, int> evaluation_jobs_;
 };
 
-std::shared_ptr<Actor> createActor(long long tree_node_size, const std::string& network_type_name);
+std::shared_ptr<Actor> createActor(long long tree_node_size, const std::shared_ptr<network::Network>& network);
 
 } // namespace minizero::actor

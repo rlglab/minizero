@@ -12,7 +12,6 @@ class ThreadSharedData {
 public:
     int getNextActorIndex();
     void resetActor(int actor_id);
-    bool isActorResign(int actor_id, const MCTSTreeNode* root, const MCTSTreeNode* selected_node);
     void outputRecord(const std::string& record);
 
     bool do_cpu_job_;

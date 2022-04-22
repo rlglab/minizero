@@ -92,6 +92,7 @@ function kill_descendant_processes()
 	fi
 }
 
+retry_connection_counter=0
 while true
 do
 	# try to connect to broker
@@ -100,8 +101,14 @@ do
 	exec {broker_fd}<>/dev/tcp/$HOST/$PORT
 	if [[ -z $broker_fd ]]
 	then
-		# connect failed
-		echo "connect to $HOST:$PORT failed, retry after 60s..."
+		# connect failed, retry at most 5 times
+		max_retry_count=5
+		retry_connection_counter=$(($retry_connection_counter+1))
+		echo "connect to $HOST:$PORT failed, retry after 60s... ($retry_connection_counter/$max_retry_count)"
+		if [ $retry_connection_counter -ge $max_retry_count ]
+		then
+			break
+		fi
 		sleep 60
 	else
 		echo "connect success"

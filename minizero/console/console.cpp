@@ -9,6 +9,8 @@
 
 namespace minizero::console {
 
+using namespace network;
+
 Console::Console()
 {
     RegisterFunction("list_commands", this, &Console::cmdListCommands);
@@ -44,10 +46,9 @@ void Console::executeCommand(std::string command)
 
 void Console::initialize()
 {
-    network_ = network::createNetwork(config::nn_file_name, 0);
-    long long tree_node_size = static_cast<long long>(config::actor_num_simulation) * network_->getActionSize();
-    actor_ = actor::createActor(tree_node_size, network_->getNetworkTypeName());
-    actor_->reset();
+    std::shared_ptr<Network> network = createNetwork(config::nn_file_name, 0);
+    long long tree_node_size = static_cast<long long>(config::actor_num_simulation + 1) * network->getActionSize();
+    actor_ = actor::createActor(tree_node_size, network);
 }
 
 void Console::cmdListCommands(const std::vector<std::string>& args)
@@ -106,14 +107,14 @@ void Console::cmdBoardSize(const std::vector<std::string>& args)
 void Console::cmdGenmove(const std::vector<std::string>& args)
 {
     if (!checkArgument(args, 1, 1)) { return; }
-    const Action action = actor_->think(network_, true, true);
+    const Action action = actor_->think(true, true);
     reply(ConsoleResponse::kSuccess, action.toConsoleString());
 }
 
 void Console::cmdRegGenmove(const std::vector<std::string>& args)
 {
     if (!checkArgument(args, 1, 1)) { return; }
-    const Action action = actor_->think(network_, false, true);
+    const Action action = actor_->think(false, true);
     reply(ConsoleResponse::kSuccess, action.toConsoleString());
 }
 

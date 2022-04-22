@@ -62,7 +62,6 @@ protected:
     void reply(ConsoleResponse response, const std::string& reply);
 
     std::shared_ptr<actor::Actor> actor_;
-    std::shared_ptr<network::Network> network_;
     std::map<std::string, std::shared_ptr<BaseFunction>> function_map_;
 };
 

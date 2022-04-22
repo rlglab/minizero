@@ -99,6 +99,8 @@ void ZeroServer::run()
         selfPlay();
         optimization();
     }
+
+    exit(0);
 }
 
 boost::shared_ptr<ZeroWorkerHandler> ZeroServer::handleAcceptNewConnection()

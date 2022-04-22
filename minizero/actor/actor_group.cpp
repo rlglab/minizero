@@ -23,15 +23,6 @@ void ThreadSharedData::resetActor(int actor_id)
     actors_enable_resign_[actor_id] = (utils::Random::randReal() < config::zero_disable_resign_ratio ? 0 : 1);
 }
 
-bool ThreadSharedData::isActorResign(int actor_id, const MCTSTreeNode* root, const MCTSTreeNode* selected_node)
-{
-    if (!actors_enable_resign_[actor_id]) { return false; }
-    const Action& action = selected_node->getAction();
-    float root_win_rate = (action.getPlayer() == env::Player::kPlayer1 ? root->getMean() : -root->getMean());
-    float action_win_rate = (action.getPlayer() == env::Player::kPlayer1 ? selected_node->getMean() : -selected_node->getMean());
-    return (root_win_rate < config::actor_resign_threshold && action_win_rate < config::actor_resign_threshold);
-}
-
 void ThreadSharedData::outputRecord(const std::string& record)
 {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -65,7 +56,7 @@ void SlaveThread::doCPUJob()
             actor->afterNNEvaluation(shared_data_.network_outputs_[network_id][network_output_id]);
             handleSearchEndAndEnvEnd(actor_id);
         }
-        actor->beforeNNEvaluation(shared_data_.networks_[network_id]);
+        actor->beforeNNEvaluation();
         actor_id = shared_data_.getNextActorIndex();
     }
 }
@@ -75,14 +66,13 @@ void SlaveThread::handleSearchEndAndEnvEnd(int actor_id)
     std::shared_ptr<Actor>& actor = shared_data_.actors_[actor_id];
     if (!actor->reachMaximumSimulation()) { return; }
 
-    const MCTSTreeNode* root = actor->getMCTSTree().getRootNode();
-    const MCTSTreeNode* selected_node = actor->decideActionNode();
+    const MCTSNode* selected_node = actor->decideActionNode();
     const Action& action = selected_node->getAction();
-    bool is_resign = shared_data_.isActorResign(actor_id, root, selected_node);
+    bool is_resign = shared_data_.actors_enable_resign_[actor_id] && actor->isResign(selected_node);
     if (!is_resign) { actor->act(action, actor->getActionComment()); }
-    if (actor_id == 0 && !config::actor_use_gumbel_noise) { actor->displayBoard(selected_node); }
+    if (actor_id == 0 && config::actor_num_simulation >= 100) { actor->displayBoard(selected_node); }
     if (is_resign || actor->isTerminal()) {
-        if (actor_id == 0 && config::actor_use_gumbel_noise) { actor->displayBoard(selected_node); }
+        if (actor_id == 0 && config::actor_num_simulation < 100) { actor->displayBoard(selected_node); }
         shared_data_.outputRecord(actor->getRecord());
         shared_data_.resetActor(actor_id);
     } else {
@@ -92,17 +82,15 @@ void SlaveThread::handleSearchEndAndEnvEnd(int actor_id)
 
 void SlaveThread::doGPUJob()
 {
-    if (id_ >= static_cast<int>(shared_data_.networks_.size()) || id_ >= config::actor_num_parallel_games) { return; }
+    if (id_ >= static_cast<int>(shared_data_.networks_.size())) { return; }
 
     std::shared_ptr<Network>& network = shared_data_.networks_[id_];
     if (network->getNetworkTypeName() == "alphazero") {
         shared_data_.network_outputs_[id_] = std::static_pointer_cast<AlphaZeroNetwork>(network)->forward();
     } else if (network->getNetworkTypeName() == "muzero") {
-        if (shared_data_.actors_[0]->getMCTSTree().getRootNode()->getCount() == 0) {
-            // root forward, need to call initial inference
+        if (shared_data_.actors_[0]->getCurrentSimulation() == 0) { // root forward, need to call initial inference
             shared_data_.network_outputs_[id_] = std::static_pointer_cast<MuZeroNetwork>(network)->initialInference();
-        } else {
-            // recurrent inference
+        } else { // recurrent inference
             shared_data_.network_outputs_[id_] = std::static_pointer_cast<MuZeroNetwork>(network)->recurrentInference();
         }
     }
@@ -117,19 +105,20 @@ ActorGroup::ActorGroup()
     }
 
     // create networks
-    assert(torch::cuda::device_count() > 0);
-    shared_data_.networks_.resize(torch::cuda::device_count());
-    shared_data_.network_outputs_.resize(torch::cuda::device_count());
-    for (size_t gpu_id = 0; gpu_id < torch::cuda::device_count(); ++gpu_id) {
+    int num_networks = std::min(static_cast<int>(torch::cuda::device_count()), config::actor_num_parallel_games);
+    assert(num_networks > 0);
+    shared_data_.networks_.resize(num_networks);
+    shared_data_.network_outputs_.resize(num_networks);
+    for (int gpu_id = 0; gpu_id < num_networks; ++gpu_id) {
         shared_data_.networks_[gpu_id] = createNetwork(config::nn_file_name, gpu_id);
     }
 
     // create actors
     std::shared_ptr<Network>& network = shared_data_.networks_[0];
-    long long tree_node_size = static_cast<long long>(config::actor_num_simulation) * network->getActionSize();
+    long long tree_node_size = static_cast<long long>(config::actor_num_simulation + 1) * network->getActionSize();
     shared_data_.actors_enable_resign_.resize(config::actor_num_parallel_games);
     for (int i = 0; i < config::actor_num_parallel_games; ++i) {
-        shared_data_.actors_.emplace_back(createActor(tree_node_size, network->getNetworkTypeName()));
+        shared_data_.actors_.emplace_back(createActor(tree_node_size, shared_data_.networks_[i % shared_data_.networks_.size()]));
         shared_data_.resetActor(i);
     }
 }

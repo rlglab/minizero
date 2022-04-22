@@ -23,6 +23,7 @@ void Network::loadModel(const std::string& nn_file_name, const int gpu_id)
         network_ = torch::jit::load(network_file_name_, getDevice());
         network_.eval();
     } catch (const c10::Error& e) {
+        std::cerr << e.msg() << std::endl;
         assert(false);
     }
 
