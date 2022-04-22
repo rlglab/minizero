@@ -2,6 +2,7 @@
 #include "configuration.h"
 #include "console.h"
 #include "environment.h"
+#include "killallgo_mcts_solver.h"
 #include "zero_server.h"
 #include <torch/script.h>
 #include <vector>
@@ -96,6 +97,16 @@ void runTest()
     cout << env_loader.toString() << endl;
 }
 
+void runSolver()
+{
+    std::shared_ptr<network::AlphaZeroNetwork> network = std::static_pointer_cast<network::AlphaZeroNetwork>(network::createNetwork(config::nn_file_name, 0));
+    long long tree_node_size = static_cast<long long>(config::actor_num_simulation + 1) * network->getActionSize();
+    solver::KillAllGoMCTSSolver solver(tree_node_size);
+    solver.setNetwork(network);
+    solver::SolveResult result = solver.solve();
+    cout << static_cast<int>(result) << endl;
+}
+
 int main(int argc, char* argv[])
 {
     if (argc % 2 != 1) {
@@ -140,6 +151,8 @@ int main(int argc, char* argv[])
         runZeroServer();
     } else if (sMode == "test") {
         runTest();
+    } else if (sMode == "solver") {
+        runSolver();
     } else {
         cerr << "Error mode: " << sMode << endl;
         return -1;

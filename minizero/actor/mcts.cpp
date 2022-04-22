@@ -143,7 +143,6 @@ std::vector<MCTSNode*> MCTS::selectFromNode(MCTSNode* start_node)
 void MCTS::expand(MCTSNode* leaf_node, const std::vector<ActionCandidate>& action_candidates)
 {
     assert(leaf_node && action_candidates.size() > 0);
-
     MCTSNode* child = tree_.allocateNodes(action_candidates.size());
     leaf_node->setFirstChild(child);
     leaf_node->setNumChildren(action_candidates.size());

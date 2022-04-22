@@ -9,6 +9,7 @@ target_link_libraries(
     environment
     network
     server
+    solver
     utils
     ${TORCH_LIBRARIES}
 )

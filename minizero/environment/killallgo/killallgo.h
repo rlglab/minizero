@@ -26,14 +26,14 @@ public:
     bool isTerminal() const override
     {
         // all black's benson or any white's benson
-        if (benson_bitboard.get(Player::kPlayer1).count() == board_size_ * board_size_ || benson_bitboard.get(Player::kPlayer2).count() > 0)
+        if (benson_bitboard_.get(Player::kPlayer1).count() == board_size_ * board_size_ || benson_bitboard_.get(Player::kPlayer2).count() > 0)
             return true;
         return go::GoEnv::isTerminal();
     }
 
     float getEvalScore(bool is_resign = false) const override
     {
-        if (stone_bitboard_.get(Player::kPlayer2).count() == 0 || benson_bitboard.get(Player::kPlayer1).count() == board_size_ * board_size_)
+        if (stone_bitboard_.get(Player::kPlayer2).count() == 0 || benson_bitboard_.get(Player::kPlayer1).count() == board_size_ * board_size_)
             return 1.0f; // player1 wins
         else
             return -1.0f; // player2 wins
