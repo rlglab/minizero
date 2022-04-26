@@ -3,6 +3,7 @@
 namespace minizero::solver {
 
 using namespace network;
+using namespace env::go;
 
 void KillAllGoMCTSNode::reset()
 {
@@ -26,15 +27,15 @@ void KillAllGoMCTSSolver::resetTree()
 SolveResult KillAllGoMCTSSolver::solve()
 {
     resetTree();
-    while (!reachMaximumSimulation()) { // other condition?
+    while (!reachMaximumSimulation() && !getRootNode()->isSolved()) {
         std::vector<KillAllGoMCTSNode*> selection_path = select();
         network_->pushBack(env_.getFeatures());
         std::shared_ptr<AlphaZeroNetworkOutput> network_output = std::static_pointer_cast<AlphaZeroNetworkOutput>(network_->forward()[0]);
-        expand(selection_path.back(), calculateActionCandidate(network_output));
-        backup(selection_path, network_output->value_); // update benson and solver result?
+        if (!env_.isTerminal()) { expand(selection_path.back(), calculateActionCandidate(network_output)); }
+        backup(selection_path, network_output->value_);
         env_ = env_backup_;
     }
-    return getRootNode()->getSolveResult();
+    return getRootNode()->getSolverResult();
 }
 
 std::vector<KillAllGoMCTSNode*> KillAllGoMCTSSolver::select()
@@ -42,15 +43,11 @@ std::vector<KillAllGoMCTSNode*> KillAllGoMCTSSolver::select()
     KillAllGoMCTSNode* node = getRootNode();
     std::vector<KillAllGoMCTSNode*> node_path{node};
     while (!node->isLeaf()) {
-        node = selectChildByPUCTScore(node); // skip already solved node?
+        node = selectChildByPUCTScore(node);
         env_.act(node->getAction());
         node_path.push_back(node);
     }
     return node_path;
-}
-
-void KillAllGoMCTSSolver::evalution()
-{
 }
 
 void KillAllGoMCTSSolver::expand(KillAllGoMCTSNode* leaf_node, const std::vector<ActionCandidate>& action_candidates)
@@ -72,9 +69,41 @@ void KillAllGoMCTSSolver::backup(const std::vector<KillAllGoMCTSNode*>& node_pat
 {
     assert(node_path.size() > 0);
     node_path.back()->setValue(value);
+
     for (int i = static_cast<int>(node_path.size() - 1); i >= 0; --i) {
         KillAllGoMCTSNode* node = node_path[i];
         node->add(value);
+    }
+
+    if (env_.isTerminal()) {
+        KillAllGoMCTSNode* leaf_node = node_path.back();
+        GoPair<GoBitboard> stone_bitboard = env_.getStoneBitboard();
+        GoBitboard white_benson_bitboard = env_.getBensonBitboard().get(env::Player::kPlayer2);
+        GoBitboard black_bitboard = stone_bitboard.get(env::Player::kPlayer1) & white_benson_bitboard;
+        GoBitboard white_bitboard = stone_bitboard.get(env::Player::kPlayer2) & white_benson_bitboard;
+        KillAllGoMCTSNodeExtraData zoneData(white_benson_bitboard, GoPair<GoBitboard>(black_bitboard, white_bitboard));
+        int index = tree_extra_data_.store(zoneData);
+        leaf_node->setExtraDataIndex(index);
+        if (leaf_node->getAction().getPlayer() == env::Player::kPlayer1) {
+            leaf_node->setSolverResult(SolveResult::kSolverLoss);
+        } else {
+            leaf_node->setSolverResult(SolveResult::kSolverWin);
+        }
+    }
+
+    for (int i = static_cast<int>(node_path.size() - 1); i > 0; --i) {
+        KillAllGoMCTSNode* pNode = node_path[i];
+        KillAllGoMCTSNode* pParent = node_path[i - 1];
+
+        if (pNode->getSolverResult() == SolveResult::kSolverWin) {
+            pParent->setSolverResult(SolveResult::kSolverLoss);
+        } else if (pNode->getSolverResult() == SolveResult::kSolverLoss) {
+            if (isAllChildrenSolutionLoss(pParent)) {
+                pParent->setSolverResult(SolveResult::kSolverWin);
+            } else {
+                break;
+            }
+        }
     }
 }
 
@@ -88,6 +117,7 @@ KillAllGoMCTSNode* KillAllGoMCTSSolver::selectChildByPUCTScore(const KillAllGoMC
     int total_simulation = node->getCount();
     float init_q_value = calculateInitQValue(node);
     for (int i = 0; i < node->getNumChildren(); ++i, ++child) {
+        if (child->isSolved()) { continue; }
         float score = child->getPUCTScore(total_simulation, init_q_value);
         if (score <= best_score) { continue; }
         best_score = score;
@@ -126,6 +156,15 @@ std::vector<KillAllGoMCTSSolver::ActionCandidate> KillAllGoMCTSSolver::calculate
         return lhs.policy_ > rhs.policy_;
     });
     return candidates_;
+}
+
+bool KillAllGoMCTSSolver::isAllChildrenSolutionLoss(const KillAllGoMCTSNode* pNode) const
+{
+    const KillAllGoMCTSNode* pChild = pNode->getFirstChild();
+    for (int i = 0; i < pNode->getNumChildren(); ++i, ++pChild) {
+        if (pChild->getSolverResult() != SolveResult::kSolverLoss) { return false; }
+    }
+    return true;
 }
 
 } // namespace minizero::solver

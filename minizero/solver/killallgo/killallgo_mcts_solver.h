@@ -22,7 +22,8 @@ public:
 
     inline void setSolverResult(SolveResult result) { solver_result_ = result; }
     inline void setFirstChild(KillAllGoMCTSNode* first_child) { killallgo_first_child_ = first_child; }
-    inline SolveResult getSolveResult() const { return solver_result_; }
+    inline SolveResult getSolverResult() const { return solver_result_; }
+    inline bool isSolved() const { return solver_result_ != SolveResult::kSolverUnknown; }
     inline KillAllGoMCTSNode* getFirstChild() const { return killallgo_first_child_; }
 
 private:
@@ -61,7 +62,6 @@ public:
     void resetTree();
     SolveResult solve();
     std::vector<KillAllGoMCTSNode*> select();
-    void evalution();
     void expand(KillAllGoMCTSNode* leaf_node, const std::vector<ActionCandidate>& action_candidates);
     void backup(const std::vector<KillAllGoMCTSNode*>& node_path, const float value);
 
@@ -75,11 +75,13 @@ public:
     inline const KillAllGoMCTSNode* getRootNode() const { return tree_.getRootNode(); }
     inline KillAllGoMCTSTreeExtraData& getTreeExtraData() { return tree_extra_data_; }
     inline const KillAllGoMCTSTreeExtraData& getTreeExtraData() const { return tree_extra_data_; }
+    inline const env::killallgo::KillAllGoEnv& getEnvironment() const { return env_; }
 
 private:
     KillAllGoMCTSNode* selectChildByPUCTScore(const KillAllGoMCTSNode* node) const;
     float calculateInitQValue(const KillAllGoMCTSNode* node) const;
     std::vector<ActionCandidate> calculateActionCandidate(const std::shared_ptr<network::AlphaZeroNetworkOutput>& alphazero_output);
+    bool isAllChildrenSolutionLoss(const KillAllGoMCTSNode* pNode) const;
 
     env::killallgo::KillAllGoEnv env_;
     env::killallgo::KillAllGoEnv env_backup_;

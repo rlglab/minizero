@@ -56,6 +56,8 @@ public:
     inline std::string name() const override { return kGoName; }
     inline float getKomi() const { return komi_; }
     inline int getBoardSize() const { return board_size_; }
+    inline const GoPair<GoBitboard>& getStoneBitboard() const { return stone_bitboard_; }
+    inline const GoPair<GoBitboard>& getBensonBitboard() const { return benson_bitboard_; }
 
 protected:
     void initialize();
