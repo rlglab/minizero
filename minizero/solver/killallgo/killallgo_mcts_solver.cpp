@@ -4,11 +4,18 @@ namespace minizero::solver {
 
 using namespace network;
 using namespace env::go;
+using namespace env::killallgo;
 
 void KillAllGoMCTSNode::reset()
 {
     MCTSNode::reset();
     solver_result_ = SolveResult::kSolverUnknown;
+}
+
+std::string KillAllGoMCTSNode::toString() const
+{
+    // TODO
+    return MCTSNode::toString();
 }
 
 void KillAllGoMCTSSolver::reset()
@@ -75,21 +82,7 @@ void KillAllGoMCTSSolver::backup(const std::vector<KillAllGoMCTSNode*>& node_pat
         node->add(value);
     }
 
-    if (env_.isTerminal()) {
-        KillAllGoMCTSNode* leaf_node = node_path.back();
-        GoPair<GoBitboard> stone_bitboard = env_.getStoneBitboard();
-        GoBitboard white_benson_bitboard = env_.getBensonBitboard().get(env::Player::kPlayer2);
-        GoBitboard black_bitboard = stone_bitboard.get(env::Player::kPlayer1) & white_benson_bitboard;
-        GoBitboard white_bitboard = stone_bitboard.get(env::Player::kPlayer2) & white_benson_bitboard;
-        KillAllGoMCTSNodeExtraData zoneData(white_benson_bitboard, GoPair<GoBitboard>(black_bitboard, white_bitboard));
-        int index = tree_extra_data_.store(zoneData);
-        leaf_node->setExtraDataIndex(index);
-        if (leaf_node->getAction().getPlayer() == env::Player::kPlayer1) {
-            leaf_node->setSolverResult(SolveResult::kSolverLoss);
-        } else {
-            leaf_node->setSolverResult(SolveResult::kSolverWin);
-        }
-    }
+    if (env_.isTerminal()) { setTerminalRZone(node_path.back()); }
 
     for (int i = static_cast<int>(node_path.size() - 1); i > 0; --i) {
         KillAllGoMCTSNode* pNode = node_path[i];
@@ -158,13 +151,31 @@ std::vector<KillAllGoMCTSSolver::ActionCandidate> KillAllGoMCTSSolver::calculate
     return candidates_;
 }
 
-bool KillAllGoMCTSSolver::isAllChildrenSolutionLoss(const KillAllGoMCTSNode* pNode) const
+bool KillAllGoMCTSSolver::isAllChildrenSolutionLoss(const KillAllGoMCTSNode* p_node) const
 {
-    const KillAllGoMCTSNode* pChild = pNode->getFirstChild();
-    for (int i = 0; i < pNode->getNumChildren(); ++i, ++pChild) {
-        if (pChild->getSolverResult() != SolveResult::kSolverLoss) { return false; }
+    const KillAllGoMCTSNode* p_child = p_node->getFirstChild();
+    for (int i = 0; i < p_node->getNumChildren(); ++i, ++p_child) {
+        if (p_child->getSolverResult() != SolveResult::kSolverLoss) { return false; }
     }
     return true;
+}
+
+void KillAllGoMCTSSolver::setTerminalRZone(KillAllGoMCTSNode* p_leaf)
+{
+#if KILLALLGO
+    GoPair<GoBitboard> stone_bitboard = env_.getStoneBitboard();
+    GoBitboard white_benson_bitboard = env_.getBensonBitboard().get(env::Player::kPlayer2);
+    GoBitboard black_bitboard = stone_bitboard.get(env::Player::kPlayer1) & white_benson_bitboard;
+    GoBitboard white_bitboard = stone_bitboard.get(env::Player::kPlayer2) & white_benson_bitboard;
+    KillAllGoMCTSNodeExtraData zoneData(white_benson_bitboard, GoPair<GoBitboard>(black_bitboard, white_bitboard));
+    int index = tree_extra_data_.store(zoneData);
+    p_leaf->setExtraDataIndex(index);
+    if (p_leaf->getAction().getPlayer() == env::Player::kPlayer1) {
+        p_leaf->setSolverResult(SolveResult::kSolverLoss);
+    } else {
+        p_leaf->setSolverResult(SolveResult::kSolverWin);
+    }
+#endif
 }
 
 } // namespace minizero::solver
