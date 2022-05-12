@@ -40,6 +40,14 @@ public:
     }
 
     inline std::string name() const override { return kKillAllGoName; }
+
+private:
+    bool isCaptureMove(const KillAllGoAction& action) const;
+    inline bool isSuicidalMove(const KillAllGoAction& action) const { return (getLibertyBitBoardAfterPlay(action) == 0); }
+    bool isEatKoMove(const KillAllGoAction& action) const;
+    go::GoBitboard getStoneBitBoardAfterPlay(const KillAllGoAction& action) const;
+    go::GoBitboard getLibertyBitBoardAfterPlay(const KillAllGoAction& action) const;
+    inline int getNumLibertyAfterPlay(const KillAllGoAction& action) const { return getLibertyBitBoardAfterPlay(action).count(); }
 };
 
 class KillAllGoEnvLoader : public go::GoEnvLoader {
