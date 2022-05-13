@@ -6,6 +6,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include <random>
+#include <unordered_set>
 
 // Board format
 // 0 is a1, 8 is a2, 63 is h8.
@@ -172,7 +173,7 @@ public:
         hash_ ^= key_[ROOK + 6][56] ^ key_[KNIGHT + 6][57] ^ key_[BISHOP + 6][58] ^ key_[QUEEN + 6][59];
         hash_ ^= key_[ROOK + 6][63] ^ key_[KNIGHT + 6][62] ^ key_[BISHOP + 6][61] ^ key_[KING + 6][60];
         
-        hash_table_1.insert(hash);
+        hash_table_1.insert(hash_);
     }
 
     int positionToRow(int position) const {
@@ -185,12 +186,12 @@ public:
         return row * 8 + col;
     }
     
-    int storeTable(std::uint64_t hash){
-        if(hash_table_1.count(hash) == 0){
-            hash_table_1.insert(hash);
+    int storeTable(std::uint64_t newhash){
+        if(hash_table_1.count(newhash) == 0){
+            hash_table_1.insert(newhash);
             return 1;
-        }else if(hash_table_2.count(hash) == 0){
-            hash_table_2.insert(hash);
+        }else if(hash_table_2.count(newhash) == 0){
+            hash_table_2.insert(newhash);
             return 2;
         }
         return 3;
@@ -692,7 +693,7 @@ public:
             rooks_.set(toBitBoardSquare(to));
         }
 
-        for(int i = 0; i < 5 ; i ++){
+        /*for(int i = 0; i < 5 ; i ++){
             if(ply1_remain_[i] < 0){
                 // std::cout << toString() << std::endl;
                 action.showActionInfo();
@@ -705,7 +706,8 @@ public:
                 std::cout << "ply2_remain[" << i << "] < 0\n";
                 assert(ply2_remain_[i] >= 0);
             }
-        }
+        }*/
+        checkRemain();
 
         if(ply1_remain_[PAWN] > 0 || ply1_remain_[ROOK] > 0 || ply1_remain_[QUEEN] > 0 || 
            ply1_remain_[BISHOP] >= 2 || ((ply1_remain_[BISHOP] > 0 && ply1_remain_[KNIGHT]  > 0)) ||
