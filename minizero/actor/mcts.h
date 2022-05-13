@@ -16,9 +16,9 @@ public:
     void remove(float value, float weight = 1.0f);
     float getPUCTScore(int total_simulation, float init_q_value = -1.0f);
     std::string toString() const override;
+    bool displayInTreeLog() const override { return count_ > 0; }
 
     // setter
-    inline void setAction(Action action) { action_ = action; }
     inline void setExtraDataIndex(int extra_data_index) { extra_data_index_ = extra_data_index; }
     inline void setMean(float mean) { mean_ = mean; }
     inline void setCount(float count) { count_ = count; }
@@ -26,10 +26,9 @@ public:
     inline void setPolicyLogit(float policy_logit) { policy_logit_ = policy_logit; }
     inline void setPolicyNoise(float policy_noise) { policy_noise_ = policy_noise; }
     inline void setValue(float value) { value_ = value; }
-    inline void setFirstChild(MCTSNode* first_child) { first_child_ = first_child; }
+    inline void setFirstChild(MCTSNode* first_child) { BaseTreeNode::setFirstChild(first_child); }
 
     // getter
-    inline Action getAction() const { return action_; }
     inline int getExtraDataIndex() const { return extra_data_index_; }
     inline float getMean() const { return mean_; }
     inline float getCount() const { return count_; }
@@ -37,10 +36,9 @@ public:
     inline float getPolicyLogit() const { return policy_logit_; }
     inline float getPolicyNoise() const { return policy_noise_; }
     inline float getValue() const { return value_; }
-    inline MCTSNode* getFirstChild() const { return first_child_; }
+    inline MCTSNode* getFirstChild() const { return static_cast<MCTSNode*>(BaseTreeNode::getFirstChild()); }
 
 private:
-    Action action_;
     int extra_data_index_;
     float mean_;
     float count_;
@@ -48,7 +46,6 @@ private:
     float policy_logit_;
     float policy_noise_;
     float value_;
-    MCTSNode* first_child_;
 };
 
 class MCTSNodeExtraData {
