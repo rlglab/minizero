@@ -38,13 +38,22 @@ namespace minizero::env::chess {
 class Bitboard{
 public:
     Bitboard(std::uint64_t board = 0){ setboard(board); }
-    int count(){
+    int count() const {
         std::uint64_t b = board_;
         b = (b & 0x5555555555555555) + ((b >> 1) & 0x5555555555555555);
         b = (b & 0x3333333333333333) + ((b >> 2) & 0x3333333333333333);
         return ((( b + (b >> 4) ) & 0x0f0f0f0f0f0f0f0f ) * 0x0101010101010101 ) >> 56;
     }
-    void showboard(){
+
+    int countPawns() const {
+        std::uint64_t b = board_;
+        b &= 0x7E7E7E7E7E7E7E7E;
+        b = (b & 0x5555555555555555) + ((b >> 1) & 0x5555555555555555);
+        b = (b & 0x3333333333333333) + ((b >> 2) & 0x3333333333333333);
+        return ((( b + (b >> 4) ) & 0x0f0f0f0f0f0f0f0f ) * 0x0101010101010101 ) >> 56;
+    }
+
+    void showBitboard() const{
         for(int i = 0; i < 8; i ++){
             std::cout << 8-i << "| ";
             for(int j = 0; j < 8; j++){
@@ -68,7 +77,7 @@ public:
     bool operator!=(const Bitboard& other) const { return board_ != other.board_; }
     friend Bitboard operator|(Bitboard& a, const Bitboard& b) { return {a.board_ | b.board_}; }
     friend Bitboard operator&(Bitboard& a, const Bitboard& b) { return {a.board_ & b.board_}; }
-    friend Bitboard operator-(Bitboard& a, const Bitboard& b) { return {a.board_ & ~b.board_};}
+    friend Bitboard operator-(Bitboard a, const Bitboard& b) { return {a.board_ & ~b.board_};}
 
 private:
     // 0~2^64-1 

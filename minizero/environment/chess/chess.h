@@ -304,7 +304,6 @@ static const std::pair<int, Pieces> kActionIdDirections73[] = {
     { 0, Pieces::rook}, { 0, Pieces::bishop}, { 0, Pieces::knight},
     { 1, Pieces::rook}, { 1, Pieces::bishop}, { 1, Pieces::knight}};
 
-
 class ChessEnv : public BaseEnv<ChessAction> {
 public:
     ChessEnv() { reset(); }
@@ -318,6 +317,7 @@ public:
         setRemain(remain, remain);
         
         board_.resize(kChessBoardSize * kChessBoardSize);
+        
         for(int i = 0; i < 16; i++){
             board_[i].first = Player::kPlayer1;
             if(i >= 8)
@@ -356,7 +356,7 @@ public:
         setInt(0, 0, 0, 4, 60);
         setBoolean(false, false, false, false, false, false, false, false, false, false);
         setBitboard(0x8100000081000081, 0x0000810081810000, 0x0081000000008100, 0x4242424242424242, 0x0303030303030303, 0xC0C0C0C0C0C0C0C0);
-        
+        clearBitboardHistory();
         board_hash_.reset();
     }
     
@@ -406,7 +406,14 @@ public:
         ply1_king_pos_ = ply1_k_pos;
         ply2_king_pos_ = ply2_k_pos;
     }
-
+    void clearBitboardHistory(){
+        pawns_history_.clear();
+        knights_history_.clear();
+        bishops_history_.clear();
+        rooks_history_.clear();
+        queens_history_.clear();
+        king_history_.clear();
+    }
     bool rowOutOfBoard(int row) const { return row < 0 || row >= 8; }
     bool colOutOfBoard(int col) const { return col < 0 || col >= 8; }
     bool outOfBoard(int square) const { return square < 0 || square >= 64; }
@@ -454,6 +461,18 @@ public:
             assert(ply1_remain_[i] >= 0);
             assert(ply2_remain_[i] >= 0);
         }
+    }
+    void checkBitboard() const {
+        if(pawns_.countPawns() != (ply1_remain_[PAWN] + ply2_remain_[PAWN])){
+            std::cout << "pawns.count: " << pawns_.countPawns() <<std::endl;
+            std::cout << "remain pawns (w/b): " << ply1_remain_[PAWN] << ", " << ply2_remain_[PAWN] << std::endl;
+            pawns_.showBitboard();
+            std::cout << "-- Current Board --\n" << toString() << std::endl;
+        }
+        assert(pawns_.countPawns() == (ply1_remain_[PAWN] + ply2_remain_[PAWN]));
+        assert(knights_.count() == (ply1_remain_[KNIGHT] + ply2_remain_[KNIGHT]));
+        assert(bishops_.count() == (ply1_remain_[BISHOP] + ply1_remain_[QUEEN] + ply2_remain_[BISHOP] + ply2_remain_[QUEEN]));
+        assert(rooks_.count() == (ply1_remain_[ROOK] + ply1_remain_[QUEEN] + ply2_remain_[ROOK] + ply2_remain_[QUEEN]));
     }
     void showRemain() const {
         std::cout << "White: ";
@@ -642,6 +661,7 @@ public:
                     ply1_remain_[PAWN] -= 1;
                 else
                     ply2_remain_[PAWN] -= 1;
+                    
             }
             if(action.getPromotedPiece() == Pieces::empty)
                 pawns_.set(toBitBoardSquare(to));
@@ -740,9 +760,6 @@ public:
             if(turn_ == Player::kPlayer2)
                 return false;
             ply2_ischecked_ = true;
-            // std::cout << "------black is check------\n";
-            // action.showActionInfo();
-            // std::cout << "--------------------------\n";
         }else{
             ply2_ischecked_ = false;
         }
@@ -750,10 +767,26 @@ public:
         int repeat = board_hash_.storeTable(board_hash_.applyMove(action));
         if(repetitions_ < repeat){
             repetitions_ = repeat;
-            // if(repetitions_ == 3)
-            //     std::cout << "3-rep: " << repetitions_ << std::endl;
         }
 
+        checkBitboard();
+        
+        if(turn_ == Player::kPlayer1){
+            pawns_history_.push_back(ply1_pieces_ & pawns_);
+            knights_history_.push_back(ply1_pieces_ & knights_);
+            bishops_history_.push_back((ply1_pieces_ & bishops_) - (bishops_ & rooks_));
+            rooks_history_.push_back((ply1_pieces_ & rooks_) - (bishops_ & rooks_));
+            queens_history_.push_back(ply1_pieces_ & (bishops_ & rooks_));
+            king_history_.push_back(ply1_king_pos_);
+        }else{
+            pawns_history_.push_back(ply2_pieces_ & pawns_);
+            knights_history_.push_back(ply2_pieces_ & knights_);
+            bishops_history_.push_back((ply2_pieces_ & bishops_) - (bishops_ & rooks_));
+            rooks_history_.push_back((ply2_pieces_ & rooks_) - (bishops_ & rooks_));
+            queens_history_.push_back(ply2_pieces_ & (bishops_ & rooks_));
+            king_history_.push_back(ply2_king_pos_);
+        }
+        
         actions_.push_back(action);
         turn_ = action.nextPlayer();
 
@@ -1264,8 +1297,69 @@ public:
 
     std::vector<float> getFeatures(utils::Rotation rotation = utils::Rotation::kRotationNone) const override
     {
-        // TODO
-        return {};
+        std::vector<float> vFeatures;
+        for (int channel = 0; channel < 119; ++channel) {
+            int ind = pawns_history_.size() - 1 - 2 * (channel / 14);
+            for (int pos = 0; pos < kChessBoardSize * kChessBoardSize; ++pos) {
+                if (channel < 112) {
+                    // (turn_ pieces x6 + opponent pieces x6 + repetition x2) x8
+                    if (((channel % 2 == 0) && ind < 0) || ((channel % 2 == 1) && ind < 1)){
+                        vFeatures.push_back(0.0f);
+                    }else{
+                        int channel_id = channel % 14;
+                        if(channel_id == 0)         // our-pawns
+                            vFeatures.push_back(pawns_history_[ind].get(toBitBoardSquare(pos)) ? 1.0f : 0.0f);
+                        else if(channel_id == 1)    // opp-pawns        
+                            vFeatures.push_back(pawns_history_[ind - 1].get(toBitBoardSquare(pos)) ? 1.0f : 0.0f);
+                        else if(channel_id == 2)    // our-knights        
+                            vFeatures.push_back(knights_history_[ind].get(toBitBoardSquare(pos)) ? 1.0f : 0.0f);
+                        else if(channel_id == 3)    // opp-knights         
+                            vFeatures.push_back(knights_history_[ind - 1].get(toBitBoardSquare(pos)) ? 1.0f : 0.0f);
+                        else if(channel_id == 4)    // our-bishops         
+                            vFeatures.push_back(bishops_history_[ind].get(toBitBoardSquare(pos)) ? 1.0f : 0.0f);
+                        else if(channel_id == 5)    // opp-bishops         
+                            vFeatures.push_back(bishops_history_[ind - 1].get(toBitBoardSquare(pos)) ? 1.0f : 0.0f);
+                        else if(channel_id == 6)    // our-rooks     
+                            vFeatures.push_back(rooks_history_[ind].get(toBitBoardSquare(pos)) ? 1.0f : 0.0f);
+                        else if(channel_id == 7)    // opp-rooks        
+                            vFeatures.push_back(rooks_history_[ind - 1].get(toBitBoardSquare(pos)) ? 1.0f : 0.0f);
+                        else if(channel_id == 8)    // our-queens        
+                            vFeatures.push_back(queens_history_[ind].get(toBitBoardSquare(pos)) ? 1.0f : 0.0f);
+                        else if(channel_id == 9)    // opp-queens         
+                            vFeatures.push_back(queens_history_[ind - 1].get(toBitBoardSquare(pos)) ? 1.0f : 0.0f);
+                        else if(channel_id == 10)   // our-king        
+                            vFeatures.push_back(toBitBoardSquare(king_history_[ind]) == pos ? 1.0f : 0.0f);
+                        else if(channel_id == 11)   // opp-king        
+                            vFeatures.push_back(toBitBoardSquare(king_history_[ind - 1]) == pos ? 1.0f : 0.0f);
+                        else if(channel_id == 12)   // TODO: repetition-1        
+                            vFeatures.push_back(0.0f);
+                        else                        // TODO: repetition-2
+                            vFeatures.push_back(0.0f);
+                    }
+                    
+                } else if (channel == 112) {
+                    // colour
+                    if(turn_ == Player::kPlayer1){
+                        vFeatures.push_back(1.0f);
+                    }else{
+                        vFeatures.push_back(0.0f);
+                    }
+                } else if (channel == 113) {
+                    // TODO: total move count
+                    vFeatures.push_back(0.0f);
+                }else if (channel <= 115) {
+                    // TODO: turn_ castling x2
+                    vFeatures.push_back(0.0f);
+                }else if (channel <= 117) {
+                    // TODO: opponent castling x2
+                   vFeatures.push_back(0.0f);
+                }else if (channel == 118) {
+                    // TODO: no progress count
+                    vFeatures.push_back(0.0f);
+                }
+            }
+        }
+        return vFeatures;
     }
 
     std::vector<float> getActionFeatures(const ChessAction& action, utils::Rotation rotation = utils::Rotation::kRotationNone) const override
@@ -1327,14 +1421,14 @@ public:
 
     inline std::string name() const override { return kChessName; }
 private:
-    std::vector<std::pair<Player, Pieces>> board_;
-    
+        
     int ply1_remain_[5];
     int ply2_remain_[5];
 
     int fifty_steps_1_;
     int fifty_steps_2_;
     int repetitions_;
+    int total_numof_moves_;
     
     bool ply1_ischecked_;
     bool ply2_ischecked_;
@@ -1358,6 +1452,16 @@ private:
     Bitboard pawns_;
     
     Hash board_hash_;
+
+    std::vector<std::pair<Player, Pieces>> board_;
+    
+    std::vector<Bitboard> pawns_history_;
+    std::vector<Bitboard> knights_history_;
+    std::vector<Bitboard> bishops_history_;
+    std::vector<Bitboard> rooks_history_;
+    std::vector<Bitboard> queens_history_;
+    std::vector<int> king_history_;
+
 };
 
 class ChessEnvLoader : public BaseEnvLoader<ChessAction, ChessEnv> {
