@@ -2,7 +2,7 @@
 #include "configuration.h"
 #include "console.h"
 #include "environment.h"
-#include "killallgo_mcts_solver.h"
+//#include "killallgo_mcts_solver.h"
 #include "zero_server.h"
 #include <torch/script.h>
 #include <vector>
@@ -84,20 +84,24 @@ void runZeroServer()
 void runTest()
 {
     Environment env;
-    env.reset();
-    while (!env.isTerminal()) {
-        vector<Action> legal_actions = env.getLegalActions();
-        int index = rand() % legal_actions.size();
-        env.act(legal_actions[index]);
-    }
-    cout << env.toString() << endl;
+    for(int i = 0; i < 10000; i++){
+        env.reset();
+        cout << "Game-" << i + 1 << endl;
+        while (!env.isTerminal()) {
+            vector<Action> legal_actions = env.getLegalActions();
+            int index = rand() % legal_actions.size();
+            env.act(legal_actions[index]);
+        }
+        cout << env.toString() << endl;
 
-    EnvironmentLoader env_loader;
-    env_loader.loadFromEnvironment(env);
-    cout << env_loader.toString() << endl;
+        EnvironmentLoader env_loader;
+        env_loader.loadFromEnvironment(env);
+        cout << env_loader.toString() << endl;
+        
+    }
 }
 
-void runSolver()
+/*void runSolver()
 {
     std::shared_ptr<network::AlphaZeroNetwork> network = std::static_pointer_cast<network::AlphaZeroNetwork>(network::createNetwork(config::nn_file_name, 0));
     long long tree_node_size = static_cast<long long>(config::actor_num_simulation + 1) * network->getActionSize();
@@ -105,7 +109,7 @@ void runSolver()
     solver.setNetwork(network);
     solver::SolveResult result = solver.solve();
     cout << static_cast<int>(result) << endl;
-}
+}*/
 
 int main(int argc, char* argv[])
 {
@@ -152,7 +156,7 @@ int main(int argc, char* argv[])
     } else if (sMode == "test") {
         runTest();
     } else if (sMode == "solver") {
-        runSolver();
+        //runSolver();
     } else {
         cerr << "Error mode: " << sMode << endl;
         return -1;

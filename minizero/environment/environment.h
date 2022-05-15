@@ -1,6 +1,11 @@
 #pragma once
 
-#if GO
+#if CHESS
+#include "chess.h"
+typedef minizero::env::chess::ChessAction Action;
+typedef minizero::env::chess::ChessEnv Environment;
+typedef minizero::env::chess::ChessEnvLoader EnvironmentLoader;
+#elif GO
 #include "go.h"
 typedef minizero::env::go::GoAction Action;
 typedef minizero::env::go::GoEnv Environment;
