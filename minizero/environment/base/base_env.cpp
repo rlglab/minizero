@@ -6,8 +6,8 @@ char playerToChar(Player p)
 {
     switch (p) {
         case Player::kPlayerNone: return 'N';
-        case Player::kPlayer1: return 'W';
-        case Player::kPlayer2: return 'B';
+        case Player::kPlayer1: return 'B';
+        case Player::kPlayer2: return 'W';
         default: return '?';
     }
 }
@@ -17,9 +17,9 @@ Player charToPlayer(char c)
     switch (c) {
         case 'N': return Player::kPlayerNone;
         case 'B':
-        case 'b': return Player::kPlayer2;
+        case 'b': return Player::kPlayer1;
         case 'W':
-        case 'w': return Player::kPlayer1;
+        case 'w': return Player::kPlayer2;
         default: return Player::kPlayerSize;
     }
 }
