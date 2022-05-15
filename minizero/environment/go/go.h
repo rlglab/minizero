@@ -2,6 +2,7 @@
 
 #include "base_env.h"
 #include "configuration.h"
+#include "go_area.h"
 #include "go_block.h"
 #include "go_grid.h"
 #include "go_unit.h"
@@ -65,10 +66,21 @@ protected:
     void removeBlock(GoBlock* block);
     void removeBlockFromBoard(GoBlock* block);
     GoBlock* combineBlocks(GoBlock* block1, GoBlock* block2);
+    void updateArea(const GoAction& action);
+    void addArea(Player player, const GoBitboard& area_bitboard);
+    void removeArea(GoArea* area);
+    GoArea* mergeArea(GoArea* area1, GoArea* area2);
+    std::vector<GoBitboard> findAreas(const GoAction& action);
     std::string getCoordinateString() const;
     GoBitboard dilateBitboard(const GoBitboard& bitboard) const;
+    GoBitboard floodFillBitBoard(int start_position, const GoBitboard& boundary_bitboard) const;
     GoPair<float> calculateTrompTaylorTerritory() const;
+
+    // check data structure (for debugging)
     bool checkDataStructure() const;
+    bool checkGridDataStructure() const;
+    bool checkBlockDataStructure() const;
+    bool checkAreaDataStructure() const;
 
     inline bool isPassAction(const GoAction& action) const { return (action.getActionID() == board_size_ * board_size_); }
 
@@ -78,11 +90,13 @@ protected:
     GoBitboard board_mask_bitboard_;
     GoBitboard board_left_boundary_bitboard_;
     GoBitboard board_right_boundary_bitboard_;
+    GoBitboard free_area_id_bitboard_;
     GoBitboard free_block_id_bitboard_;
     GoPair<GoBitboard> stone_bitboard_;
     GoPair<GoBitboard> benson_bitboard_;
 
     std::vector<GoGrid> grids_;
+    std::vector<GoArea> areas_;
     std::vector<GoBlock> blocks_;
     std::vector<GoPair<GoBitboard>> stone_bitboard_history_;
     std::unordered_set<GoHashKey> hash_table_;

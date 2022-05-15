@@ -1,5 +1,6 @@
 #pragma once
 
+#include "go_area.h"
 #include "go_block.h"
 #include "go_unit.h"
 #include <vector>
@@ -18,20 +19,25 @@ public:
     {
         player_ = Player::kPlayerNone;
         block_ = nullptr;
+        area_pair_ = GoPair<GoArea*>(nullptr, nullptr);
         initializeNeighbors(board_size);
     }
 
     // setter
     inline void setPlayer(Player p) { player_ = p; }
+    inline void setArea(Player p, GoArea* a) { area_pair_.set(p, a); }
     inline void setBlock(GoBlock* b) { block_ = b; }
 
     // getter
     inline Player getPlayer() const { return player_; }
     inline int getPosition() const { return position_; }
+    inline GoArea* getArea(Player p) { return area_pair_.get(p); }
+    inline const GoArea* getArea(Player p) const { return area_pair_.get(p); }
+    inline GoPair<GoArea*>& getAreaPair() { return area_pair_; }
+    inline const GoPair<GoArea*>& getAreaPair() const { return area_pair_; }
     inline GoBlock* getBlock() { return block_; }
     inline const GoBlock* getBlock() const { return block_; }
-    inline std::vector<int> getNeighbors() { return neighbors_; }
-    inline const std::vector<int> getNeighbors() const { return neighbors_; }
+    inline const std::vector<int>& getNeighbors() const { return neighbors_; }
 
 private:
     void initializeNeighbors(int board_size)
@@ -55,6 +61,7 @@ private:
     int position_;
     Player player_;
     GoBlock* block_;
+    GoPair<GoArea*> area_pair_;
     std::vector<int> neighbors_;
 };
 

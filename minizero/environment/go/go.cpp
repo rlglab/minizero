@@ -2,8 +2,6 @@
 #include "color_message.h"
 #include "go_benson.h"
 #include "sgf_loader.h"
-#include <fstream>
-#include <iostream>
 #include <random>
 #include <sstream>
 
@@ -55,18 +53,21 @@ GoEnv::GoEnv(const GoEnv& env)
     board_mask_bitboard_ = env.board_mask_bitboard_;
     board_left_boundary_bitboard_ = env.board_left_boundary_bitboard_;
     board_right_boundary_bitboard_ = env.board_right_boundary_bitboard_;
+    free_area_id_bitboard_ = env.free_area_id_bitboard_;
     free_block_id_bitboard_ = env.free_block_id_bitboard_;
     stone_bitboard_ = env.stone_bitboard_;
     grids_ = env.grids_;
+    areas_ = env.areas_;
     blocks_ = env.blocks_;
     actions_ = env.actions_;
     stone_bitboard_history_ = env.stone_bitboard_history_;
     hash_table_ = env.hash_table_;
 
-    // reset grid's block pointer
+    // reset grid's block and area pointer
     for (auto& grid : grids_) {
-        if (!grid.getBlock()) { continue; }
-        grid.setBlock(&blocks_[grid.getBlock()->getID()]);
+        if (grid.getBlock()) { grid.setBlock(&blocks_[grid.getBlock()->getID()]); }
+        if (grid.getArea(Player::kPlayer1)) { grid.setArea(Player::kPlayer1, &areas_[grid.getArea(Player::kPlayer1)->getID()]); }
+        if (grid.getArea(Player::kPlayer2)) { grid.setArea(Player::kPlayer2, &areas_[grid.getArea(Player::kPlayer2)->getID()]); }
     }
 }
 
@@ -75,12 +76,16 @@ void GoEnv::reset()
     komi_ = minizero::config::env_go_komi;
     turn_ = Player::kPlayer1;
     hash_key_ = 0;
+    free_area_id_bitboard_.reset();
+    free_area_id_bitboard_ = ~free_area_id_bitboard_ & board_mask_bitboard_;
     free_block_id_bitboard_.reset();
+    free_block_id_bitboard_ = ~free_block_id_bitboard_ & board_mask_bitboard_;
     stone_bitboard_.reset();
     benson_bitboard_.reset();
     board_mask_bitboard_.reset();
     for (int i = 0; i < board_size_ * board_size_; ++i) {
         grids_[i].reset(board_size_);
+        areas_[i].reset();
         blocks_[i].reset();
         board_mask_bitboard_.set(i);
     }
@@ -90,8 +95,6 @@ void GoEnv::reset()
         board_left_boundary_bitboard_.set(i * board_size_);
         board_right_boundary_bitboard_.set(i * board_size_ + (board_size_ - 1));
     }
-    free_block_id_bitboard_.reset();
-    free_block_id_bitboard_ = ~free_block_id_bitboard_ & board_mask_bitboard_;
     actions_.clear();
     stone_bitboard_history_.clear();
     hash_table_.clear();
@@ -146,11 +149,15 @@ bool GoEnv::act(const GoAction& action)
     stone_bitboard_.get(player) |= new_block->getGridBitboard();
     stone_bitboard_history_.push_back(stone_bitboard_);
     hash_table_.insert(hash_key_);
-    assert(checkDataStructure());
+
+    // update area
+    updateArea(action);
 
     // Benson
     benson_bitboard_ = go::GoBenson::getBensonBitboard(benson_bitboard_, stone_bitboard_, board_size_, board_left_boundary_bitboard_,
                                                        board_right_boundary_bitboard_, board_mask_bitboard_);
+
+    assert(checkDataStructure());
     return true;
 }
 
@@ -316,9 +323,11 @@ std::string GoEnv::toString() const
 void GoEnv::initialize()
 {
     grids_.clear();
+    areas_.clear();
     blocks_.clear();
     for (int pos = 0; pos < board_size_ * board_size_; ++pos) {
         grids_.emplace_back(GoGrid(pos, board_size_));
+        areas_.emplace_back(GoArea(pos));
         blocks_.emplace_back(GoBlock(pos));
     }
 }
@@ -326,7 +335,6 @@ void GoEnv::initialize()
 GoBlock* GoEnv::newBlock()
 {
     assert(!free_block_id_bitboard_.none());
-
     int id = free_block_id_bitboard_._Find_first();
     free_block_id_bitboard_.reset(id);
     return &blocks_[id];
@@ -335,7 +343,6 @@ GoBlock* GoEnv::newBlock()
 void GoEnv::removeBlock(GoBlock* block)
 {
     assert(block && !free_block_id_bitboard_.test(block->getID()));
-
     free_block_id_bitboard_.set(block->getID());
     block->reset();
 }
@@ -344,6 +351,29 @@ void GoEnv::removeBlockFromBoard(GoBlock* block)
 {
     assert(block);
 
+    // update area
+    GoArea* area = nullptr;
+    GoBitboard area_id = block->getNeighborAreaID();
+    while (!area_id.none()) {
+        int id = area_id._Find_first();
+        area_id.reset(id);
+        if (!area) {
+            area = &areas_[id];
+        } else {
+            area = mergeArea(area, &areas_[id]);
+        }
+    }
+    assert(area);
+    area->setNumStone(area->getNumStone() + block->getNumStone());
+    area->setAreaBitBoard(area->getAreaBitboard() | block->getGridBitboard());
+    area->removeNeighborBlockID(block->getID());
+    if (area->getNumStone() == board_size_ * board_size_) {
+        // remove area when area include whole board
+        removeArea(area);
+        area = nullptr;
+    }
+
+    // remove block
     GoBitboard grid_bitboard = block->getGridBitboard();
     while (!grid_bitboard.none()) {
         int pos = grid_bitboard._Find_first();
@@ -352,13 +382,13 @@ void GoEnv::removeBlockFromBoard(GoBlock* block)
         GoGrid& grid = grids_[pos];
         grid.setPlayer(Player::kPlayerNone);
         grid.setBlock(nullptr);
+        grid.setArea(block->getPlayer(), area);
         for (const auto& neighbor_pos : grid.getNeighbors()) {
             GoGrid& neighbor_grid = grids_[neighbor_pos];
             if (neighbor_grid.getPlayer() != getNextPlayer(block->getPlayer(), kGoNumPlayer)) { continue; }
             neighbor_grid.getBlock()->addLiberty(pos);
         }
     }
-
     hash_key_ ^= block->getHashKey();
     stone_bitboard_.get(block->getPlayer()) &= ~block->getGridBitboard();
     removeBlock(block);
@@ -371,7 +401,7 @@ GoBlock* GoEnv::combineBlocks(GoBlock* block1, GoBlock* block2)
     if (block1 == block2) { return block1; }
     if (block1->getNumStone() < block2->getNumStone()) { return combineBlocks(block2, block1); }
 
-    block1->combineWithBlock(block2);
+    // link grid to new block
     GoBitboard grid_bitboard = block2->getGridBitboard();
     while (!grid_bitboard.none()) {
         int pos = grid_bitboard._Find_first();
@@ -379,8 +409,142 @@ GoBlock* GoEnv::combineBlocks(GoBlock* block1, GoBlock* block2)
         grids_[pos].setBlock(block1);
     }
 
+    // link area to new block
+    GoBitboard new_area_id_bitboard = block2->getNeighborAreaID();
+    while (!new_area_id_bitboard.none()) {
+        int id = new_area_id_bitboard._Find_first();
+        new_area_id_bitboard.reset(id);
+        areas_[id].removeNeighborBlockID(block2->getID());
+        areas_[id].addNeighborBlockID(block1->getID());
+    }
+
+    block1->combineWithBlock(block2);
     removeBlock(block2);
     return block1;
+}
+
+void GoEnv::updateArea(const GoAction& action)
+{
+    // use last move to update area:
+    //    1. last move in own area:
+    //        a. last move splits area => remove current area and find area
+    //        b. last move didn't split area => remove current move from area
+    //    2. last move not in own area => find area
+    GoGrid& grid = grids_[action.getActionID()];
+    Player own_player = grid.getPlayer();
+    GoArea* own_area = grid.getArea(own_player);
+    std::vector<GoBitboard> areas_bitboard = findAreas(action);
+    if (own_area && areas_bitboard.size() == 1) {
+        if (own_area->getNumStone() == 1) {
+            removeArea(own_area);
+        } else {
+            grid.setArea(action.getPlayer(), nullptr);
+            grid.getBlock()->addNeighborAreaID(own_area->getID());
+            own_area->setNumStone(own_area->getNumStone() - 1);
+            own_area->getAreaBitboard().reset(grid.getPosition());
+            own_area->getNeighborBlockID().set(grid.getBlock()->getID());
+        }
+    } else {
+        if (own_area) { removeArea(own_area); }
+        for (const auto& area_bitboard : areas_bitboard) { addArea(own_player, area_bitboard); }
+    }
+}
+
+void GoEnv::addArea(Player player, const GoBitboard& area_bitboard)
+{
+    assert(!free_area_id_bitboard_.none());
+
+    // get available area id
+    int area_id = free_area_id_bitboard_._Find_first();
+    free_area_id_bitboard_.reset(area_id);
+
+    GoArea* area = &areas_[area_id];
+    area->setNumStone(area_bitboard.count());
+    area->setPlayer(player);
+    area->setAreaBitBoard(area_bitboard);
+
+    // link grids pointer
+    GoBitboard grid_bitboard = area_bitboard;
+    while (!grid_bitboard.none()) {
+        int pos = grid_bitboard._Find_first();
+        grid_bitboard.reset(pos);
+        grids_[pos].setArea(player, area);
+    }
+
+    // link blocks pointer
+    GoBitboard neighbor_block_bitboard = dilateBitboard(area_bitboard) & stone_bitboard_.get(player);
+    while (!neighbor_block_bitboard.none()) {
+        int pos = neighbor_block_bitboard._Find_first();
+        GoBlock* block = grids_[pos].getBlock();
+        block->addNeighborAreaID(area->getID());
+        area->addNeighborBlockID(block->getID());
+        neighbor_block_bitboard &= ~block->getGridBitboard();
+    }
+}
+
+void GoEnv::removeArea(GoArea* area)
+{
+    assert(area && !free_area_id_bitboard_.test(area->getID()));
+
+    // remove grids pointer
+    GoBitboard area_bitboard = area->getAreaBitboard();
+    while (!area_bitboard.none()) {
+        int pos = area_bitboard._Find_first();
+        area_bitboard.reset(pos);
+        grids_[pos].setArea(area->getPlayer(), nullptr);
+    }
+
+    // remove blocks pointer
+    GoBitboard neighbor_block_id = area->getNeighborBlockID();
+    while (!neighbor_block_id.none()) {
+        int block_id = neighbor_block_id._Find_first();
+        neighbor_block_id.reset(block_id);
+        blocks_[block_id].removeNeighborAreaID(area->getID());
+    }
+
+    // remove area
+    free_area_id_bitboard_.set(area->getID());
+    area->reset();
+}
+
+GoArea* GoEnv::mergeArea(GoArea* area1, GoArea* area2)
+{
+    assert(area1 && area2);
+    if (area1->getNumStone() < area2->getNumStone()) { return mergeArea(area2, area1); }
+
+    GoBitboard area2_bitboard = area2->getAreaBitboard(); // save area2 bitboard before removing area2
+    GoBitboard area2_nbr_block_id = area2->getNeighborBlockID();
+    area1->combineWithArea(area2);
+    removeArea(area2);
+    while (!area2_bitboard.none()) { // link grid to area
+        int pos = area2_bitboard._Find_first();
+        area2_bitboard.reset(pos);
+        grids_[pos].setArea(area1->getPlayer(), area1);
+    }
+    while (!area2_nbr_block_id.none()) { // link block to area
+        int id = area2_nbr_block_id._Find_first();
+        area2_nbr_block_id.reset(id);
+        blocks_[id].addNeighborAreaID(area1->getID());
+    }
+    return area1;
+}
+
+std::vector<GoBitboard> GoEnv::findAreas(const GoAction& action)
+{
+    const GoGrid& grid = grids_[action.getActionID()];
+    const std::vector<int>& neighbors = grid.getNeighbors();
+    std::vector<GoBitboard> areas;
+    GoBitboard checked_area;
+    GoBitboard boundary_bitboard = ~stone_bitboard_.get(action.getPlayer()) & board_mask_bitboard_;
+    for (const auto& pos : neighbors) {
+        const GoGrid& neighbor_grid = grids_[pos];
+        if (neighbor_grid.getPlayer() == action.getPlayer()) { continue; }
+        if (checked_area.test(pos)) { continue; }
+        GoBitboard area_bitboard = floodFillBitBoard(pos, boundary_bitboard);
+        checked_area |= area_bitboard;
+        areas.push_back(area_bitboard);
+    }
+    return areas;
 }
 
 std::string GoEnv::getCoordinateString() const
@@ -405,6 +569,19 @@ GoBitboard GoEnv::dilateBitboard(const GoBitboard& bitboard) const
            board_mask_bitboard_;
 }
 
+GoBitboard GoEnv::floodFillBitBoard(int start_position, const GoBitboard& boundary_bitboard) const
+{
+    GoBitboard flood_fill_bitboard;
+    flood_fill_bitboard.set(start_position);
+    bool need_dilate = true;
+    while (need_dilate) {
+        GoBitboard dilate_bitboard = dilateBitboard(flood_fill_bitboard) & boundary_bitboard;
+        need_dilate = (flood_fill_bitboard != dilate_bitboard);
+        flood_fill_bitboard = dilate_bitboard;
+    }
+    return flood_fill_bitboard;
+}
+
 GoPair<float> GoEnv::calculateTrompTaylorTerritory() const
 {
     GoPair<float> territory(stone_bitboard_.get(Player::kPlayer1).count(), stone_bitboard_.get(Player::kPlayer2).count() + komi_);
@@ -412,17 +589,8 @@ GoPair<float> GoEnv::calculateTrompTaylorTerritory() const
     while (!empty_stone_bitboard.none()) {
         int pos = empty_stone_bitboard._Find_first();
 
-        // flood fill
-        GoBitboard flood_fill_bitboard;
-        flood_fill_bitboard.set(pos);
-        bool need_dilate = true;
-        while (need_dilate) {
-            GoBitboard dilate_bitboard = dilateBitboard(flood_fill_bitboard) & empty_stone_bitboard;
-            need_dilate = (flood_fill_bitboard != dilate_bitboard);
-            flood_fill_bitboard = dilate_bitboard;
-        }
-
         // check is surrounded by only one's color
+        GoBitboard flood_fill_bitboard = floodFillBitBoard(pos, empty_stone_bitboard);
         GoBitboard surrounding_bitboard = dilateBitboard(flood_fill_bitboard) & ~flood_fill_bitboard;
         if ((surrounding_bitboard & ~stone_bitboard_.get(Player::kPlayer1)).none()) {
             territory.get(Player::kPlayer1) += flood_fill_bitboard.count();
@@ -434,76 +602,6 @@ GoPair<float> GoEnv::calculateTrompTaylorTerritory() const
     }
 
     return territory;
-}
-
-bool GoEnv::checkDataStructure() const
-{
-    // check grids
-    GoPair<GoBitboard> stone_bitboard_from_grid;
-    for (int pos = 0; pos < board_size_ * board_size_; ++pos) {
-        const GoGrid& grid = grids_[pos];
-        if (grid.getPlayer() == Player::kPlayerNone) { continue; }
-
-        assert(grid.getBlock() && grid.getBlock()->getPlayer() == grid.getPlayer());
-        assert(grid.getBlock()->getGridBitboard().test(pos));
-        assert(!free_block_id_bitboard_.test(grid.getBlock()->getID()));
-        stone_bitboard_from_grid.get(grid.getPlayer()).set(pos);
-    }
-    assert(stone_bitboard_from_grid.get(Player::kPlayer1) == stone_bitboard_.get(Player::kPlayer1));
-    assert(stone_bitboard_from_grid.get(Player::kPlayer2) == stone_bitboard_.get(Player::kPlayer2));
-
-    // check blocks
-    GoPair<GoBitboard> stone_bitboard_from_block;
-    GoBitboard free_block_id = ~free_block_id_bitboard_ & board_mask_bitboard_;
-    GoHashKey board_hash_key = actions_.size() % 2 == 0 ? 0 : getGoTurnHashKey();
-    while (!free_block_id.none()) {
-        int id = free_block_id._Find_first();
-        free_block_id.reset(id);
-
-        const GoBlock* block = &blocks_[id];
-        assert(block->getNumLiberty() > 0 && block->getNumStone() > 0);
-        board_hash_key ^= block->getHashKey();
-        stone_bitboard_from_block.get(block->getPlayer()) |= block->getGridBitboard();
-
-        // check grids of block
-        GoHashKey block_hash_key = 0;
-        GoBitboard grid_bitboard = block->getGridBitboard();
-        while (!grid_bitboard.none()) {
-            int pos = grid_bitboard._Find_first();
-            grid_bitboard.reset(pos);
-
-            const GoGrid& grid = grids_[pos];
-            assert(grid.getBlock() == block);
-            assert(grid.getPlayer() == block->getPlayer());
-            block_hash_key ^= getGoGridHashKey(pos, block->getPlayer());
-            for (const auto& neighbor_pos : grid.getNeighbors()) {
-                const GoGrid& neighbor_grid = grids_[neighbor_pos];
-                if (neighbor_grid.getPlayer() != Player::kPlayerNone) { continue; }
-                assert(block->getLibertyBitboard().test(neighbor_pos));
-            }
-        }
-        assert(block_hash_key == block->getHashKey());
-
-        // check liberties of block
-        GoBitboard stone_bitboard = stone_bitboard_.get(Player::kPlayer1) | stone_bitboard_.get(Player::kPlayer2);
-        GoBitboard liberties_bitboard = dilateBitboard(block->getGridBitboard()) & ~stone_bitboard;
-        assert(liberties_bitboard == block->getLibertyBitboard());
-        while (!liberties_bitboard.none()) {
-            int pos = liberties_bitboard._Find_first();
-            liberties_bitboard.reset(pos);
-
-            assert(grids_[pos].getPlayer() == Player::kPlayerNone);
-            assert(grids_[pos].getBlock() == nullptr);
-        }
-    }
-    assert(board_hash_key == hash_key_);
-    assert(stone_bitboard_from_block.get(Player::kPlayer1) == stone_bitboard_.get(Player::kPlayer1));
-    assert(stone_bitboard_from_block.get(Player::kPlayer2) == stone_bitboard_.get(Player::kPlayer2));
-
-    // check global status
-    assert(actions_.size() == stone_bitboard_history_.size());
-
-    return true;
 }
 
 } // namespace minizero::env::go

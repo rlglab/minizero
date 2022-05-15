@@ -11,3 +11,6 @@ __pycache__
 *.so
 Release
 Debug
+
+# configuration file
+*.cfg
