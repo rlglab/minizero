@@ -21,10 +21,10 @@ typedef minizero::env::killallgo::KillAllGoAction Action;
 typedef minizero::env::killallgo::KillAllGoEnv Environment;
 typedef minizero::env::killallgo::KillAllGoEnvLoader EnvironmentLoader;
 #else
-#include "tietactoe.h"
-typedef minizero::env::tietactoe::TieTacToeAction Action;
-typedef minizero::env::tietactoe::TieTacToeEnv Environment;
-typedef minizero::env::tietactoe::TieTacToeEnvLoader EnvironmentLoader;
+#include "tictactoe.h"
+typedef minizero::env::tictactoe::TicTacToeAction Action;
+typedef minizero::env::tictactoe::TicTacToeEnv Environment;
+typedef minizero::env::tictactoe::TicTacToeEnvLoader EnvironmentLoader;
 #endif
 
 namespace minizero::env {

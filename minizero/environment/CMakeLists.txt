@@ -9,7 +9,7 @@ target_include_directories(
     gomoku
     killallgo
     othello
-    tietactoe
+    tictactoe
 )
 target_link_libraries(
     environment
