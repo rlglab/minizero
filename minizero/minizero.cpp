@@ -84,21 +84,13 @@ void runZeroServer()
 void runTest()
 {
     Environment env;
-    for (int i = 0; i < 10000; ++i) {
-        env.reset();
-        while (!env.isTerminal()) {
-            vector<Action> legal_actions = env.getLegalActions();
-            int index = rand() % legal_actions.size();
-            // if (i == 17) {
-            //     cout << env.toString() << endl;
-            //     cout << legal_actions[index].toConsoleString() << endl;
-            // }
-            env.act(legal_actions[index]);
-        }
-        // cout << i << ": " << endl;
-        // cout << env.toString() << endl;
-        if (i % 3000 == 0) cout << i << endl;
+    env.reset();
+    while (!env.isTerminal()) {
+        vector<Action> legal_actions = env.getLegalActions();
+        int index = rand() % legal_actions.size();
+        env.act(legal_actions[index]);
     }
+    cout << env.toString() << endl;
 
     EnvironmentLoader env_loader;
     env_loader.loadFromEnvironment(env);
