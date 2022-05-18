@@ -253,16 +253,11 @@ bool KillAllGoMCTSSolver::isAllChildrenSolutionLoss(const KillAllGoMCTSNode* p_n
 
 bool KillAllGoMCTSSolver::isBensonTerminal() const
 {
-#if KILLALLGO    
     return env_.getBensonBitboard().get(env::Player::kPlayer2).any();
-#else
-    return false;
-#endif
 }
 
 void KillAllGoMCTSSolver::pruneNodesOutsideRZone(const KillAllGoMCTSNode* parent, const KillAllGoMCTSNode* node)
 {
-#if KILLALLGO
     int index = node->getExtraDataIndex();
     if (index == -1) { return; }
     const GoBitboard& child_rzone_bitboard = tree_extra_data_.getExtraData(index).getRZone();
@@ -277,12 +272,10 @@ void KillAllGoMCTSSolver::pruneNodesOutsideRZone(const KillAllGoMCTSNode* parent
             child->setEqualLoss(node->getAction().getActionID());
         }
     }
-#endif
 }
 
 void KillAllGoMCTSSolver::setTerminalNode(KillAllGoMCTSNode* p_leaf)
 {
-#if KILLALLGO
     GoBitboard white_benson_bitboard = env_.getBensonBitboard().get(env::Player::kPlayer2);
     setNodeRZone(p_leaf, white_benson_bitboard);
     if (p_leaf->getAction().getPlayer() == env::Player::kPlayer1) {
@@ -290,34 +283,27 @@ void KillAllGoMCTSSolver::setTerminalNode(KillAllGoMCTSNode* p_leaf)
     } else {
         p_leaf->setSolverResult(SolveResult::kSolverWin);
     }
-#endif
 }
 
 void KillAllGoMCTSSolver::setNodeRZone(KillAllGoMCTSNode* node, GoBitboard& rzone_bitboard)
 {
-#if KILLALLGO    
     const GoPair<GoBitboard>& stone_bitboard = env_.getStoneBitboard();
     GoBitboard black_bitboard = stone_bitboard.get(env::Player::kPlayer1) & rzone_bitboard;
     GoBitboard white_bitboard = stone_bitboard.get(env::Player::kPlayer2) & rzone_bitboard;
     KillAllGoMCTSNodeExtraData zone_data(rzone_bitboard, GoPair<GoBitboard>(black_bitboard, white_bitboard));
     int index = tree_extra_data_.store(zone_data);
     node->setExtraDataIndex(index);
-#endif    
 }
 
 void KillAllGoMCTSSolver::updateWinnerRZone(KillAllGoMCTSNode* parent, const KillAllGoMCTSNode* child)
 {
-#if KILLALLGO
     GoBitboard child_rzone_bitboard = tree_extra_data_.getExtraData(child->getExtraDataIndex()).getRZone();
     GoBitboard parent_rzone_bitboard = env_.getWinnerRZoneBitboard(child_rzone_bitboard, child->getAction());
-
     setNodeRZone(parent, parent_rzone_bitboard);
-#endif
 }
 
 void KillAllGoMCTSSolver::updateLoserRZone(KillAllGoMCTSNode* parent)
 {
-#if KILLALLGO
     KillAllGoMCTSNode* child = parent->getFirstChild();
     GoBitboard union_bitboard;
     for (int i = 0; i < parent->getNumChildren(); ++i, ++child) {
@@ -330,7 +316,6 @@ void KillAllGoMCTSSolver::updateLoserRZone(KillAllGoMCTSNode* parent)
 
     GoBitboard parent_rzone_bitboard = env_.getLoserRZoneBitboard(union_bitboard, parent->getAction().getPlayer());
     setNodeRZone(parent, parent_rzone_bitboard);
-#endif
 }
 
 void KillAllGoMCTSSolver::undo()
