@@ -22,19 +22,26 @@ public:
     std::string toString() const override;
 
     inline void setSolverResult(SolveResult result) { solver_result_ = result; }
+    inline void setEqualLoss(int equal_loss) { equal_loss_ = equal_loss; }
     inline void setFirstChild(KillAllGoMCTSNode* first_child) { actor::BaseTreeNode::setFirstChild(first_child); }
     inline SolveResult getSolverResult() const { return solver_result_; }
+    inline int getEqualLoss() const { return equal_loss_; }
     inline bool isSolved() const { return solver_result_ != SolveResult::kSolverUnknown; }
     inline KillAllGoMCTSNode* getFirstChild() const { return static_cast<KillAllGoMCTSNode*>(actor::BaseTreeNode::getFirstChild()); }
 
 private:
     SolveResult solver_result_;
+    int equal_loss_;
 };
 
 class KillAllGoMCTSNodeExtraData {
 public:
     KillAllGoMCTSNodeExtraData(const env::go::GoBitboard& rzone_bitboard, const env::go::GoPair<env::go::GoBitboard>& stone_bitboard)
         : rzone_bitboard_(rzone_bitboard), stone_bitboard_(stone_bitboard) {}
+
+public:
+    env::go::GoBitboard getRZone() const { return rzone_bitboard_; }
+    env::go::GoBitboard getRZoneStone(env::Player player) const { return stone_bitboard_.get(player); }
 
 private:
     env::go::GoBitboard rzone_bitboard_;
@@ -64,6 +71,7 @@ public:
     std::vector<KillAllGoMCTSNode*> select();
     void expand(KillAllGoMCTSNode* leaf_node, const std::vector<ActionCandidate>& action_candidates);
     void backup(const std::vector<KillAllGoMCTSNode*>& node_path, const float value);
+    std::string getTreeString(const std::string& env_string);
 
     inline void act(const Action& action) { env_.act(action); }
     inline void setNetwork(const std::shared_ptr<network::AlphaZeroNetwork>& network) { network_ = network; }
@@ -81,8 +89,16 @@ private:
     KillAllGoMCTSNode* selectChildByPUCTScore(const KillAllGoMCTSNode* node) const;
     float calculateInitQValue(const KillAllGoMCTSNode* node) const;
     std::vector<ActionCandidate> calculateActionCandidate(const std::shared_ptr<network::AlphaZeroNetworkOutput>& alphazero_output);
-    bool isAllChildrenSolutionLoss(const KillAllGoMCTSNode* p_node) const;
-    void setTerminalRZone(KillAllGoMCTSNode* p_leaf);
+    bool isAllChildrenSolutionLoss(const KillAllGoMCTSNode* node) const;
+    bool isBensonTerminal() const;
+    void pruneNodesOutsideRZone(const KillAllGoMCTSNode* parent, const KillAllGoMCTSNode* child);
+    void setTerminalNode(KillAllGoMCTSNode* p_leaf);
+    void setNodeRZone(KillAllGoMCTSNode* node, env::go::GoBitboard& bitboard_rzone);
+    void updateWinnerRZone(KillAllGoMCTSNode* parent, const KillAllGoMCTSNode* child);
+    void updateLoserRZone(KillAllGoMCTSNode* parent);
+    void undo();
+    std::string getTreeString_r(KillAllGoMCTSNode* pNode);
+    std::string getRZoneString(KillAllGoMCTSNode* pNode);
 
     Environment env_;
     Environment env_backup_;
