@@ -21,6 +21,7 @@ public:
     bool isLegalAction(const KillAllGoAction& action) const override
     {
         if (actions_.size() == 1) { return isPassAction(action); }
+        if (actions_.size() < 3) { return !isPassAction(action) && go::GoEnv::isLegalAction(action); }
         return go::GoEnv::isLegalAction(action);
     }
     bool isTerminal() const override
