@@ -463,12 +463,12 @@ public:
         }
     }
     void checkBitboard() const {
-        if(pawns_.countPawns() != (ply1_remain_[PAWN] + ply2_remain_[PAWN])){
+        /*if(pawns_.countPawns() != (ply1_remain_[PAWN] + ply2_remain_[PAWN])){
             std::cout << "pawns.count: " << pawns_.countPawns() <<std::endl;
             std::cout << "remain pawns (w/b): " << ply1_remain_[PAWN] << ", " << ply2_remain_[PAWN] << std::endl;
             pawns_.showBitboard();
-            std::cout << "-- Current Board --\n" << toString() << std::endl;
-        }
+            std::cout << "\n-- Current Board --\n" << toString() << std::endl;
+        }*/
         assert(pawns_.countPawns() == (ply1_remain_[PAWN] + ply2_remain_[PAWN]));
         assert(knights_.count() == (ply1_remain_[KNIGHT] + ply2_remain_[KNIGHT]));
         assert(bishops_.count() == (ply1_remain_[BISHOP] + ply1_remain_[QUEEN] + ply2_remain_[BISHOP] + ply2_remain_[QUEEN]));
@@ -798,8 +798,6 @@ public:
             if(board_[i].first == Player::kPlayerNone)
                 assert(board_[i].second == Pieces::empty);
         }
-
-        
         return true;
     }
 
@@ -817,7 +815,7 @@ public:
         }
         if(i == 1858)
             return false;
-        Pieces move, taken, promote;
+        Pieces move, taken, promote = Pieces::empty;
         // promote: q n b r
         
         if(move_str.size() == 5){
@@ -1241,23 +1239,23 @@ public:
         if(who != Player::kPlayerNone) return true;
         else{           
             if(fifty_steps_2_ >= 50 || fifty_steps_1_ >= 50 || repetitions_ >= 3 || (ply1_insuffi_ && ply2_insuffi_)){
-                std::cout << "result: .5-.5\n"; 
-                std::cout << "fifty-step(white/black): " << fifty_steps_1_ << '/' << fifty_steps_2_ << std::endl;
-                std::cout << "three-repe: " << repetitions_ << std::endl;
-                showRemain();
-                std::cout << std::endl;
-                std::cout << "insuffi. (w/b): ";
-                if(ply1_insuffi_) std::cout << "true/";
-                else std::cout << "false/";
-                if(ply2_insuffi_) std::cout << "true";
-                else std::cout << "false";
-                std::cout << std::endl;
+                // std::cout << "result: .5-.5\n";
+                // std::cout << "fifty-step(white/black): " << fifty_steps_1_ << '/' << fifty_steps_2_ << std::endl;
+                // std::cout << "three-repe: " << repetitions_ << std::endl;
+                // showRemain();
+                // std::cout << std::endl;
+                // std::cout << "insuffi. (w/b): ";
+                // if(ply1_insuffi_) std::cout << "true/";
+                // else std::cout << "false/";
+                // if(ply2_insuffi_) std::cout << "true";
+                // else std::cout << "false";
+                // std::cout << std::endl;
                 return true;
             }else{
                 std::vector<ChessAction> actions = getLegalActions();
                 if(actions.size() == 0) {
-                    std::cout << "result: .5-.5\n"; 
-                    std::cout << "stalemate\n";
+                    // std::cout << "result: .5-.5\n";
+                    // std::cout << "stalemate\n";
                     return true;
                 }
             }
@@ -1271,14 +1269,14 @@ public:
         if(turn_ == Player::kPlayer1 && ply1_ischecked_){
             std::vector<ChessAction> actions = getLegalActions();
             if(actions.size() == 0) {
-                std::cout << "result: 0-1\n";
+                // std::cout << "result: 0-1\n";
                 return Player::kPlayer2;
             }
         }
         if(turn_ == Player::kPlayer2 &&ply2_ischecked_){
             std::vector<ChessAction> actions = getLegalActions();
             if(actions.size() == 0){
-                std::cout << "result: 1-0\n";
+                // std::cout << "result: 1-0\n";
                 return Player::kPlayer1;
             }
         }
@@ -1298,7 +1296,7 @@ public:
     std::vector<float> getFeatures(utils::Rotation rotation = utils::Rotation::kRotationNone) const override
     {
         std::vector<float> vFeatures;
-        for (int channel = 0; channel < 119; ++channel) {
+        for (int channel = 0; channel < 120; ++channel) {
             int ind = pawns_history_.size() - 1 - 2 * (channel / 14);
             for (int pos = 0; pos < kChessBoardSize * kChessBoardSize; ++pos) {
                 if (channel < 112) {
@@ -1331,31 +1329,44 @@ public:
                             vFeatures.push_back(toBitBoardSquare(king_history_[ind]) == pos ? 1.0f : 0.0f);
                         else if(channel_id == 11)   // opp-king        
                             vFeatures.push_back(toBitBoardSquare(king_history_[ind - 1]) == pos ? 1.0f : 0.0f);
-                        else if(channel_id == 12)   // TODO: repetition-1        
-                            vFeatures.push_back(0.0f);
-                        else                        // TODO: repetition-2
-                            vFeatures.push_back(0.0f);
+                        else { // TODO: repetition-1, repetition-2
+                            if ((repetitions_ == 1 && channel_id == 12) || (repetitions_ == 2 && channel_id == 13))
+                                vFeatures.push_back(0.0f);
+                            else if (repetitions_ == 3 || (repetitions_ == 1 && channel_id == 13) || (repetitions_ == 2 && channel_id == 12))
+                                vFeatures.push_back(1.0f);
+                        }
                     }
                     
                 } else if (channel == 112) {
                     // colour
-                    if(turn_ == Player::kPlayer1){
-                        vFeatures.push_back(1.0f);
-                    }else{
-                        vFeatures.push_back(0.0f);
-                    }
+                    vFeatures.push_back((turn_ == Player::kPlayer1) ? 1.0f : 0.0f);
                 } else if (channel == 113) {
-                    // TODO: total move count
-                    vFeatures.push_back(0.0f);
-                }else if (channel <= 115) {
-                    // TODO: turn_ castling x2
-                    vFeatures.push_back(0.0f);
-                }else if (channel <= 117) {
-                    // TODO: opponent castling x2
-                   vFeatures.push_back(0.0f);
-                }else if (channel == 118) {
-                    // TODO: no progress count
-                    vFeatures.push_back(0.0f);
+                    // colour
+                    vFeatures.push_back((turn_ == Player::kPlayer2) ? 1.0f : 0.0f);
+                } else if (channel == 114) {
+                    // TODO: total move count /100
+                    vFeatures.push_back((turn_ == Player::kPlayer1) ? (pawns_history_.size() + 1) / 200 : pawns_history_.size() / 200);
+                } else if (channel == 115) {
+                    // TODO: turn_ 0-0
+                    vFeatures.push_back(actions_[actions_.size() - 1].is00() ? 1.0f : 0.0f);
+                } else if (channel == 116) {
+                    // TODO: turn_ 0-0-0
+                    vFeatures.push_back(actions_[actions_.size() - 1].is000() ? 1.0f : 0.0f);
+                } else if (channel == 117) {
+                    // TODO: opponent 0-0
+                    if (actions_.size() > 1)
+                        vFeatures.push_back(actions_[actions_.size() - 2].is00() ? 1.0f : 0.0f);
+                    else
+                        vFeatures.push_back(0.0f);
+                } else if (channel == 118) {
+                    // TODO: opponent 0-0-0
+                    if (actions_.size() > 1)
+                        vFeatures.push_back(actions_[actions_.size() - 2].is000() ? 1.0f : 0.0f);
+                    else
+                        vFeatures.push_back(0.0f);
+                } else if (channel == 119) {
+                    // TODO: no progress count /50
+                    vFeatures.push_back((turn_ == Player::kPlayer1) ? fifty_steps_1_ / 50 : fifty_steps_2_ / 50);
                 }
             }
         }

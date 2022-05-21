@@ -161,12 +161,10 @@ bool ChessEnv::squareIsAttack(Player ply, int position, bool check_kings_attack)
     int square_col = positionToCol(position); 
     int square_row = positionToRow(position);
 
-    Player opponent;
-    Bitboard opponent_pieces;  
+    Player opponent = Player::kPlayer2;
+    Bitboard opponent_pieces = ply2_pieces_;
 
     if(ply == Player::kPlayer1){
-        opponent = Player::kPlayer2;
-        opponent_pieces = ply2_pieces_;
         if(kBlackPawnAttacks[toBitBoardSquare(square_row, square_col)].intersects(opponent_pieces & pawns_)){
             return true;
         }
