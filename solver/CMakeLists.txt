@@ -1,14 +1,13 @@
 file(GLOB SRCS *.cpp)
-
-add_executable(minizero ${SRCS})
+add_executable(solver ${SRCS})
 target_link_libraries(
-    minizero
+    solver
     actor
     config
     console
     environment
     network
-    server
     utils
+    ${Boost_LIBRARIES}
     ${TORCH_LIBRARIES}
 )

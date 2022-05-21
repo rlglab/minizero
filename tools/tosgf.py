@@ -4,7 +4,7 @@ import sys
 def tosgf(source=sys.stdin):
     trans_infos=''
     for info in source:
-        info = info[1:len(info)-1] # remove ()
+        info = info[info.find('(')+1:info.find(')')] # remove ()
         trans_info = '(;FF[4]'
         l_bracket = info.find('[')
         r_bracket = info.find(']')

@@ -76,10 +76,6 @@ void GoEnv::reset()
     komi_ = minizero::config::env_go_komi;
     turn_ = Player::kPlayer1;
     hash_key_ = 0;
-    free_area_id_bitboard_.reset();
-    free_area_id_bitboard_ = ~free_area_id_bitboard_ & board_mask_bitboard_;
-    free_block_id_bitboard_.reset();
-    free_block_id_bitboard_ = ~free_block_id_bitboard_ & board_mask_bitboard_;
     stone_bitboard_.reset();
     benson_bitboard_.reset();
     board_mask_bitboard_.reset();
@@ -89,6 +85,10 @@ void GoEnv::reset()
         blocks_[i].reset();
         board_mask_bitboard_.set(i);
     }
+    free_area_id_bitboard_.reset();
+    free_area_id_bitboard_ = ~free_area_id_bitboard_ & board_mask_bitboard_;
+    free_block_id_bitboard_.reset();
+    free_block_id_bitboard_ = ~free_block_id_bitboard_ & board_mask_bitboard_;
     board_left_boundary_bitboard_.reset();
     board_right_boundary_bitboard_.reset();
     for (int i = 0; i < board_size_; ++i) {

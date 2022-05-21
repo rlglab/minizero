@@ -38,7 +38,7 @@ public:
     inline float getValue() const { return value_; }
     inline MCTSNode* getFirstChild() const { return static_cast<MCTSNode*>(BaseTreeNode::getFirstChild()); }
 
-private:
+protected:
     int extra_data_index_;
     float mean_;
     float count_;

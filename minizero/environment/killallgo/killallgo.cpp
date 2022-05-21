@@ -9,7 +9,7 @@ bool KillAllGoEnv::isCaptureMove(const KillAllGoAction& action) const
     if (isPassAction(action)) { return false; }
     assert(grids_[action.getActionID()].getPlayer() == Player::kPlayerNone);
 
-    Player player = action.getPlayer();
+    const Player player = action.getPlayer();
     const int position = action.getActionID();
     const GoGrid& grid = grids_[position];
 
@@ -29,9 +29,9 @@ bool KillAllGoEnv::isEatKoMove(const KillAllGoAction& action) const
     if (isPassAction(action)) { return false; }
     assert(grids_[action.getActionID()].getPlayer() == Player::kPlayerNone);
 
+    const Player player = action.getPlayer();
     const int position = action.getActionID();
     const GoGrid& grid = grids_[position];
-    Player player = action.getPlayer();
 
     bool is_eat_ko = false;
     for (const auto& neighbor_pos : grid.getNeighbors()) {
@@ -59,9 +59,10 @@ GoBitboard KillAllGoEnv::getStoneBitBoardAfterPlay(const KillAllGoAction& action
     assert(!isPassAction(action));
     assert(grids_[action.getActionID()].getPlayer() == Player::kPlayerNone);
 
-    Player player = action.getPlayer();
+    const Player player = action.getPlayer();
     const int position = action.getActionID();
     const GoGrid& grid = grids_[position];
+
     GoBitboard stone_bitboard_after_play;
     for (const auto& neighbor_pos : grid.getNeighbors()) {
         const GoGrid& nbr_grid = grids_[neighbor_pos];
@@ -79,11 +80,11 @@ GoBitboard KillAllGoEnv::getLibertyBitBoardAfterPlay(const KillAllGoAction& acti
     assert(!isPassAction(action));
     assert(grids_[action.getActionID()].getPlayer() == Player::kPlayerNone);
 
+    const Player player = action.getPlayer();
+    const Player opp_player = getNextPlayer(player, kKillAllGoNumPlayer);
     const int position = action.getActionID();
     const GoGrid& grid = grids_[position];
 
-    Player player = action.getPlayer();
-    Player opp_player = getNextPlayer(player, kKillAllGoNumPlayer);
     GoBitboard stone_bitboard = (getStoneBitboard().get(env::Player::kPlayer1) | getStoneBitboard().get(env::Player::kPlayer2));
     GoBitboard liberty_bitboard_after_play;
     liberty_bitboard_after_play.set(action.getActionID());
