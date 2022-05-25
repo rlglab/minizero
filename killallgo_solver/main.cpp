@@ -1,17 +1,20 @@
-#include "actor_group.h"
 #include "configuration.h"
 #include "console.h"
 #include "environment.h"
+#include "killallgo_actor_group.h"
+#include "killallgo_configuration.h"
 #include "killallgo_mcts_solver.h"
+#include "zero_server.h"
 #include <torch/script.h>
 #include <vector>
 
 using namespace std;
 using namespace minizero;
+using namespace solver;
 
 void usage()
 {
-    cout << "./minizero [arguments]" << endl;
+    cout << "./solver [arguments]" << endl;
     cout << "arguments:" << endl;
     cout << "\t-mode [gtp|sp]" << endl;
     cout << "\t-gen configuration_file" << endl;
@@ -68,10 +71,26 @@ void runConsole()
     }
 }
 
+void runSelfPlay()
+{
+    KillallGoActorGroup ag;
+    ag.run();
+}
+
+void runZeroServer()
+{
+    minizero::server::ZeroServer server;
+    server.run();
+}
+
 void runSolver()
 {
-    std::shared_ptr<network::AlphaZeroNetwork> network = std::static_pointer_cast<network::AlphaZeroNetwork>(network::createNetwork(config::nn_file_name, 0));
+    /*int gpu_id = 0;
+    string nn_file_name = "";
+    std::shared_ptr<solver::ProofCostNetwork> network = std::make_shared<solver::ProofCostNetwork>();
+    network->loadModel(nn_file_name, gpu_id);
     long long tree_node_size = static_cast<long long>(config::actor_num_simulation + 1) * network->getActionSize();
+
     solver::KillAllGoMCTSSolver solver(tree_node_size);
     solver.setNetwork(network);
     // vector<int> pos = {21, 49, 48, 14, 22, 15, 23, 8, 16, 9, 10, 2, 3}; // sim=2
@@ -91,7 +110,7 @@ void runSolver()
     minizero::utils::SGFLoader sgf_loader;
     sgf_loader.loadFromString(str);
     const std::vector<std::pair<std::vector<std::string>, std::string>>& actions = sgf_loader.getActions();
-    const Environment& env = solver.getEnvironment();
+    const Environment& env = solver.getMCTS().getEnvironment();
     if (sgf_loader.getTags().count("SZ") == 0) { return; }
     for (auto act : actions) {
         std::cout << act.first << endl;
@@ -106,7 +125,7 @@ void runSolver()
     cout << env.toString() << endl;
     // cout << env.name() << endl;
     solver::SolveResult result = solver.solve();
-    cout << solver.getRootNode()->getCount() << endl;
+    cout << solver.getMCTS().getRootNode()->getCount() << endl;
     cout << static_cast<int>(result) << endl;
 
     // EnvironmentLoader env_loader;
@@ -127,8 +146,8 @@ void runSolver()
 
     std::fstream f;
     f.open("tree.sgf", ios::out);
-    f << solver.getTreeString(oss.str()) << endl;
-    f.close();
+    f << solver.getMCTS().getTreeString(oss.str()) << endl;
+    f.close();*/
 }
 
 int main(int argc, char* argv[])
@@ -144,7 +163,7 @@ int main(int argc, char* argv[])
     string sConfigFile = "";
     string sConfigString = "";
     config::ConfigureLoader cl;
-    config::setConfiguration(cl);
+    solver::setConfiguration(cl);
 
     for (int i = 1; i < argc; i += 2) {
         string sCommand = string(argv[i]);
@@ -169,6 +188,10 @@ int main(int argc, char* argv[])
 
     if (sMode == "console") {
         runConsole();
+    } else if (sMode == "sp") {
+        runSelfPlay();
+    } else if (sMode == "zero_server") {
+        runZeroServer();
     } else if (sMode == "solver") {
         runSolver();
     } else {
