@@ -62,7 +62,7 @@ public:
         : BaseMCTS(tree_node_size) {}
 
     virtual void reset() override;
-    virtual Node* selectChildBySoftmaxCount(const Node* node, float temperature = 1.0f, float value_threshold = 0.1f) const override;
+    virtual KillAllGoMCTSNode* selectChildBySoftmaxCount(const KillAllGoMCTSNode* node, float temperature = 1.0f, float value_threshold = 0.1f) const override;
     virtual void backup(const std::vector<KillAllGoMCTSNode*>& node_path, const float value) override;
 
 protected:
