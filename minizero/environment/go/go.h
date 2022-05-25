@@ -14,11 +14,13 @@
 namespace minizero::env::go {
 
 extern GoHashKey turn_hash_key;
-extern GoPair<std::vector<GoHashKey>> grids_hash_key;
+extern std::vector<GoPair<GoHashKey>> grids_hash_key;
+extern std::vector<std::vector<GoPair<GoHashKey>>> sequence_hash_key;
 
 void initialize();
 GoHashKey getGoTurnHashKey();
 GoHashKey getGoGridHashKey(int position, Player p);
+GoHashKey getGoSequenceHashKey(int move, int position, Player p);
 
 class GoAction : public BaseAction {
 public:
@@ -56,6 +58,7 @@ public:
 
     inline std::string name() const override { return kGoName; }
     inline float getKomi() const { return komi_; }
+    inline GoHashKey getHashKey() const { return hash_key_; }
     inline int getBoardSize() const { return board_size_; }
     inline const GoPair<GoBitboard>& getStoneBitboard() const { return stone_bitboard_; }
     inline const GoPair<GoBitboard>& getBensonBitboard() const { return benson_bitboard_; }

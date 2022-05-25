@@ -10,7 +10,8 @@ namespace minizero::env::go {
 using namespace minizero::utils;
 
 GoHashKey turn_hash_key;
-GoPair<std::vector<GoHashKey>> grids_hash_key;
+std::vector<GoPair<GoHashKey>> grids_hash_key;
+std::vector<std::vector<GoPair<GoHashKey>>> sequence_hash_key;
 
 void initialize()
 {
@@ -18,9 +19,22 @@ void initialize()
     generator.seed(0);
     assert(config::env_go_ko_rule == "positional" || config::env_go_ko_rule == "situational");
     turn_hash_key = (config::env_go_ko_rule == "positional" ? 0 : generator());
+
+    // grid hash key
+    grids_hash_key.resize(kMaxGoBoardSize * kMaxGoBoardSize);
     for (int pos = 0; pos < kMaxGoBoardSize * kMaxGoBoardSize; ++pos) {
-        grids_hash_key.get(Player::kPlayer1).push_back(generator());
-        grids_hash_key.get(Player::kPlayer2).push_back(generator());
+        grids_hash_key[pos].get(Player::kPlayer1) = generator();
+        grids_hash_key[pos].get(Player::kPlayer2) = generator();
+    }
+
+    // sequence hash key
+    sequence_hash_key.resize(2 * kMaxGoBoardSize * kMaxGoBoardSize);
+    for (int move = 0; move < 2 * kMaxGoBoardSize * kMaxGoBoardSize; ++move) {
+        sequence_hash_key[move].resize(kMaxGoBoardSize * kMaxGoBoardSize);
+        for (int pos = 0; pos < kMaxGoBoardSize * kMaxGoBoardSize; ++pos) {
+            sequence_hash_key[move][pos].get(Player::kPlayer1) = generator();
+            sequence_hash_key[move][pos].get(Player::kPlayer2) = generator();
+        }
     }
 }
 
@@ -33,7 +47,15 @@ GoHashKey getGoGridHashKey(int position, Player p)
 {
     assert(position >= 0 && position < kMaxGoBoardSize * kMaxGoBoardSize);
     assert(p == Player::kPlayer1 || p == Player::kPlayer2);
-    return grids_hash_key.get(p)[position];
+    return grids_hash_key[position].get(p);
+}
+
+GoHashKey getGoSequenceHashKey(int move, int position, Player p)
+{
+    assert(move >= 0 && move < 2 * kMaxGoBoardSize * kMaxGoBoardSize);
+    assert(position >= 0 && position < kMaxGoBoardSize * kMaxGoBoardSize);
+    assert(p == Player::kPlayer1 || p == Player::kPlayer2);
+    return sequence_hash_key[move][position].get(p);
 }
 
 GoAction::GoAction(const std::vector<std::string>& action_string_args, int board_size)
