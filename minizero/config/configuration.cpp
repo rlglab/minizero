@@ -60,7 +60,6 @@ std::string nn_type_name = "alphazero";
 int env_go_board_size = 19;
 float env_go_komi = 7.5;
 std::string env_go_ko_rule = "positional";
-bool env_killallgo_use_rzone = false;
 
 void setConfiguration(ConfigureLoader& cl)
 {
@@ -125,7 +124,6 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("env_go_ko_rule", env_go_ko_rule, "positional/situational", "Environment");
 #elif KILLALLGO
     cl.addParameter("env_killallgo_ko_rule", env_go_ko_rule, "positional/situational", "Environment");
-    cl.addParameter("env_killallgo_use_rzone", env_killallgo_use_rzone, "", "Environment");
 #endif
 }
 

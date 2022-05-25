@@ -62,7 +62,6 @@ extern std::string nn_type_name;
 extern int env_go_board_size;
 extern float env_go_komi;
 extern std::string env_go_ko_rule;
-extern bool env_killallgo_use_rzone;
 
 void setConfiguration(ConfigureLoader& cl);
 
