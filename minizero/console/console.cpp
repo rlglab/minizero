@@ -1,5 +1,4 @@
 #include "console.h"
-#include "actor.h"
 #include "alphazero_network.h"
 #include "muzero_network.h"
 #include "sgf_loader.h"

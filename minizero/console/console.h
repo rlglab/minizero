@@ -1,6 +1,6 @@
 #pragma once
 
-#include "actor.h"
+#include "base_actor.h"
 #include "network.h"
 #include <map>
 #include <memory>
@@ -61,7 +61,7 @@ protected:
     bool checkArgument(const std::vector<std::string>& args, int min_argc, int max_argc);
     void reply(ConsoleResponse response, const std::string& reply);
 
-    std::shared_ptr<actor::Actor> actor_;
+    std::shared_ptr<actor::BaseActor> actor_;
     std::map<std::string, std::shared_ptr<BaseFunction>> function_map_;
 };
 

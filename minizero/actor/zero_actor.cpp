@@ -1,52 +1,56 @@
 #include "zero_actor.h"
+#include "random.h"
+#include "time_system.h"
 
 namespace minizero::actor {
 
 using namespace minizero;
 using namespace network;
 
+void MCTSSearchData::clear()
+{
+    selected_node_ = nullptr;
+    node_path_.clear();
+}
+
+void ZeroActor::reset()
+{
+    BaseActor::reset();
+    enable_resign_ = (utils::Random::randReal() < config::zero_disable_resign_ratio ? false : true);
+}
+
+void ZeroActor::resetSearch()
+{
+    BaseActor::resetSearch();
+    mcts_.reset();
+    mcts_search_data_.node_path_.clear();
+}
+
 Action ZeroActor::think(bool with_play /*= false*/, bool display_board /*= false*/)
 {
     resetSearch();
-    while (!mcts_.reachMaximumSimulation()) { step(); }
-    MCTSNode* selected_node = decideActionNode();
-    if (with_play) { act(selected_node->getAction()); }
-    if (display_board) { displayBoard(selected_node); }
-    return selected_node->getAction();
-}
-
-MCTSNode* ZeroActor::decideActionNode()
-{
-    if (config::actor_select_action_by_count) {
-        return mcts_.selectChildByMaxCount(mcts_.getRootNode());
-    } else if (config::actor_select_action_by_softmax_count) {
-        return mcts_.selectChildBySoftmaxCount(mcts_.getRootNode(), config::actor_select_action_softmax_temperature);
-    }
-
-    assert(false);
-    return nullptr;
-}
-
-std::string ZeroActor::getActionComment()
-{
-    return mcts_.getSearchDistributionString();
+    while (!isSearchDone()) { step(); }
+    if (with_play) { act(getSearchAction()); }
+    if (display_board) { displayBoard(); }
+    return getSearchAction();
 }
 
 void ZeroActor::beforeNNEvaluation()
 {
-    std::vector<MCTSNode*> node_path = mcts_.select();
+    mcts_search_data_.node_path_ = mcts_.select();
     if (alphazero_network_) {
-        Environment env_transition = getEnvironmentTransition(node_path);
-        evaluation_jobs_ = {node_path, alphazero_network_->pushBack(env_transition.getFeatures())};
+        Environment env_transition = getEnvironmentTransition(mcts_search_data_.node_path_);
+        nn_evaluation_batch_id_ = alphazero_network_->pushBack(env_transition.getFeatures());
     } else if (muzero_network_) {
         if (mcts_.getNumSimulation() == 0) { // initial inference for root node
-            evaluation_jobs_ = {node_path, muzero_network_->pushBackInitialData(env_.getFeatures())};
+            nn_evaluation_batch_id_ = muzero_network_->pushBackInitialData(env_.getFeatures());
         } else { // for non-root nodes
+            const std::vector<MCTSNode*>& node_path = mcts_search_data_.node_path_;
             MCTSNode* leaf_node = node_path.back();
             MCTSNode* parent_node = node_path[node_path.size() - 2];
             assert(parent_node && parent_node->getExtraDataIndex() != -1);
             const std::vector<float>& hidden_state = mcts_.getTreeExtraData().getExtraData(parent_node->getExtraDataIndex()).hidden_state_;
-            evaluation_jobs_ = {node_path, muzero_network_->pushBackRecurrentData(hidden_state, env_.getActionFeatures(leaf_node->getAction()))};
+            nn_evaluation_batch_id_ = muzero_network_->pushBackRecurrentData(hidden_state, env_.getActionFeatures(leaf_node->getAction()));
         }
     } else {
         assert(false);
@@ -55,10 +59,10 @@ void ZeroActor::beforeNNEvaluation()
 
 void ZeroActor::afterNNEvaluation(const std::shared_ptr<NetworkOutput>& network_output)
 {
-    const std::vector<MCTSNode*>& node_path = evaluation_jobs_.first;
+    const std::vector<MCTSNode*>& node_path = mcts_search_data_.node_path_;
     MCTSNode* leaf_node = node_path.back();
     if (alphazero_network_) {
-        Environment env_transition = getEnvironmentTransition(evaluation_jobs_.first);
+        Environment env_transition = getEnvironmentTransition(node_path);
         if (!env_transition.isTerminal()) {
             std::shared_ptr<AlphaZeroNetworkOutput> alphazero_output = std::static_pointer_cast<AlphaZeroNetworkOutput>(network_output);
             mcts_.expand(leaf_node, calculateAlphaZeroActionPolicy(env_transition, alphazero_output));
@@ -75,6 +79,22 @@ void ZeroActor::afterNNEvaluation(const std::shared_ptr<NetworkOutput>& network_
         assert(false);
     }
     if (leaf_node == mcts_.getRootNode()) { addNoiseToNodeChildren(leaf_node); }
+    if (isSearchDone()) { mcts_search_data_.selected_node_ = decideActionNode(); }
+}
+
+void ZeroActor::displayBoard() const
+{
+    assert(mcts_search_data_.selected_node_);
+    const Action action = getSearchAction();
+    std::cerr << env_.toString();
+    std::cerr << TimeSystem::getTimeString("[Y/m/d H:i:s.f] ")
+              << "move number: " << env_.getActionHistory().size()
+              << ", action: " << action.toConsoleString()
+              << " (" << action.getActionID() << ")"
+              << ", player: " << env::playerToChar(action.getPlayer()) << std::endl;
+    std::cerr << "  root node info: " << mcts_.getRootNode()->toString() << std::endl;
+    std::cerr << "action node info: " << mcts_search_data_.selected_node_->toString() << std::endl
+              << std::endl;
 }
 
 void ZeroActor::setNetwork(const std::shared_ptr<network::Network>& network)
@@ -96,15 +116,48 @@ void ZeroActor::step()
 {
     beforeNNEvaluation();
     if (alphazero_network_) {
-        afterNNEvaluation(alphazero_network_->forward()[getEvaluationJobIndex()]);
+        afterNNEvaluation(alphazero_network_->forward()[getNNEvaluationBatchIndex()]);
     } else if (muzero_network_) {
         if (mcts_.getNumSimulation() == 0) { // initial inference for root node
-            afterNNEvaluation(muzero_network_->initialInference()[getEvaluationJobIndex()]);
+            afterNNEvaluation(muzero_network_->initialInference()[getNNEvaluationBatchIndex()]);
         } else { // for non-root nodes
-            afterNNEvaluation(muzero_network_->recurrentInference()[getEvaluationJobIndex()]);
+            afterNNEvaluation(muzero_network_->recurrentInference()[getNNEvaluationBatchIndex()]);
         }
     } else {
         assert(false);
+    }
+}
+
+MCTSNode* ZeroActor::decideActionNode()
+{
+    if (config::actor_select_action_by_count) {
+        return mcts_.selectChildByMaxCount(mcts_.getRootNode());
+    } else if (config::actor_select_action_by_softmax_count) {
+        return mcts_.selectChildBySoftmaxCount(mcts_.getRootNode(), config::actor_select_action_softmax_temperature);
+    }
+
+    assert(false);
+    return nullptr;
+}
+
+void ZeroActor::addNoiseToNodeChildren(MCTSNode* node)
+{
+    assert(node && node->getNumChildren() > 0);
+    if (config::actor_use_dirichlet_noise) {
+        const float epsilon = config::actor_dirichlet_noise_epsilon;
+        std::vector<float> dirichlet_noise = utils::Random::randDirichlet(config::actor_dirichlet_noise_alpha, node->getNumChildren());
+        MCTSNode* child = node->getFirstChild();
+        for (int i = 0; i < node->getNumChildren(); ++i, ++child) {
+            child->setPolicyNoise(dirichlet_noise[i]);
+            child->setPolicy((1 - epsilon) * child->getPolicy() + epsilon * dirichlet_noise[i]);
+        }
+    } else if (config::actor_use_gumbel_noise) {
+        std::vector<float> gumbel_noise = utils::Random::randGumbel(node->getNumChildren());
+        MCTSNode* child = node->getFirstChild();
+        for (int i = 0; i < node->getNumChildren(); ++i, ++child) {
+            child->setPolicyNoise(gumbel_noise[i]);
+            child->setPolicyLogit(child->getPolicyLogit() + gumbel_noise[i]);
+        }
     }
 }
 

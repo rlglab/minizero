@@ -12,12 +12,12 @@ public:
     {
     }
 
-    MCTSNode* decideActionNode() override;
-    std::string getActionComment() override;
     void beforeNNEvaluation() override;
     void afterNNEvaluation(const std::shared_ptr<network::NetworkOutput>& network_output) override;
 
 private:
+    std::string getActionComment() const override;
+    MCTSNode* decideActionNode() override;
     void sortCandidatesByScore();
 
     int sample_size_;

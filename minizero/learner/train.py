@@ -1,4 +1,5 @@
-from multiprocessing import reduction
+#!/usr/bin/env python
+
 import os
 import sys
 import time

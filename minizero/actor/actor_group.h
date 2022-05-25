@@ -1,8 +1,8 @@
 #pragma once
 
-#include "actor.h"
+#include "base_actor.h"
 #include "network.h"
-#include <boost/thread.hpp>
+#include "paralleler.h"
 #include <mutex>
 #include <vector>
 
@@ -10,53 +10,42 @@ namespace minizero::actor {
 
 class ThreadSharedData {
 public:
-    int getNextActorIndex();
-    void resetActor(int actor_id);
+    int getAvailableActorIndex();
     void outputRecord(const std::string& record);
 
     bool do_cpu_job_;
     int actor_index_;
     std::mutex mutex_;
-    std::vector<int> actors_enable_resign_;
-    std::vector<std::shared_ptr<Actor>> actors_;
+    std::vector<std::shared_ptr<BaseActor>> actors_;
     std::vector<std::shared_ptr<network::Network>> networks_;
     std::vector<std::vector<std::shared_ptr<network::NetworkOutput>>> network_outputs_;
 };
 
-class SlaveThread {
+class SlaveThread : public utils::BaseSlaveThread<ThreadSharedData> {
 public:
     SlaveThread(int id, ThreadSharedData& shared_data)
-        : id_(id),
-          shared_data_(shared_data),
-          start_barrier_(2),
-          finish_barrier_(2) {}
+        : BaseSlaveThread(id, shared_data) {}
 
-    void runThread();
-
-    inline void start() { start_barrier_.wait(); }
-    inline void finish() { finish_barrier_.wait(); }
+    void initialize();
+    void runJob();
+    inline bool isDone() { return false; }
 
 private:
-    void doCPUJob();
-    void handleSearchEndAndEnvEnd(int actor_id);
+    bool doCPUJob();
     void doGPUJob();
-
-    int id_;
-    ThreadSharedData& shared_data_;
-    boost::barrier start_barrier_;
-    boost::barrier finish_barrier_;
 };
 
-class ActorGroup {
+class ActorGroup : public utils::BaseParalleler<class ThreadSharedData, class SlaveThread> {
 public:
-    ActorGroup();
+    ActorGroup() {}
 
     void run();
+    void initialize();
+    void summarize() {}
 
-private:
-    ThreadSharedData shared_data_;
-    boost::thread_group thread_groups_;
-    std::vector<std::shared_ptr<SlaveThread>> slave_threads_;
+protected:
+    void createNeuralNetworks();
+    void createActors();
 };
 
 } // namespace minizero::actor
