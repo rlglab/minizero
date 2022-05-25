@@ -23,9 +23,3 @@ add_subdirectory(minizero/learner)
 add_subdirectory(minizero/network)
 add_subdirectory(minizero/utils)
 add_subdirectory(minizero/server)
-
-# killall go execution
-if("${GAME_TYPE}" STREQUAL "KILLALLGO")
-    add_subdirectory(killallgo_solver)
-    add_subdirectory(killallgo_solver/learner)
-endif()
