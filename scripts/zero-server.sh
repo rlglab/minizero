@@ -30,7 +30,7 @@ if [[ ${run_stage} == "R" ]]; then
 	mkdir ${TRAIN_DIR}/model
 	mkdir ${TRAIN_DIR}/sgf
 	touch ${TRAIN_DIR}/op.log
-	NEW_CONFIGURE_FILE=$(echo ${TRAIN_DIR} | awk -F "/" '{ print $NF".cfg"; }')
+	NEW_CONFIGURE_FILE=$(echo ${TRAIN_DIR} | awk -F "/" '{ print ($NF==""? $(NF-1): $NF)".cfg"; }')
 	cp ${CONFIGURE_FILE} ${TRAIN_DIR}/${NEW_CONFIGURE_FILE}
 
 	# setup initial weight
