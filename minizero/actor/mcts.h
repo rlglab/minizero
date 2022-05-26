@@ -159,7 +159,7 @@ public:
         float sum = 0.0f;
         for (int i = 0; i < node->getNumChildren(); ++i, ++child) {
             float count = std::pow(child->getCount(), 1 / temperature);
-            if (count == 0 || child->getMean() < best_child->getMean() - value_threshold) { continue; }
+            if (count == 0 || (child->getMean() < best_child->getMean() - value_threshold)) { continue; }
             sum += count;
             float rand = utils::Random::randReal(sum);
             if (rand < count) { selected = child; }
