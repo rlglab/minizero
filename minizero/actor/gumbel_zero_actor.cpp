@@ -112,9 +112,16 @@ std::string GumbelZeroActor::getActionComment() const
 
 MCTSNode* GumbelZeroActor::decideActionNode()
 {
-    assert(candidates_.size() > 0);
-    sortCandidatesByScore();
-    return candidates_[0];
+    if (config::actor_select_action_by_count) {
+        assert(candidates_.size() > 0);
+        sortCandidatesByScore();
+        return candidates_[0];
+    } else if (config::actor_select_action_by_softmax_count) {
+        return mcts_.selectChildBySoftmaxCount(mcts_.getRootNode(), config::actor_select_action_softmax_temperature);
+    }
+
+    assert(false);
+    return nullptr;
 }
 
 void GumbelZeroActor::sortCandidatesByScore()

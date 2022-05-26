@@ -26,9 +26,9 @@ public:
     SlaveThread(int id, ThreadSharedData& shared_data)
         : BaseSlaveThread(id, shared_data) {}
 
-    void initialize();
-    void runJob();
-    inline bool isDone() { return false; }
+    void initialize() override;
+    void runJob() override;
+    inline bool isDone() override { return false; }
 
 private:
     bool doCPUJob();
@@ -39,9 +39,9 @@ class ActorGroup : public utils::BaseParalleler<class ThreadSharedData, class Sl
 public:
     ActorGroup() {}
 
-    void run();
-    void initialize();
-    void summarize() {}
+    void run() override;
+    void initialize() override;
+    void summarize() override {}
 
 protected:
     void createNeuralNetworks();
