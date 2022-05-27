@@ -1,5 +1,6 @@
 #include "actor_group.h"
 #include "alphazero_network.h"
+#include "configuration.h"
 #include "muzero_network.h"
 #include "random.h"
 #include <iostream>

@@ -1,5 +1,6 @@
 #include "console.h"
 #include "alphazero_network.h"
+#include "configuration.h"
 #include "muzero_network.h"
 #include "sgf_loader.h"
 #include <climits>
