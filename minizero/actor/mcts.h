@@ -156,10 +156,12 @@ public:
         Node* selected = nullptr;
         Node* child = node->getFirstChild();
         Node* best_child = selectChildByMaxCount(node);
+        float best_mean = (best_child->getAction().getPlayer() == env::Player::kPlayer1 ? best_child->getMean() : -best_child->getMean());
         float sum = 0.0f;
         for (int i = 0; i < node->getNumChildren(); ++i, ++child) {
             float count = std::pow(child->getCount(), 1 / temperature);
-            if (count == 0 || (child->getMean() < best_child->getMean() - value_threshold)) { continue; }
+            float mean = (child->getAction().getPlayer() == env::Player::kPlayer1 ? child->getMean() : -child->getMean());
+            if (count == 0 || (mean < best_mean - value_threshold)) { continue; }
             sum += count;
             float rand = utils::Random::randReal(sum);
             if (rand < count) { selected = child; }
