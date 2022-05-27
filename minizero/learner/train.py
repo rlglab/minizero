@@ -101,7 +101,7 @@ def save_model(training_step, network, optimizer, scheduler, training_dir):
 
 
 def calculate_loss(conf, output_policy, output_value, label_policy, label_value):
-    if conf.use_gumbel_noise():
+    if conf.use_gumbel():
         loss_policy = nn.functional.kl_div(nn.functional.log_softmax(output_policy, dim=1), label_policy, reduction='batchmean')
     else:
         loss_policy = -(label_policy * nn.functional.log_softmax(output_policy, dim=1)).sum() / output_policy.shape[0]

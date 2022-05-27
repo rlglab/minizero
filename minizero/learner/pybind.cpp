@@ -17,7 +17,7 @@ public:
         cl.loadFromFile(file_name);
     }
 
-    inline bool useGumbelNoise() const { return config::actor_use_gumbel_noise; }
+    inline bool useGumbel() const { return config::actor_use_gumbel; }
     inline int getTrainingStep() const { return config::learner_training_step; }
     inline int getTrainingDisplayStep() const { return config::learner_training_display_step; }
     inline int getBatchSize() const { return config::learner_batch_size; }
@@ -44,7 +44,7 @@ PYBIND11_MODULE(minizero_py, m)
 {
     py::class_<Conf>(m, "Conf")
         .def(py::init<std::string>())
-        .def("use_gumbel_noise", &Conf::useGumbelNoise)
+        .def("use_gumbel", &Conf::useGumbel)
         .def("get_training_step", &Conf::getTrainingStep)
         .def("get_training_display_step", &Conf::getTrainingDisplayStep)
         .def("get_batch_size", &Conf::getBatchSize)
