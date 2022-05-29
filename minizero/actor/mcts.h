@@ -164,7 +164,7 @@ public:
             if (count == 0 || (mean < best_mean - value_threshold)) { continue; }
             sum += count;
             float rand = utils::Random::randReal(sum);
-            if (rand < count) { selected = child; }
+            if (selected == nullptr || rand < count) { selected = child; }
         }
         assert(selected != nullptr);
         return selected;
