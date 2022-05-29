@@ -1,5 +1,4 @@
 #include "go.h"
-#include <iostream>
 
 namespace minizero::env::go {
 
@@ -9,6 +8,7 @@ bool GoEnv::checkDataStructure() const
     assert(checkGridDataStructure());
     assert(checkBlockDataStructure());
     assert(checkAreaDataStructure());
+    assert(checkBensonDataStructure());
     return true;
 }
 
@@ -51,8 +51,8 @@ bool GoEnv::checkBlockDataStructure() const
 
         assert(id < static_cast<int>(blocks_.size()));
         const GoBlock* block = &blocks_[id];
-        assert(block->getNumLiberty() > 0 && block->getNumStone() > 0);
-        assert(block->getNumStone() == static_cast<int>(block->getGridBitboard().count()));
+        assert(block->getNumLiberty() > 0 && block->getNumGrid() > 0);
+        assert(block->getNumGrid() == static_cast<int>(block->getGridBitboard().count()));
         hash_key ^= block->getHashKey();
         stone_bitboard.get(block->getPlayer()) |= block->getGridBitboard();
 
@@ -104,7 +104,7 @@ bool GoEnv::checkAreaDataStructure() const
         assert(id < static_cast<int>(areas_.size()));
         const GoArea* area = &areas_[id];
         assert(!area->getAreaBitboard().none());
-        assert(area->getNumStone() == static_cast<int>(area->getAreaBitboard().count()));
+        assert(area->getNumGrid() == static_cast<int>(area->getAreaBitboard().count()));
         assert(floodFillBitBoard(area->getAreaBitboard()._Find_first(), (~stone_bitboard_.get(area->getPlayer()) & board_mask_bitboard_)) == area->getAreaBitboard());
         assert((area->getAreaBitboard() & area_bitboard_pair.get(area->getPlayer())).none());
         area_bitboard_pair.get(area->getPlayer()) |= area->getAreaBitboard();
@@ -133,6 +133,13 @@ bool GoEnv::checkAreaDataStructure() const
     if (stone_bitboard_.get(Player::kPlayer2).none()) { assert(area_bitboard_pair.get(Player::kPlayer2).none()); }
     if (!stone_bitboard_.get(Player::kPlayer1).none()) { assert((area_bitboard_pair.get(Player::kPlayer1) | stone_bitboard_.get(Player::kPlayer1)) == board_mask_bitboard_); }
     if (!stone_bitboard_.get(Player::kPlayer2).none()) { assert((area_bitboard_pair.get(Player::kPlayer2) | stone_bitboard_.get(Player::kPlayer2)) == board_mask_bitboard_); }
+    return true;
+}
+
+bool GoEnv::checkBensonDataStructure() const
+{
+    assert(findBensonBitboard(stone_bitboard_.get(Player::kPlayer1)) == benson_bitboard_.get(Player::kPlayer1));
+    assert(findBensonBitboard(stone_bitboard_.get(Player::kPlayer2)) == benson_bitboard_.get(Player::kPlayer2));
     return true;
 }
 

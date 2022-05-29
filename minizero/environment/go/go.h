@@ -74,6 +74,8 @@ protected:
     void removeArea(GoArea* area);
     GoArea* mergeArea(GoArea* area1, GoArea* area2);
     std::vector<GoBitboard> findAreas(const GoAction& action);
+    void updateBenson(const GoAction& action);
+    GoBitboard findBensonBitboard(GoBitboard block_bitboard) const;
     std::string getCoordinateString() const;
     GoBitboard dilateBitboard(const GoBitboard& bitboard) const;
     GoBitboard floodFillBitBoard(int start_position, const GoBitboard& boundary_bitboard) const;
@@ -84,6 +86,7 @@ protected:
     bool checkGridDataStructure() const;
     bool checkBlockDataStructure() const;
     bool checkAreaDataStructure() const;
+    bool checkBensonDataStructure() const;
 
     inline bool isPassAction(const GoAction& action) const { return (action.getActionID() == board_size_ * board_size_); }
 

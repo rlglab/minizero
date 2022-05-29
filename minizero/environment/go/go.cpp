@@ -1,6 +1,5 @@
 #include "go.h"
 #include "color_message.h"
-#include "go_benson.h"
 #include "sgf_loader.h"
 #include <random>
 #include <sstream>
@@ -172,12 +171,9 @@ bool GoEnv::act(const GoAction& action)
     stone_bitboard_history_.push_back(stone_bitboard_);
     hash_table_.insert(hash_key_);
 
-    // update area
+    // update area & benson
     updateArea(action);
-
-    // Benson
-    benson_bitboard_ = go::GoBenson::getBensonBitboard(benson_bitboard_, stone_bitboard_, board_size_, board_left_boundary_bitboard_,
-                                                       board_right_boundary_bitboard_, board_mask_bitboard_);
+    updateBenson(action);
 
     assert(checkDataStructure());
     return true;
@@ -386,10 +382,10 @@ void GoEnv::removeBlockFromBoard(GoBlock* block)
         }
     }
     assert(area);
-    area->setNumStone(area->getNumStone() + block->getNumStone());
+    area->setNumGrid(area->getNumGrid() + block->getNumGrid());
     area->setAreaBitBoard(area->getAreaBitboard() | block->getGridBitboard());
     area->removeNeighborBlockID(block->getID());
-    if (area->getNumStone() == board_size_ * board_size_) {
+    if (area->getNumGrid() == board_size_ * board_size_) {
         // remove area when area include whole board
         removeArea(area);
         area = nullptr;
@@ -421,7 +417,7 @@ GoBlock* GoEnv::combineBlocks(GoBlock* block1, GoBlock* block2)
     assert(block1 && block2);
 
     if (block1 == block2) { return block1; }
-    if (block1->getNumStone() < block2->getNumStone()) { return combineBlocks(block2, block1); }
+    if (block1->getNumGrid() < block2->getNumGrid()) { return combineBlocks(block2, block1); }
 
     // link grid to new block
     GoBitboard grid_bitboard = block2->getGridBitboard();
@@ -457,12 +453,12 @@ void GoEnv::updateArea(const GoAction& action)
     GoArea* own_area = grid.getArea(own_player);
     std::vector<GoBitboard> areas_bitboard = findAreas(action);
     if (own_area && areas_bitboard.size() == 1) {
-        if (own_area->getNumStone() == 1) {
+        if (own_area->getNumGrid() == 1) {
             removeArea(own_area);
         } else {
             grid.setArea(action.getPlayer(), nullptr);
             grid.getBlock()->addNeighborAreaID(own_area->getID());
-            own_area->setNumStone(own_area->getNumStone() - 1);
+            own_area->setNumGrid(own_area->getNumGrid() - 1);
             own_area->getAreaBitboard().reset(grid.getPosition());
             own_area->getNeighborBlockID().set(grid.getBlock()->getID());
         }
@@ -481,7 +477,7 @@ void GoEnv::addArea(Player player, const GoBitboard& area_bitboard)
     free_area_id_bitboard_.reset(area_id);
 
     GoArea* area = &areas_[area_id];
-    area->setNumStone(area_bitboard.count());
+    area->setNumGrid(area_bitboard.count());
     area->setPlayer(player);
     area->setAreaBitBoard(area_bitboard);
 
@@ -532,7 +528,7 @@ void GoEnv::removeArea(GoArea* area)
 GoArea* GoEnv::mergeArea(GoArea* area1, GoArea* area2)
 {
     assert(area1 && area2);
-    if (area1->getNumStone() < area2->getNumStone()) { return mergeArea(area2, area1); }
+    if (area1->getNumGrid() < area2->getNumGrid()) { return mergeArea(area2, area1); }
 
     GoBitboard area2_bitboard = area2->getAreaBitboard(); // save area2 bitboard before removing area2
     GoBitboard area2_nbr_block_id = area2->getNeighborBlockID();
@@ -567,6 +563,90 @@ std::vector<GoBitboard> GoEnv::findAreas(const GoAction& action)
         areas.push_back(area_bitboard);
     }
     return areas;
+}
+
+void GoEnv::updateBenson(const GoAction& action)
+{
+    const GoGrid& grid = grids_[action.getActionID()];
+    const GoBlock* block = grid.getBlock();
+
+    // update own benson
+    GoBitboard& own_benson_bitboard = benson_bitboard_.get(action.getPlayer());
+    if (own_benson_bitboard.test(action.getActionID()) || block->getNeighborAreaID().count() > 1) {
+        own_benson_bitboard = findBensonBitboard(stone_bitboard_.get(block->getPlayer()));
+    }
+
+    // update opponent benson
+    Player next_player = action.nextPlayer();
+    const GoArea* opponent_area = grid.getArea(next_player);
+    if (opponent_area && !benson_bitboard_.get(next_player).test(action.getActionID()) &&
+        (opponent_area->getAreaBitboard() & ~dilateBitboard(stone_bitboard_.get(next_player)) & ~stone_bitboard_.get(action.getPlayer())).none()) {
+        benson_bitboard_.get(next_player) |= findBensonBitboard(stone_bitboard_.get(next_player));
+    }
+}
+
+GoBitboard GoEnv::findBensonBitboard(GoBitboard block_bitboard) const
+{
+    // construct vital areas for each block
+    GoBitboard benson_area_id, benson_block_id;
+    std::vector<GoBitboard> block_neighbor_vital_areas(board_size_ * board_size_, GoBitboard());
+    GoBitboard stone_bitboard = stone_bitboard_.get(Player::kPlayer1) | stone_bitboard_.get(Player::kPlayer2);
+    while (!block_bitboard.none()) {
+        int pos = block_bitboard._Find_first();
+        const GoBlock* block = grids_[pos].getBlock();
+        block_bitboard &= ~block->getGridBitboard();
+
+        GoBitboard block_neighbor_area_id = block->getNeighborAreaID();
+        while (!block_neighbor_area_id.none()) {
+            int area_id = block_neighbor_area_id._Find_first();
+            block_neighbor_area_id.reset(area_id);
+
+            const GoArea* area = &areas_[area_id];
+            if (!(area->getAreaBitboard() & ~block->getLibertyBitboard() & ~stone_bitboard).none()) { continue; }
+            block_neighbor_vital_areas[block->getID()].set(area_id);
+            benson_block_id.set(block->getID());
+            benson_area_id.set(area_id);
+        }
+    }
+
+    // Benson's algorithm
+    bool is_over = false;
+    GoBitboard benson_bitboard;
+    while (!is_over && !benson_block_id.none()) {
+        is_over = true;
+        benson_bitboard.reset();
+
+        // 1. Remove from X all Black chains with less than two vital Black-enclosed regions in R
+        GoBitboard next_benson_block_id;
+        while (!benson_block_id.none()) {
+            int block_id = benson_block_id._Find_first();
+            benson_block_id.reset(block_id);
+
+            if ((block_neighbor_vital_areas[block_id] & benson_area_id).count() < 2) {
+                is_over = false;
+                continue;
+            }
+            next_benson_block_id.set(block_id);
+            benson_bitboard |= blocks_[block_id].getGridBitboard();
+        }
+        benson_block_id = next_benson_block_id;
+
+        // 2. Remove from R all Black - enclosed regions with a surrounding stone in a chain not in X
+        GoBitboard next_benson_area_id;
+        while (!benson_area_id.none()) {
+            int area_id = benson_area_id._Find_first();
+            benson_area_id.reset(area_id);
+
+            if (!(areas_[area_id].getNeighborBlockID() & ~benson_block_id).none()) {
+                is_over = false;
+                continue;
+            }
+            next_benson_area_id.set(area_id);
+            benson_bitboard |= areas_[area_id].getAreaBitboard();
+        }
+        benson_area_id = next_benson_area_id;
+    }
+    return benson_bitboard;
 }
 
 std::string GoEnv::getCoordinateString() const

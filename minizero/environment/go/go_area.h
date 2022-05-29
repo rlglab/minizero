@@ -14,7 +14,7 @@ public:
 
     inline void reset()
     {
-        num_stone_ = 0;
+        num_grid_ = 0;
         player_ = Player::kPlayerNone;
         area_bitboard_.reset();
         neighbor_block_id_.reset();
@@ -23,13 +23,13 @@ public:
     inline void combineWithArea(GoArea* area)
     {
         assert(area && player_ == area->getPlayer());
-        num_stone_ += area->getNumStone();
+        num_grid_ += area->getNumGrid();
         area_bitboard_ |= area->getAreaBitboard();
         neighbor_block_id_ |= area->getNeighborBlockID();
     }
 
     // setter
-    inline void setNumStone(int num_stone) { num_stone_ = num_stone; }
+    inline void setNumGrid(int num_grid) { num_grid_ = num_grid; }
     inline void setPlayer(Player p) { player_ = p; }
     inline void setAreaBitBoard(const GoBitboard& area_bitboard) { area_bitboard_ = area_bitboard; }
     inline void addNeighborBlockID(int block_id) { neighbor_block_id_.set(block_id); }
@@ -37,7 +37,7 @@ public:
 
     // getter
     inline int getID() const { return id_; }
-    inline int getNumStone() const { return num_stone_; }
+    inline int getNumGrid() const { return num_grid_; }
     inline Player getPlayer() const { return player_; }
     inline GoBitboard& getAreaBitboard() { return area_bitboard_; }
     inline const GoBitboard& getAreaBitboard() const { return area_bitboard_; }
@@ -46,7 +46,7 @@ public:
 
 private:
     int id_;
-    int num_stone_;
+    int num_grid_;
     Player player_;
     GoBitboard area_bitboard_;
     GoBitboard neighbor_block_id_;

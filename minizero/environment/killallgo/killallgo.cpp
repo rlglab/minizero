@@ -41,7 +41,7 @@ bool KillAllGoEnv::isEatKoMove(const KillAllGoAction& action) const
         if (neighbor_block == nullptr) { return false; }
         if (neighbor_block->getPlayer() == player) { return false; }
         if (neighbor_block->getNumLiberty() == 1) {
-            if (neighbor_block->getNumStone() > 1) { return false; }
+            if (neighbor_block->getNumGrid() > 1) { return false; }
             // lib==1 && num stone==1
             if (is_eat_ko) {
                 return false;
