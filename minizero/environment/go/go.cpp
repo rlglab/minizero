@@ -77,6 +77,7 @@ GoEnv::GoEnv(const GoEnv& env)
     free_area_id_bitboard_ = env.free_area_id_bitboard_;
     free_block_id_bitboard_ = env.free_block_id_bitboard_;
     stone_bitboard_ = env.stone_bitboard_;
+    benson_bitboard_ = env.benson_bitboard_;
     grids_ = env.grids_;
     areas_ = env.areas_;
     blocks_ = env.blocks_;
