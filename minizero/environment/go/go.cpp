@@ -443,6 +443,9 @@ GoBlock* GoEnv::combineBlocks(GoBlock* block1, GoBlock* block2)
 
 void GoEnv::updateArea(const GoAction& action)
 {
+    if (isPassAction(action)) { return; }
+    assert(grids_[action.getActionID()].getPlayer() != Player::kPlayerNone);
+
     // use last move to update area:
     //    1. last move in own area:
     //        a. last move splits area => remove current area and find area
@@ -567,6 +570,9 @@ std::vector<GoBitboard> GoEnv::findAreas(const GoAction& action)
 
 void GoEnv::updateBenson(const GoAction& action)
 {
+    if (isPassAction(action)) { return; }
+    assert(grids_[action.getActionID()].getPlayer() != Player::kPlayerNone);
+
     const GoGrid& grid = grids_[action.getActionID()];
     const GoBlock* block = grid.getBlock();
 

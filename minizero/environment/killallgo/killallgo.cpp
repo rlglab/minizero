@@ -6,14 +6,17 @@ using namespace env::go;
 
 void KillAllGoEnv::addSekiIntoBenson(const KillAllGoAction& action)
 {
+    if (isPassAction(action)) { return; }
+    assert(grids_[action.getActionID()].getPlayer() != Player::kPlayerNone);
+
     const int position = action.getActionID();
     const GoGrid& grid = grids_[position];
-    const GoBlock* block = grid.getBlock();
 
     const GoArea* seki_area = nullptr;
     if (grid.getPlayer() == Player::kPlayer1) {
         if (grid.getArea(Player::kPlayer2) && isSeki(grid.getArea(Player::kPlayer2))) { seki_area = grid.getArea(Player::kPlayer2); }
     } else if (grid.getPlayer() == Player::kPlayer2) {
+        const GoBlock* block = grid.getBlock();
         GoBitboard area_bitboard_id = block->getNeighborAreaID();
         while (!area_bitboard_id.none()) {
             int area_id = area_bitboard_id._Find_first();
