@@ -18,12 +18,25 @@ public:
         minizero::config::env_go_board_size = kKillAllGoBoardSize;
     }
 
+    bool act(const KillAllGoAction& action) override
+    {
+        bool result = go::GoEnv::act(action);
+        if (result) { addSekiIntoBenson(action); }
+        return result;
+    }
+
+    bool act(const std::vector<std::string>& action_string_args) override
+    {
+        return act(KillAllGoAction(action_string_args, kKillAllGoBoardSize));
+    }
+
     bool isLegalAction(const KillAllGoAction& action) const override
     {
         if (actions_.size() == 1) { return isPassAction(action); }
         if (actions_.size() < 3) { return !isPassAction(action) && go::GoEnv::isLegalAction(action); }
         return go::GoEnv::isLegalAction(action);
     }
+
     bool isTerminal() const override
     {
         // all black's benson or any white's benson
@@ -47,6 +60,8 @@ public:
     bool isRelevantMove(const go::GoBitboard& bitboard, const KillAllGoAction& action) const;
 
 private:
+    void addSekiIntoBenson(const KillAllGoAction& action);
+    bool isSeki(const go::GoArea* area) const;
     go::GoBitboard getMoveInfluence(const KillAllGoAction& action) const;
     go::GoBitboard getMoveRZone(const go::GoBitboard& bitboard_rzone, go::GoBitboard bitboard_own_influence) const;
     go::GoBitboard getLegalizeRZone(go::GoBitboard bitboard, const Player& player) const;
