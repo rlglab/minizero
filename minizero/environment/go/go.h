@@ -55,6 +55,7 @@ public:
     std::vector<float> getFeatures(utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::vector<float> getActionFeatures(const GoAction& action, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::string toString() const override;
+    GoBitboard floodFillBitBoard(int start_position, const GoBitboard& boundary_bitboard) const;
 
     inline std::string name() const override { return kGoName; }
     inline int getBoardSize() const { return board_size_; }
@@ -68,6 +69,7 @@ public:
     inline const GoGrid& getGrid(int id) const { return grids_[id]; }
     inline const GoArea& getArea(int id) const { return areas_[id]; }
     inline const GoBlock& getBlock(int id) const { return blocks_[id]; }
+    inline bool isPassAction(const GoAction& action) const { return (action.getActionID() == board_size_ * board_size_); }
 
 protected:
     void initialize();
@@ -84,7 +86,6 @@ protected:
     GoBitboard findBensonBitboard(GoBitboard block_bitboard) const;
     std::string getCoordinateString() const;
     GoBitboard dilateBitboard(const GoBitboard& bitboard) const;
-    GoBitboard floodFillBitBoard(int start_position, const GoBitboard& boundary_bitboard) const;
     GoPair<float> calculateTrompTaylorTerritory() const;
 
     // check data structure (for debugging)
@@ -93,8 +94,6 @@ protected:
     bool checkBlockDataStructure() const;
     bool checkAreaDataStructure() const;
     bool checkBensonDataStructure() const;
-
-    inline bool isPassAction(const GoAction& action) const { return (action.getActionID() == board_size_ * board_size_); }
 
     int board_size_;
     float komi_;

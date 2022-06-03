@@ -339,6 +339,19 @@ std::string GoEnv::toString() const
     return oss.str();
 }
 
+GoBitboard GoEnv::floodFillBitBoard(int start_position, const GoBitboard& boundary_bitboard) const
+{
+    GoBitboard flood_fill_bitboard;
+    flood_fill_bitboard.set(start_position);
+    bool need_dilate = true;
+    while (need_dilate) {
+        GoBitboard dilate_bitboard = dilateBitboard(flood_fill_bitboard) & boundary_bitboard;
+        need_dilate = (flood_fill_bitboard != dilate_bitboard);
+        flood_fill_bitboard = dilate_bitboard;
+    }
+    return flood_fill_bitboard;
+}
+
 void GoEnv::initialize()
 {
     grids_.clear();
@@ -676,19 +689,6 @@ GoBitboard GoEnv::dilateBitboard(const GoBitboard& bitboard) const
             ((bitboard & ~board_right_boundary_bitboard_) << 1) | // move right
             bitboard) &
            board_mask_bitboard_;
-}
-
-GoBitboard GoEnv::floodFillBitBoard(int start_position, const GoBitboard& boundary_bitboard) const
-{
-    GoBitboard flood_fill_bitboard;
-    flood_fill_bitboard.set(start_position);
-    bool need_dilate = true;
-    while (need_dilate) {
-        GoBitboard dilate_bitboard = dilateBitboard(flood_fill_bitboard) & boundary_bitboard;
-        need_dilate = (flood_fill_bitboard != dilate_bitboard);
-        flood_fill_bitboard = dilate_bitboard;
-    }
-    return flood_fill_bitboard;
 }
 
 GoPair<float> GoEnv::calculateTrompTaylorTerritory() const
