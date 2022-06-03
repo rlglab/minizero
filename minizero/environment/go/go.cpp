@@ -9,6 +9,7 @@ namespace minizero::env::go {
 using namespace minizero::utils;
 
 GoHashKey turn_hash_key;
+std::vector<GoHashKey> empty_hash_key;
 std::vector<GoPair<GoHashKey>> grids_hash_key;
 std::vector<std::vector<GoPair<GoHashKey>>> sequence_hash_key;
 
@@ -19,9 +20,11 @@ void initialize()
     assert(config::env_go_ko_rule == "positional" || config::env_go_ko_rule == "situational");
     turn_hash_key = (config::env_go_ko_rule == "positional" ? 0 : generator());
 
-    // grid hash key
+    // empty & grid hash key
+    empty_hash_key.resize(kMaxGoBoardSize * kMaxGoBoardSize);
     grids_hash_key.resize(kMaxGoBoardSize * kMaxGoBoardSize);
     for (int pos = 0; pos < kMaxGoBoardSize * kMaxGoBoardSize; ++pos) {
+        empty_hash_key[pos] = generator();
         grids_hash_key[pos].get(Player::kPlayer1) = generator();
         grids_hash_key[pos].get(Player::kPlayer2) = generator();
     }
@@ -29,8 +32,8 @@ void initialize()
     // sequence hash key
     sequence_hash_key.resize(2 * kMaxGoBoardSize * kMaxGoBoardSize);
     for (int move = 0; move < 2 * kMaxGoBoardSize * kMaxGoBoardSize; ++move) {
-        sequence_hash_key[move].resize(kMaxGoBoardSize * kMaxGoBoardSize);
-        for (int pos = 0; pos < kMaxGoBoardSize * kMaxGoBoardSize; ++pos) {
+        sequence_hash_key[move].resize(kMaxGoBoardSize * kMaxGoBoardSize + 1);
+        for (int pos = 0; pos < kMaxGoBoardSize * kMaxGoBoardSize + 1; ++pos) {
             sequence_hash_key[move][pos].get(Player::kPlayer1) = generator();
             sequence_hash_key[move][pos].get(Player::kPlayer2) = generator();
         }
@@ -40,6 +43,12 @@ void initialize()
 GoHashKey getGoTurnHashKey()
 {
     return turn_hash_key;
+}
+
+GoHashKey getGoEmptyHashKey(int position)
+{
+    assert(position >= 0 && position < kMaxGoBoardSize * kMaxGoBoardSize);
+    return empty_hash_key[position];
 }
 
 GoHashKey getGoGridHashKey(int position, Player p)
@@ -52,7 +61,7 @@ GoHashKey getGoGridHashKey(int position, Player p)
 GoHashKey getGoSequenceHashKey(int move, int position, Player p)
 {
     assert(move >= 0 && move < 2 * kMaxGoBoardSize * kMaxGoBoardSize);
-    assert(position >= 0 && position < kMaxGoBoardSize * kMaxGoBoardSize);
+    assert(position >= 0 && position <= kMaxGoBoardSize * kMaxGoBoardSize);
     assert(p == Player::kPlayer1 || p == Player::kPlayer2);
     return sequence_hash_key[move][position].get(p);
 }
@@ -339,17 +348,14 @@ std::string GoEnv::toString() const
     return oss.str();
 }
 
-GoBitboard GoEnv::floodFillBitBoard(int start_position, const GoBitboard& boundary_bitboard) const
+GoBitboard GoEnv::dilateBitboard(const GoBitboard& bitboard) const
 {
-    GoBitboard flood_fill_bitboard;
-    flood_fill_bitboard.set(start_position);
-    bool need_dilate = true;
-    while (need_dilate) {
-        GoBitboard dilate_bitboard = dilateBitboard(flood_fill_bitboard) & boundary_bitboard;
-        need_dilate = (flood_fill_bitboard != dilate_bitboard);
-        flood_fill_bitboard = dilate_bitboard;
-    }
-    return flood_fill_bitboard;
+    return ((bitboard << board_size_) |                           // move up
+            (bitboard >> board_size_) |                           // move down
+            ((bitboard & ~board_left_boundary_bitboard_) >> 1) |  // move left
+            ((bitboard & ~board_right_boundary_bitboard_) << 1) | // move right
+            bitboard) &
+           board_mask_bitboard_;
 }
 
 void GoEnv::initialize()
@@ -681,14 +687,17 @@ std::string GoEnv::getCoordinateString() const
     return getColorText(oss.str(), TextType::kBold, TextColor::kBlack, TextColor::kYellow);
 }
 
-GoBitboard GoEnv::dilateBitboard(const GoBitboard& bitboard) const
+GoBitboard GoEnv::floodFillBitBoard(int start_position, const GoBitboard& boundary_bitboard) const
 {
-    return ((bitboard << board_size_) |                           // move up
-            (bitboard >> board_size_) |                           // move down
-            ((bitboard & ~board_left_boundary_bitboard_) >> 1) |  // move left
-            ((bitboard & ~board_right_boundary_bitboard_) << 1) | // move right
-            bitboard) &
-           board_mask_bitboard_;
+    GoBitboard flood_fill_bitboard;
+    flood_fill_bitboard.set(start_position);
+    bool need_dilate = true;
+    while (need_dilate) {
+        GoBitboard dilate_bitboard = dilateBitboard(flood_fill_bitboard) & boundary_bitboard;
+        need_dilate = (flood_fill_bitboard != dilate_bitboard);
+        flood_fill_bitboard = dilate_bitboard;
+    }
+    return flood_fill_bitboard;
 }
 
 GoPair<float> GoEnv::calculateTrompTaylorTerritory() const
