@@ -57,11 +57,17 @@ public:
     std::string toString() const override;
 
     inline std::string name() const override { return kGoName; }
+    inline int getBoardSize() const { return board_size_; }
     inline float getKomi() const { return komi_; }
     inline GoHashKey getHashKey() const { return hash_key_; }
-    inline int getBoardSize() const { return board_size_; }
+    inline const GoBitboard& getBoardMaskBitboard() const { return board_mask_bitboard_; }
+    inline const GoBitboard& getFreeAreaIDBitBoard() const { return free_area_id_bitboard_; }
+    inline const GoBitboard& getFreeBlockIDBitBoard() const { return free_block_id_bitboard_; }
     inline const GoPair<GoBitboard>& getStoneBitboard() const { return stone_bitboard_; }
     inline const GoPair<GoBitboard>& getBensonBitboard() const { return benson_bitboard_; }
+    inline const GoGrid& getGrid(int id) const { return grids_[id]; }
+    inline const GoArea& getArea(int id) const { return areas_[id]; }
+    inline const GoBlock& getBlock(int id) const { return blocks_[id]; }
 
 protected:
     void initialize();

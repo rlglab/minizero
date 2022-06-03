@@ -372,7 +372,7 @@ void GoEnv::removeBlockFromBoard(GoBlock* block)
 
     // update area
     GoArea* area = nullptr;
-    GoBitboard area_id = block->getNeighborAreaID();
+    GoBitboard area_id = block->getNeighborAreaIDBitboard();
     while (!area_id.none()) {
         int id = area_id._Find_first();
         area_id.reset(id);
@@ -385,7 +385,7 @@ void GoEnv::removeBlockFromBoard(GoBlock* block)
     assert(area);
     area->setNumGrid(area->getNumGrid() + block->getNumGrid());
     area->setAreaBitBoard(area->getAreaBitboard() | block->getGridBitboard());
-    area->removeNeighborBlockID(block->getID());
+    area->removeNeighborBlockIDBitboard(block->getID());
     if (area->getNumGrid() == board_size_ * board_size_) {
         // remove area when area include whole board
         removeArea(area);
@@ -429,12 +429,12 @@ GoBlock* GoEnv::combineBlocks(GoBlock* block1, GoBlock* block2)
     }
 
     // link area to new block
-    GoBitboard new_area_id_bitboard = block2->getNeighborAreaID();
+    GoBitboard new_area_id_bitboard = block2->getNeighborAreaIDBitboard();
     while (!new_area_id_bitboard.none()) {
         int id = new_area_id_bitboard._Find_first();
         new_area_id_bitboard.reset(id);
-        areas_[id].removeNeighborBlockID(block2->getID());
-        areas_[id].addNeighborBlockID(block1->getID());
+        areas_[id].removeNeighborBlockIDBitboard(block2->getID());
+        areas_[id].addNeighborBlockIDBitboard(block1->getID());
     }
 
     block1->combineWithBlock(block2);
@@ -461,10 +461,10 @@ void GoEnv::updateArea(const GoAction& action)
             removeArea(own_area);
         } else {
             grid.setArea(action.getPlayer(), nullptr);
-            grid.getBlock()->addNeighborAreaID(own_area->getID());
+            grid.getBlock()->addNeighborAreaIDBitboard(own_area->getID());
             own_area->setNumGrid(own_area->getNumGrid() - 1);
             own_area->getAreaBitboard().reset(grid.getPosition());
-            own_area->getNeighborBlockID().set(grid.getBlock()->getID());
+            own_area->getNeighborBlockIDBitboard().set(grid.getBlock()->getID());
         }
     } else {
         if (own_area) { removeArea(own_area); }
@@ -498,8 +498,8 @@ void GoEnv::addArea(Player player, const GoBitboard& area_bitboard)
     while (!neighbor_block_bitboard.none()) {
         int pos = neighbor_block_bitboard._Find_first();
         GoBlock* block = grids_[pos].getBlock();
-        block->addNeighborAreaID(area->getID());
-        area->addNeighborBlockID(block->getID());
+        block->addNeighborAreaIDBitboard(area->getID());
+        area->addNeighborBlockIDBitboard(block->getID());
         neighbor_block_bitboard &= ~block->getGridBitboard();
     }
 }
@@ -517,11 +517,11 @@ void GoEnv::removeArea(GoArea* area)
     }
 
     // remove blocks pointer
-    GoBitboard neighbor_block_id = area->getNeighborBlockID();
+    GoBitboard neighbor_block_id = area->getNeighborBlockIDBitboard();
     while (!neighbor_block_id.none()) {
         int block_id = neighbor_block_id._Find_first();
         neighbor_block_id.reset(block_id);
-        blocks_[block_id].removeNeighborAreaID(area->getID());
+        blocks_[block_id].removeNeighborAreaIDBitboard(area->getID());
     }
 
     // remove area
@@ -535,7 +535,7 @@ GoArea* GoEnv::mergeArea(GoArea* area1, GoArea* area2)
     if (area1->getNumGrid() < area2->getNumGrid()) { return mergeArea(area2, area1); }
 
     GoBitboard area2_bitboard = area2->getAreaBitboard(); // save area2 bitboard before removing area2
-    GoBitboard area2_nbr_block_id = area2->getNeighborBlockID();
+    GoBitboard area2_nbr_block_id = area2->getNeighborBlockIDBitboard();
     area1->combineWithArea(area2);
     removeArea(area2);
     while (!area2_bitboard.none()) { // link grid to area
@@ -546,7 +546,7 @@ GoArea* GoEnv::mergeArea(GoArea* area1, GoArea* area2)
     while (!area2_nbr_block_id.none()) { // link block to area
         int id = area2_nbr_block_id._Find_first();
         area2_nbr_block_id.reset(id);
-        blocks_[id].addNeighborAreaID(area1->getID());
+        blocks_[id].addNeighborAreaIDBitboard(area1->getID());
     }
     return area1;
 }
@@ -579,7 +579,7 @@ void GoEnv::updateBenson(const GoAction& action)
 
     // update own benson
     GoBitboard& own_benson_bitboard = benson_bitboard_.get(action.getPlayer());
-    if (own_benson_bitboard.test(action.getActionID()) || block->getNeighborAreaID().count() > 1) {
+    if (own_benson_bitboard.test(action.getActionID()) || block->getNeighborAreaIDBitboard().count() > 1) {
         own_benson_bitboard = findBensonBitboard(stone_bitboard_.get(block->getPlayer()));
     }
 
@@ -603,7 +603,7 @@ GoBitboard GoEnv::findBensonBitboard(GoBitboard block_bitboard) const
         const GoBlock* block = grids_[pos].getBlock();
         block_bitboard &= ~block->getGridBitboard();
 
-        GoBitboard block_neighbor_area_id = block->getNeighborAreaID();
+        GoBitboard block_neighbor_area_id = block->getNeighborAreaIDBitboard();
         while (!block_neighbor_area_id.none()) {
             int area_id = block_neighbor_area_id._Find_first();
             block_neighbor_area_id.reset(area_id);
@@ -644,7 +644,7 @@ GoBitboard GoEnv::findBensonBitboard(GoBitboard block_bitboard) const
             int area_id = benson_area_id._Find_first();
             benson_area_id.reset(area_id);
 
-            if (!(areas_[area_id].getNeighborBlockID() & ~benson_block_id).none()) {
+            if (!(areas_[area_id].getNeighborBlockIDBitboard() & ~benson_block_id).none()) {
                 is_over = false;
                 continue;
             }

@@ -20,7 +20,7 @@ public:
         hash_key_ = 0;
         grid_bitboard_.reset();
         liberty_bitboard_.reset();
-        neighbor_area_id_.reset();
+        neighbor_area_id_bitboard_.reset();
     }
 
     inline void combineWithBlock(GoBlock* block)
@@ -31,7 +31,7 @@ public:
         num_grid_ += block->getNumGrid();
         liberty_bitboard_ |= block->getLibertyBitboard();
         num_liberty_ = liberty_bitboard_.count();
-        neighbor_area_id_ |= block->getNeighborAreaID();
+        neighbor_area_id_bitboard_ |= block->getNeighborAreaIDBitboard();
     }
 
     // setter
@@ -55,8 +55,8 @@ public:
         liberty_bitboard_.reset(pos);
         --num_liberty_;
     }
-    inline void addNeighborAreaID(int area_id) { neighbor_area_id_.set(area_id); }
-    inline void removeNeighborAreaID(int area_id) { neighbor_area_id_.reset(area_id); }
+    inline void addNeighborAreaIDBitboard(int area_id) { neighbor_area_id_bitboard_.set(area_id); }
+    inline void removeNeighborAreaIDBitboard(int area_id) { neighbor_area_id_bitboard_.reset(area_id); }
 
     // getter
     inline int getID() const { return id_; }
@@ -68,8 +68,8 @@ public:
     inline const GoBitboard& getGridBitboard() const { return grid_bitboard_; }
     inline GoBitboard& getLibertyBitboard() { return liberty_bitboard_; }
     inline const GoBitboard& getLibertyBitboard() const { return liberty_bitboard_; }
-    inline GoBitboard& getNeighborAreaID() { return neighbor_area_id_; }
-    inline const GoBitboard& getNeighborAreaID() const { return neighbor_area_id_; }
+    inline GoBitboard& getNeighborAreaIDBitboard() { return neighbor_area_id_bitboard_; }
+    inline const GoBitboard& getNeighborAreaIDBitboard() const { return neighbor_area_id_bitboard_; }
 
 private:
     int id_;
@@ -79,7 +79,7 @@ private:
     GoHashKey hash_key_;
     GoBitboard grid_bitboard_;
     GoBitboard liberty_bitboard_;
-    GoBitboard neighbor_area_id_;
+    GoBitboard neighbor_area_id_bitboard_;
 };
 
 } // namespace minizero::env::go

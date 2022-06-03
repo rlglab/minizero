@@ -17,7 +17,7 @@ public:
         num_grid_ = 0;
         player_ = Player::kPlayerNone;
         area_bitboard_.reset();
-        neighbor_block_id_.reset();
+        neighbor_block_id_bitboard_.reset();
     }
 
     inline void combineWithArea(GoArea* area)
@@ -25,15 +25,15 @@ public:
         assert(area && player_ == area->getPlayer());
         num_grid_ += area->getNumGrid();
         area_bitboard_ |= area->getAreaBitboard();
-        neighbor_block_id_ |= area->getNeighborBlockID();
+        neighbor_block_id_bitboard_ |= area->getNeighborBlockIDBitboard();
     }
 
     // setter
     inline void setNumGrid(int num_grid) { num_grid_ = num_grid; }
     inline void setPlayer(Player p) { player_ = p; }
     inline void setAreaBitBoard(const GoBitboard& area_bitboard) { area_bitboard_ = area_bitboard; }
-    inline void addNeighborBlockID(int block_id) { neighbor_block_id_.set(block_id); }
-    inline void removeNeighborBlockID(int block_id) { neighbor_block_id_.reset(block_id); }
+    inline void addNeighborBlockIDBitboard(int block_id) { neighbor_block_id_bitboard_.set(block_id); }
+    inline void removeNeighborBlockIDBitboard(int block_id) { neighbor_block_id_bitboard_.reset(block_id); }
 
     // getter
     inline int getID() const { return id_; }
@@ -41,15 +41,15 @@ public:
     inline Player getPlayer() const { return player_; }
     inline GoBitboard& getAreaBitboard() { return area_bitboard_; }
     inline const GoBitboard& getAreaBitboard() const { return area_bitboard_; }
-    inline GoBitboard& getNeighborBlockID() { return neighbor_block_id_; }
-    inline const GoBitboard& getNeighborBlockID() const { return neighbor_block_id_; }
+    inline GoBitboard& getNeighborBlockIDBitboard() { return neighbor_block_id_bitboard_; }
+    inline const GoBitboard& getNeighborBlockIDBitboard() const { return neighbor_block_id_bitboard_; }
 
 private:
     int id_;
     int num_grid_;
     Player player_;
     GoBitboard area_bitboard_;
-    GoBitboard neighbor_block_id_;
+    GoBitboard neighbor_block_id_bitboard_;
 };
 
 } // namespace minizero::env::go

@@ -78,7 +78,7 @@ bool GoEnv::checkBlockDataStructure() const
         assert(liberty_bitboard == block->getLibertyBitboard());
 
         // areas
-        GoBitboard area_id = block->getNeighborAreaID();
+        GoBitboard area_id = block->getNeighborAreaIDBitboard();
         while (!area_id.none()) {
             int id = area_id._Find_first();
             area_id.reset(id);
@@ -124,8 +124,8 @@ bool GoEnv::checkAreaDataStructure() const
             int pos = area_neighbor_block_bitboard._Find_first();
             const GoBlock* block = grids_[pos].getBlock();
             assert(block);
-            assert(block->getNeighborAreaID().test(area->getID()));
-            assert(area->getNeighborBlockID().test(block->getID()));
+            assert(block->getNeighborAreaIDBitboard().test(area->getID()));
+            assert(area->getNeighborBlockIDBitboard().test(block->getID()));
             area_neighbor_block_bitboard &= ~block->getGridBitboard();
         }
     }
