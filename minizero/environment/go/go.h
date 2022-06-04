@@ -14,11 +14,13 @@
 namespace minizero::env::go {
 
 extern GoHashKey turn_hash_key;
+extern std::vector<GoHashKey> empty_hash_key;
 extern std::vector<GoPair<GoHashKey>> grids_hash_key;
 extern std::vector<std::vector<GoPair<GoHashKey>>> sequence_hash_key;
 
 void initialize();
 GoHashKey getGoTurnHashKey();
+GoHashKey getGoEmptyHashKey(int position);
 GoHashKey getGoGridHashKey(int position, Player p);
 GoHashKey getGoSequenceHashKey(int move, int position, Player p);
 
@@ -55,7 +57,7 @@ public:
     std::vector<float> getFeatures(utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::vector<float> getActionFeatures(const GoAction& action, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::string toString() const override;
-    GoBitboard floodFillBitBoard(int start_position, const GoBitboard& boundary_bitboard) const;
+    GoBitboard dilateBitboard(const GoBitboard& bitboard) const;
 
     inline std::string name() const override { return kGoName; }
     inline int getBoardSize() const { return board_size_; }
@@ -85,7 +87,7 @@ protected:
     void updateBenson(const GoAction& action);
     GoBitboard findBensonBitboard(GoBitboard block_bitboard) const;
     std::string getCoordinateString() const;
-    GoBitboard dilateBitboard(const GoBitboard& bitboard) const;
+    GoBitboard floodFillBitBoard(int start_position, const GoBitboard& boundary_bitboard) const;
     GoPair<float> calculateTrompTaylorTerritory() const;
 
     // check data structure (for debugging)
