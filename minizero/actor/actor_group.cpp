@@ -26,7 +26,7 @@ void ThreadSharedData::outputRecord(const std::string& record)
 
 void SlaveThread::initialize()
 {
-    int seed = config::auto_seed ? std::random_device()() : config::seed;
+    int seed = config::program_auto_seed ? std::random_device()() : config::program_seed;
     Random::seed(seed);
 }
 

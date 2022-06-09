@@ -54,7 +54,7 @@ bool readConfiguration(config::ConfigureLoader& cl, string sConfigFile, string s
         return false;
     }
 
-    cerr << cl.toString();
+    if (!config::program_quiet) { cerr << cl.toString(); }
     return true;
 }
 

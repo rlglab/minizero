@@ -2,8 +2,10 @@
 
 namespace minizero::config {
 
-int seed = 0;
-bool auto_seed = false;
+// program parameters
+int program_seed = 0;
+bool program_auto_seed = false;
+bool program_quiet = false;
 
 // actor parameters
 int actor_num_threads = 4;
@@ -64,8 +66,10 @@ std::string env_go_ko_rule = "positional";
 
 void setConfiguration(ConfigureLoader& cl)
 {
-    cl.addParameter("seed", seed, "", "Actor");
-    cl.addParameter("auto_seed", auto_seed, "", "Actor");
+    // program parameters
+    cl.addParameter("program_seed", program_seed, "", "Program");
+    cl.addParameter("program_auto_seed", program_auto_seed, "", "Program");
+    cl.addParameter("program_quiet", program_quiet, "", "Program");
 
     // actor parameters
     cl.addParameter("actor_num_threads", actor_num_threads, "", "Actor");

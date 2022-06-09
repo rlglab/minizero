@@ -4,8 +4,10 @@
 
 namespace minizero::config {
 
-extern int seed;
-extern bool auto_seed;
+// program parameters
+extern int program_seed;
+extern bool program_auto_seed;
+extern bool program_quiet;
 
 // actor parameters
 extern int actor_num_threads;

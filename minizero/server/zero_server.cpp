@@ -116,7 +116,7 @@ void ZeroServer::sendInitialMessage(boost::shared_ptr<ZeroWorkerHandler> connect
 
 void ZeroServer::initialize()
 {
-    int seed = config::auto_seed ? static_cast<int>(time(NULL)) : config::seed;
+    int seed = config::program_auto_seed ? static_cast<int>(time(NULL)) : config::program_seed;
     utils::Random::seed(seed);
     shared_data_.logger_.createLog();
 
