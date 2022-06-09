@@ -117,7 +117,7 @@ public:
         return true;
     }
 
-    inline void loadFromEnvironment(const Env& env, const std::vector<std::string> action_distributions = {})
+    inline void loadFromEnvironment(const Env& env, const std::vector<std::string>& action_distributions = {})
     {
         reset();
         for (size_t i = 0; i < env.getActionHistory().size(); ++i) {
