@@ -181,7 +181,7 @@ void ZeroServer::broadCastSelfPlayJob()
     for (auto worker : connections_) {
         if (!worker->isIdle()) { continue; }
         worker->setIdle(false);
-        worker->write(job_command + ":auto_seed=false:seed=" + std::to_string(utils::Random::randInt()));
+        worker->write(job_command + ":program_auto_seed=false:program_seed=" + std::to_string(utils::Random::randInt()));
     }
 }
 
