@@ -11,7 +11,6 @@ namespace minizero::actor {
 class ThreadSharedData {
 public:
     int getAvailableActorIndex();
-    void outputRecord(const std::string& record);
 
     bool do_cpu_job_;
     int actor_index_;
@@ -46,6 +45,7 @@ public:
 protected:
     void createNeuralNetworks();
     void createActors();
+    void handleFinishedGame();
 };
 
 } // namespace minizero::actor

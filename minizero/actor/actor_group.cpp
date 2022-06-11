@@ -18,12 +18,6 @@ int ThreadSharedData::getAvailableActorIndex()
     return actor_index_++;
 }
 
-void ThreadSharedData::outputRecord(const std::string& record)
-{
-    std::lock_guard<std::mutex> lock(mutex_);
-    std::cout << record << std::endl;
-}
-
 void SlaveThread::initialize()
 {
     int seed = config::program_auto_seed ? std::random_device()() : config::program_seed;
@@ -50,17 +44,7 @@ bool SlaveThread::doCPUJob()
     if (network_output_id >= 0) {
         assert(network_output_id < static_cast<int>(shared_data_.network_outputs_[network_id].size()));
         actor->afterNNEvaluation(shared_data_.network_outputs_[network_id][network_output_id]);
-        if (actor->isSearchDone()) { // handle search end
-            if (!actor->isResign()) { actor->act(actor->getSearchAction(), actor->getActionComment()); }
-            if (actor_id == 0 && config::actor_num_simulation >= 100) { actor->displayBoard(); }
-            if (actor->isResign() || actor->isEnvTerminal()) {
-                if (actor_id == 0 && config::actor_num_simulation < 100) { actor->displayBoard(); }
-                shared_data_.outputRecord(actor->getRecord());
-                actor->reset();
-            } else {
-                actor->resetSearch();
-            }
-        }
+        if (actor->isSearchDone() && !actor->isResign()) { actor->act(actor->getSearchAction(), actor->getActionComment()); }
     }
     actor->beforeNNEvaluation();
     return true;
@@ -93,6 +77,7 @@ void ActorGroup::run()
         shared_data_.actor_index_ = 0;
         for (auto& t : slave_threads_) { t->start(); }
         for (auto& t : slave_threads_) { t->finish(); }
+        handleFinishedGame();
         shared_data_.do_cpu_job_ = !shared_data_.do_cpu_job_;
     }
 }
@@ -123,6 +108,22 @@ void ActorGroup::createActors()
     long long tree_node_size = static_cast<long long>(config::actor_num_simulation + 1) * network->getActionSize();
     for (int i = 0; i < config::actor_num_parallel_games; ++i) {
         shared_data_.actors_.emplace_back(createActor(tree_node_size, shared_data_.networks_[i % shared_data_.networks_.size()]));
+    }
+}
+
+void ActorGroup::handleFinishedGame()
+{
+    for (size_t actor_id = 0; actor_id < shared_data_.actors_.size(); ++actor_id) {
+        std::shared_ptr<BaseActor>& actor = shared_data_.actors_[actor_id];
+        if (!actor->isSearchDone()) { continue; }
+        if (actor_id == 0 && config::actor_num_simulation >= 100) { std::cerr << actor->getEnvironment().toString() << actor->getSearchInfo() << std::endl; }
+        if (actor->isResign() || actor->isEnvTerminal()) {
+            if (actor_id == 0 && config::actor_num_simulation < 100) { std::cerr << actor->getEnvironment().toString() << actor->getSearchInfo() << std::endl; }
+            std::cout << actor->getRecord() << std::endl;
+            actor->reset();
+        } else {
+            actor->resetSearch();
+        }
     }
 }
 

@@ -9,6 +9,7 @@ using namespace network;
 
 void MCTSSearchData::clear()
 {
+    search_info_ = "";
     selected_node_ = nullptr;
     node_path_.clear();
 }
@@ -31,7 +32,7 @@ Action ZeroActor::think(bool with_play /*= false*/, bool display_board /*= false
     resetSearch();
     while (!isSearchDone()) { step(); }
     if (with_play) { act(getSearchAction()); }
-    if (display_board) { displayBoard(); }
+    if (display_board) { std::cerr << env_.toString() << mcts_search_data_.search_info_ << std::endl; }
     return getSearchAction();
 }
 
@@ -79,22 +80,7 @@ void ZeroActor::afterNNEvaluation(const std::shared_ptr<NetworkOutput>& network_
         assert(false);
     }
     if (leaf_node == mcts_.getRootNode()) { addNoiseToNodeChildren(leaf_node); }
-    if (isSearchDone()) { mcts_search_data_.selected_node_ = decideActionNode(); }
-}
-
-void ZeroActor::displayBoard() const
-{
-    assert(mcts_search_data_.selected_node_);
-    const Action action = getSearchAction();
-    std::cerr << env_.toString();
-    std::cerr << TimeSystem::getTimeString("[Y/m/d H:i:s.f] ")
-              << "move number: " << env_.getActionHistory().size()
-              << ", action: " << action.toConsoleString()
-              << " (" << action.getActionID() << ")"
-              << ", player: " << env::playerToChar(action.getPlayer()) << std::endl;
-    std::cerr << "  root node info: " << mcts_.getRootNode()->toString() << std::endl;
-    std::cerr << "action node info: " << mcts_search_data_.selected_node_->toString() << std::endl
-              << std::endl;
+    if (isSearchDone()) { handleSearchDone(); }
 }
 
 void ZeroActor::setNetwork(const std::shared_ptr<network::Network>& network)
@@ -126,6 +112,21 @@ void ZeroActor::step()
     } else {
         assert(false);
     }
+}
+
+void ZeroActor::handleSearchDone()
+{
+    mcts_search_data_.selected_node_ = decideActionNode();
+    const Action action = getSearchAction();
+    std::ostringstream oss;
+    oss << TimeSystem::getTimeString("[Y/m/d H:i:s.f] ")
+        << "move number: " << env_.getActionHistory().size()
+        << ", action: " << action.toConsoleString()
+        << " (" << action.getActionID() << ")"
+        << ", player: " << env::playerToChar(action.getPlayer()) << std::endl
+        << "  root node info: " << mcts_.getRootNode()->toString() << std::endl
+        << "action node info: " << mcts_search_data_.selected_node_->toString() << std::endl;
+    mcts_search_data_.search_info_ = oss.str();
 }
 
 MCTSNode* ZeroActor::decideActionNode()

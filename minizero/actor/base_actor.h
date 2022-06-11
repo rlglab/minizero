@@ -26,10 +26,10 @@ public:
     virtual Action think(bool with_play = false, bool display_board = false) = 0;
     virtual void beforeNNEvaluation() = 0;
     virtual void afterNNEvaluation(const std::shared_ptr<network::NetworkOutput>& network_output) = 0;
-    virtual void displayBoard() const = 0;
     virtual bool isSearchDone() const = 0;
     virtual Action getSearchAction() const = 0;
     virtual bool isResign() const = 0;
+    virtual std::string getSearchInfo() const = 0;
     virtual std::string getActionComment() const = 0;
     virtual void setNetwork(const std::shared_ptr<network::Network>& network) = 0;
 

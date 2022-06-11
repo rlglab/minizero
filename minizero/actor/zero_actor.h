@@ -9,6 +9,7 @@ namespace minizero::actor {
 
 class MCTSSearchData {
 public:
+    std::string search_info_;
     MCTSNode* selected_node_;
     std::vector<MCTSNode*> node_path_;
     void clear();
@@ -28,15 +29,16 @@ public:
     Action think(bool with_play = false, bool display_board = false) override;
     void beforeNNEvaluation() override;
     void afterNNEvaluation(const std::shared_ptr<network::NetworkOutput>& network_output) override;
-    void displayBoard() const override;
     bool isSearchDone() const override { return mcts_.reachMaximumSimulation(); }
     Action getSearchAction() const override { return mcts_search_data_.selected_node_->getAction(); }
     bool isResign() const override { return enable_resign_ && mcts_.isResign(mcts_search_data_.selected_node_); }
+    std::string getSearchInfo() const override { return mcts_search_data_.search_info_; }
     virtual std::string getActionComment() const override { return mcts_.getSearchDistributionString(); }
     void setNetwork(const std::shared_ptr<network::Network>& network) override;
 
 protected:
     void step();
+    void handleSearchDone();
     virtual MCTSNode* decideActionNode();
     void addNoiseToNodeChildren(MCTSNode* node);
 
