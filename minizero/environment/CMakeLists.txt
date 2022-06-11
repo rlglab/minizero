@@ -5,6 +5,7 @@ target_include_directories(
     environment PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     base
+    atari
     chess
     go
     gomoku

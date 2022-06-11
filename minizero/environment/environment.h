@@ -1,6 +1,11 @@
 #pragma once
 
-#if CHESS
+#if ATARI
+#include "atari.h"
+typedef minizero::env::atari::AtariAction Action;
+typedef minizero::env::atari::AtariEnv Environment;
+typedef minizero::env::atari::AtariEnvLoader EnvironmentLoader;
+#elif CHESS
 #include "chess.h"
 typedef minizero::env::chess::ChessAction Action;
 typedef minizero::env::chess::ChessEnv Environment;

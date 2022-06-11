@@ -62,6 +62,7 @@ extern int nn_num_value_hidden_channels;
 extern std::string nn_type_name;
 
 // environment parameters
+extern std::string env_atari_name;
 extern int env_go_board_size;
 extern float env_go_komi;
 extern std::string env_go_ko_rule;

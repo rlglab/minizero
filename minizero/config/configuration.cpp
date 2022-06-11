@@ -60,6 +60,7 @@ int nn_num_value_hidden_channels = 256;
 std::string nn_type_name = "alphazero";
 
 // environment parameters
+std::string env_atari_name = "ALE/Breakout-v5";
 int env_go_board_size = 19;
 float env_go_komi = 7.5;
 std::string env_go_ko_rule = "positional";
@@ -124,7 +125,9 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("nn_type_name", nn_type_name, "", "Network");
 
     // environment parameters
-#if GO
+#if ATARI
+    cl.addParameter("env_atari_name", env_atari_name, "", "Environment");
+#elif GO
     cl.addParameter("env_go_board_size", env_go_board_size, "", "Environment");
     cl.addParameter("env_go_komi", env_go_komi, "", "Environment");
     cl.addParameter("env_go_ko_rule", env_go_ko_rule, "positional/situational", "Environment");
