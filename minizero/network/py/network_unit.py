@@ -6,9 +6,9 @@ import torch.nn.functional as F
 class ResidualBlock(nn.Module):
     def __init__(self, num_channels):
         super(ResidualBlock, self).__init__()
-        self.conv1 = nn.Conv2d(num_channels, num_channels, 3, padding=1)
+        self.conv1 = nn.Conv2d(num_channels, num_channels, kernel_size=3, padding=1)
         self.bn1 = nn.BatchNorm2d(num_channels)
-        self.conv2 = nn.Conv2d(num_channels, num_channels, 3, padding=1)
+        self.conv2 = nn.Conv2d(num_channels, num_channels, kernel_size=3, padding=1)
         self.bn2 = nn.BatchNorm2d(num_channels)
 
     def forward(self, x):
@@ -29,7 +29,7 @@ class PolicyNetwork(nn.Module):
         self.channel_height = channel_height
         self.channel_width = channel_width
         self.num_output_channels = num_output_channels
-        self.conv = nn.Conv2d(num_channels, num_output_channels, 1)
+        self.conv = nn.Conv2d(num_channels, num_output_channels, kernel_size=1)
         self.bn = nn.BatchNorm2d(num_output_channels)
         self.fc = nn.Linear(num_output_channels*channel_height*channel_width, action_size)
 
@@ -47,7 +47,7 @@ class ValueNetwork(nn.Module):
         super(ValueNetwork, self).__init__()
         self.channel_height = channel_height
         self.channel_width = channel_width
-        self.conv = nn.Conv2d(num_channels, 1, 1)
+        self.conv = nn.Conv2d(num_channels, 1, kernel_size=1)
         self.bn = nn.BatchNorm2d(1)
         self.fc1 = nn.Linear(channel_height*channel_width, num_output_channels)
         self.fc2 = nn.Linear(num_output_channels, 1)

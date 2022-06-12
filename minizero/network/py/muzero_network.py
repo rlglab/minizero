@@ -7,7 +7,7 @@ from .network_unit import ResidualBlock, PolicyNetwork, ValueNetwork
 class MuZeroRepresentationNetwork(nn.Module):
     def __init__(self, num_input_channels, num_output_channels, num_blocks):
         super(MuZeroRepresentationNetwork, self).__init__()
-        self.conv = nn.Conv2d(num_input_channels, num_output_channels, 3, padding=1)
+        self.conv = nn.Conv2d(num_input_channels, num_output_channels, kernel_size=3, padding=1)
         self.bn = nn.BatchNorm2d(num_output_channels)
         self.residual_blocks = nn.ModuleList([ResidualBlock(num_output_channels) for _ in range(num_blocks)])
 
@@ -23,7 +23,7 @@ class MuZeroRepresentationNetwork(nn.Module):
 class MuZeroDynamicsNetwork(nn.Module):
     def __init__(self, num_channels, num_action_feature_channels, num_blocks):
         super(MuZeroDynamicsNetwork, self).__init__()
-        self.conv = nn.Conv2d(num_channels + num_action_feature_channels, num_channels, 3, padding=1)
+        self.conv = nn.Conv2d(num_channels + num_action_feature_channels, num_channels, kernel_size=3, padding=1)
         self.bn = nn.BatchNorm2d(num_channels)
         self.residual_blocks = nn.ModuleList([ResidualBlock(num_channels) for _ in range(num_blocks)])
 
@@ -40,7 +40,7 @@ class MuZeroDynamicsNetwork(nn.Module):
 class MuZeroPredictionNetwork(nn.Module):
     def __init__(self, num_channels, channel_height, channel_width, num_blocks, num_action_channels, action_size, num_value_hidden_channels):
         super(MuZeroPredictionNetwork, self).__init__()
-        self.conv = nn.Conv2d(num_channels, num_channels, 3, padding=1)
+        self.conv = nn.Conv2d(num_channels, num_channels, kernel_size=3, padding=1)
         self.bn = nn.BatchNorm2d(num_channels)
         self.residual_blocks = nn.ModuleList([ResidualBlock(num_channels) for _ in range(num_blocks)])
         self.policy = PolicyNetwork(num_channels, channel_height, channel_width, num_action_channels, action_size)
