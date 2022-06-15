@@ -1293,6 +1293,8 @@ public:
         }
     }
 
+    void setObservation(const std::vector<float>& observation) override {}
+
     std::vector<float> getFeatures(utils::Rotation rotation = utils::Rotation::kRotationNone) const override
     {
         std::vector<float> vFeatures;

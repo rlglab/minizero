@@ -54,6 +54,7 @@ public:
     virtual bool isLegalAction(const GoAction& action) const override;
     bool isTerminal() const override;
     float getEvalScore(bool is_resign = false) const override;
+    void setObservation(const std::vector<float>& observation) override {}
     std::vector<float> getFeatures(utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::vector<float> getActionFeatures(const GoAction& action, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::string toString() const override;
