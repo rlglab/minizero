@@ -176,6 +176,7 @@ void ZeroServer::broadCastSelfPlayJob()
     std::string job_command = "Job_SelfPlay ";
     job_command += config::zero_training_directory + " ";
     job_command += "nn_file_name=" + config::zero_training_directory + "/model/weight_iter_" + std::to_string(shared_data_.getModelIetration()) + ".pt";
+    job_command += ":program_quiet=true";
 
     boost::lock_guard<boost::mutex> lock(worker_mutex_);
     for (auto worker : connections_) {
