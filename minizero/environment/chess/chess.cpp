@@ -2,161 +2,73 @@
 # include <iostream>
 namespace minizero::env::chess{
 
-ChessAction::ChessAction(Player player, int from, int to, Pieces move_p, Pieces taken_p, Pieces promote_p, int id){
-    player_ = player;
-    move_piece_ = move_p;
-    taken_piece_ = taken_p;
-    promotion_piece_ = promote_p;
-    from_ = from;
-    to_ = to;
-    shortcastle_ = false;
-    longcastle_ = false;
-    enpassant_ = false;
-    if(id == -1){
-        action_id_ = convertToID();
-    }else
-        action_id_ = id;
-    assert(action_id_ > 0);
-}
-
 ChessAction::ChessAction(const std::vector<std::string>& action_string_args)
 {
     // TODO: implement chess action constructor
 }
 
-
-
-int ChessAction::convertToID(){
-    int pos = from_; // 0-63
-    int row = to_ / 8 - from_ / 8;
-    int col = to_ % 8 - from_ % 8;
-
-    if(move_piece_ == Pieces::knight){
-        // std::cout << "move: knight\n";
-        if(row == 2 && col == 1){
-            return (pos * 73) + 57;    // NNE(57)
-        }else if(row == 1 && col == 2){
-            return (pos * 73) + 58;    // NEE(58)
-        }else if(row == -1 && col == 2){
-            return (pos * 73) + 59;    // SEE(59)
-        }else if(row == -2 && col == 1){
-            return (pos * 73) + 60;    // SSE(60)
-        }else if(row == -2 && col == -1){
-            return (pos * 73) + 61;    // SSW(61)
-        }else if(row == -1 && col == -2){
-            return (pos * 73) + 62;    // SWW(62)
-        }else if(row == 1 && col == -2){
-            return (pos * 73) + 63;    // NWW(63)
-        }else if(row == 2 && col == -1){
-            return (pos * 73) + 64;    // NNW(64)
-        }  
-    // 8 * (#_squares-1)[0-6] + dir[N NE E SE S SW W NW (1-8)]
-    // N1 NE1 E1 SE1 S1 SW1 W1 NW1 1~8 | 8*0 + [1-8]
-    // N2 NE2 E2 SE2 S2 SW2 W2 NW2 9~16 | 8*1 + [1-8]
-    // N8 NE8 E8 SE8 S8 SW8 W8 NW8 49~56
-    // N=1, NE=2, E=3, SE=4, S=5, SW=6, W=7, NW=8
-    }else if(move_piece_ == Pieces::king){
-        // std::cout << "move: king\n";
-        if(col == 2){
-            shortcastle_ = true;
-            return (pos * 73) + 11;  // E-2: 8 * 1 + 3
-        }else if(col == -2){
-            longcastle_ = true;
-            return (pos * 73) + 15;  // W-2: 8 * 1 + 7
-        }           
-        if(row == 1 && col == 0)
-            return (pos * 73) + 1;  // N-1: 8 * 0 + 1
-        if(row == 1 && col == 1)
-            return (pos * 73) + 2;  // NE-1: 8 * 0 + 2
-        if(row == 0 && col == 1)
-            return (pos * 73) + 3;  // E-1: 8 * 0 + 3
-        if(row == -1 && col == 1)
-            return (pos * 73) + 4;  // SE-1: 8 * 0 + 4
-        if(row == -1 && col == 0)
-            return (pos * 73) + 5;  // S-1: 8 * 0 + 5
-        if(row == -1 && col == -1)
-            return (pos * 73) + 6;  // SW-1: 8 * 0 + 6
-        if(row == 0 && col == -1)
-            return (pos * 73) + 7;  // W-1: 8 * 0 + 7
-        if(row == 1 && col == -1)
-            return (pos * 73) + 8;  // NW-1: 8 * 0 + 8
-    }else if(move_piece_ == Pieces::bishop || move_piece_ == Pieces::queen){
-        // std::cout << "move: bishop/queen\n";
-        if(row == col){
-            if(row > 0)
-                return (pos * 73) + (8 * (row - 1) + 2);       // row+ col+ NE-row
-            if(row < 0)
-                return (pos * 73) + (8 * (-1 * row - 1) + 6);  // row- col- SW-(-row)
-        }else if(row == -1 * col){
-            if(row > 0)
-                return (pos * 73) + (8 * (row - 1) + 8);       // row+ col- NW-(row)
-            if(row < 0)
-                return (pos * 73) + (8 * (-1 * row - 1) + 4);  // row- col+ SE-(-row)
-        }
+void ChessEnv::setBoard (std::vector<std::pair<Player, Pieces>> board) {
+    board_.resize(kChessBoardSize * kChessBoardSize);
+    for(int i = 0; i < 64; i++){
+        board_[i].first = board[i].first;
+        board_[i].second = board[i].second;
     }
-    if(move_piece_ == Pieces::rook || move_piece_ == Pieces::queen){
-        // std::cout << "move: rook/queen\n";
-        if(row == 0){
-            if(col < 0)
-                return (pos * 73) + (8 * (from_ - to_ - 1) + 7);   // W
-            else
-                return (pos * 73) + (8 * (to_ - from_ - 1) + 3);   // E    
-        }else if(col == 0){
-            if(row < 0)
-                return (pos * 73) + (8 * (-1 * row - 1) + 5) ;   // S-(-row-1)
-            else
-                return (pos * 73) + (8 * (row - 1) + 1);   // N-(row-1)
-        }
-    }
-    else if(move_piece_ == Pieces::pawn){
-        // std::cout << "move: pawn\n";
-        // N=1, NE=2, E=3, SE=4, S=5, SW=6, W=7, NW=8
-        if(promotion_piece_ == Pieces::empty || promotion_piece_ == Pieces::queen){
-            // N-1, N-2, S-1, S-2, NE-1, NW-1, SE-1, SW-1
-            if(row == 1){
-                if(col == -1)
-                    return (pos * 73) + 8; // NW-1
-                if(col == 1)
-                    return (pos * 73) + 2; // NE-1
-                if(col == 0)
-                    return (pos * 73) + 1; // N-1
-            }
-            if(row == -1){
-                if(col == -1)
-                    return (pos * 73) + 6; // SW-1
-                if(col == 1)
-                    return (pos * 73) + 4; // SE-1
-                if(col == 0)
-                    return (pos * 73) + 5; // S-1
-            }
-            if(row == 2){
-                if(col == 0)
-                    return (pos * 73) + (8 + 1);   // N-2
-            }
-            if(row == -2){
-                if(col == 0)
-                    return (pos * 73) + (8 + 5);   //S-2
-            }
-        }else{
-            // 65-73 [64 + 3 * dir + pro]
-            // direction(left-0, forward-1, right-2)
-            // promotion(Rook-1, Bishop-2, Knight-3) --> 6 - promotion_piece_(R-5, B-4, N-3)
-            if((row == 1 && to_ / 8 == 7) || (row == -1 && to_ / 8 == 0)){
-                if(col == -1)
-                    return (pos * 73) + (64 + 0 + (6 - static_cast<int>(promotion_piece_))); // 65-67
-                else if(col == 0)
-                    return (pos * 73) + (64 + 3 + (6 - static_cast<int>(promotion_piece_))); // 68-70
-                else if(col == 1)
-                    return (pos * 73) + (64 + 6 * (6 - static_cast<int>(promotion_piece_))); // 71-73   
-            }                     
-        }
-    }
-    std::cout << "convertToID (from, to, actionId): " << from_ << ", " << to_ << " | ";
-    std::cout << "direction (row, col): " << row << ", " << col << std::endl;
-    return -1;
 }
 
-bool ChessEnv::squareIsAttack(Player ply, int position, bool check_kings_attack) const {
+void ChessEnv::setBitboard (std::uint64_t rooks, std::uint64_t bishops, std::uint64_t knights, std::uint64_t pawns, std::uint64_t ply1, std::uint64_t ply2) {
+    rooks_.setboard(rooks);
+    bishops_.setboard(bishops);
+    knights_.setboard(knights);
+    pawns_.setboard(pawns);
+    ply1_pieces_.setboard(ply1);
+    ply2_pieces_.setboard(ply2);
+}
+
+void ChessEnv::setRemain(int ply1[], int ply2[]){
+    for(int i = 0; i < 5; i++){
+        ply1_remain_[i] = ply1[i];
+        ply2_remain_[i] = ply2[i];
+    }
+}
+
+void ChessEnv::setBoolean(bool ply1_k, bool ply1_kr, bool ply1_qr, bool ply1_check, bool ply1_insuff, bool ply1_00, bool ply1_000,
+                          bool ply2_k, bool ply2_kr, bool ply2_qr, bool ply2_check, bool ply2_insuff, bool ply2_00, bool ply2_000){
+    ply1_k_moved_ = ply1_k;
+    ply1_kr_moved_ = ply1_kr;
+    ply1_qr_moved_ = ply1_qr;
+    ply1_ischecked_ = ply1_check;
+    ply1_insuffi_ = ply1_insuff;
+    ply1_can000_ = ply1_00;
+    ply1_can000_ = ply1_000;
+        
+    ply2_k_moved_ = ply2_k;
+    ply2_kr_moved_ = ply2_kr;
+    ply2_qr_moved_ = ply2_qr;
+    ply2_ischecked_ = ply2_check;
+    ply2_insuffi_ = ply2_insuff;
+    ply2_can00_ = ply2_00;
+    ply2_can000_ = ply2_000;
+}
+
+void ChessEnv::setInt(int fifty, int three_rep, int ply1_k_pos, int ply2_k_pos){
+    fifty_steps_ = fifty;
+    repetitions_ = three_rep;
+    ply1_king_pos_ = ply1_k_pos;
+    ply2_king_pos_ = ply2_k_pos;
+}
+
+void ChessEnv::clearBitboardHistory(){
+    pawns_history_.clear();
+    knights_history_.clear();
+    bishops_history_.clear();
+    rooks_history_.clear();
+    queens_history_.clear();
+    king_history_.clear();
+}
+
+
+
+bool ChessEnv::squareIsAttacked(Player ply, int position, bool check_kings_attack) const {
     
     int square_col = positionToCol(position); 
     int square_row = positionToRow(position);
@@ -227,4 +139,38 @@ bool ChessEnv::squareIsAttack(Player ply, int position, bool check_kings_attack)
     }
     return false;
 }
+
+void ChessEnv::checkBitboard() const {
+    if(pawns_.countPawns() != (ply1_remain_[PAWN] + ply2_remain_[PAWN])){
+        std::cout << "pawns.count: " << pawns_.countPawns() <<std::endl;
+        std::cout << "remain pawns (w/b): " << ply1_remain_[PAWN] << ", " << ply2_remain_[PAWN] << std::endl;
+        pawns_.showBitboard();
+        std::cout << "\n-- Current Board --\n" << toString() << std::endl;
+    }
+    if(rooks_.count() != (ply1_remain_[ROOK] + ply2_remain_[ROOK] + ply1_remain_[QUEEN] + ply2_remain_[QUEEN])){
+        std::cout << "rooks.count: " << rooks_.count() <<std::endl;
+        std::cout << "remain rooks (w/b): " << ply1_remain_[ROOK] << ", " << ply2_remain_[ROOK] << std::endl;
+        std::cout << "remain queens (w/b): " << ply1_remain_[QUEEN] << ", " << ply2_remain_[QUEEN] << std::endl;
+        rooks_.showBitboard();
+        std::cout << "\n-- Current Board --\n" << toString() << std::endl;
+    }
+    if(bishops_.count() != (ply1_remain_[BISHOP] + ply2_remain_[BISHOP] + ply1_remain_[QUEEN] + ply2_remain_[QUEEN])){
+        std::cout << "bishops.count: " << bishops_.count() <<std::endl;
+        std::cout << "remain bishops (w/b): " << ply1_remain_[BISHOP] << ", " << ply2_remain_[BISHOP] << std::endl;
+        std::cout << "remain queens (w/b): " << ply1_remain_[QUEEN] << ", " << ply2_remain_[QUEEN] << std::endl;
+        rooks_.showBitboard();
+        std::cout << "\n-- Current Board --\n" << toString() << std::endl;
+    }
+    if(knights_.count() != (ply1_remain_[KNIGHT] + ply2_remain_[KNIGHT])){
+        std::cout << "knights.count: " << knights_.count() <<std::endl;
+        std::cout << "remain knights (w/b): " << ply1_remain_[KNIGHT] << ", " << ply2_remain_[KNIGHT] << std::endl;
+        rooks_.showBitboard();
+        std::cout << "\n-- Current Board --\n" << toString() << std::endl;
+    }
+    assert(pawns_.countPawns() == (ply1_remain_[PAWN] + ply2_remain_[PAWN]));
+    assert(knights_.count() == (ply1_remain_[KNIGHT] + ply2_remain_[KNIGHT]));
+    assert(bishops_.count() == (ply1_remain_[BISHOP] + ply1_remain_[QUEEN] + ply2_remain_[BISHOP] + ply2_remain_[QUEEN]));
+    assert(rooks_.count() == (ply1_remain_[ROOK] + ply1_remain_[QUEEN] + ply2_remain_[ROOK] + ply2_remain_[QUEEN]));
+}
+
 }

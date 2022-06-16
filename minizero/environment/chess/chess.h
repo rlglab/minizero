@@ -18,7 +18,7 @@
 // 4 + 24 25 26 27 28 29 30 31 +
 // 3 + 16 17 18 19 20 21 22 23 +
 // 2 + 08 09 10 11 12 13 14 15 +
-// 1 + 00 01 02 03 04 05 06 07 +
+// 1 + 00 01 02 03 04 05 06 07 + 
 //    ++++++++++++++++++++++++
 //      a  b  c  d  e  f  g  h
 
@@ -53,86 +53,8 @@ public:
     ChessAction() : BaseAction() {}
     ChessAction(int action_id, Player player) : BaseAction(action_id, player) {}
     ChessAction(const std::vector<std::string>& action_string_args);
-    ChessAction(Player player, int from, int to, Pieces move_p, Pieces taken_p, Pieces promote_p, int id);
     inline Player nextPlayer() const override { return getNextPlayer(player_, kChessNumPlayer); }
     inline std::string toConsoleString() const override { return ""; };
-    int convertToID();
-
-    void showActionInfo() const{
-        std::cout << "from " << from_ << "(" << char('a' + from_ % 8) << from_ / 8 + 1 << ") -> ";
-        std::cout << "to " << to_ << "(" << char('a' + to_ % 8) << to_ / 8 + 1 << ")"<<std::endl;
-        std::cout << "id: " << (getActionID() - 1) % 73 + 1 << std::endl;
-        if(move_piece_ == Pieces::pawn){
-            std::cout << "move[pawn] ";
-        }else if(move_piece_ == Pieces::knight){
-            std::cout << "move[knight] ";
-        }else if(move_piece_ == Pieces::bishop){
-            std::cout << "move[bishop] ";
-        }else if(move_piece_ == Pieces::rook){
-            std::cout << "move[rook] ";
-        }else if(move_piece_ == Pieces::queen){
-            std::cout << "move[queen] ";
-        }else if(move_piece_ == Pieces::king){
-            std::cout << "move[king] ";
-        }
-        if(taken_piece_ == Pieces::pawn){
-            std::cout << "take[pawn] ";
-        }else if(taken_piece_ == Pieces::knight){
-            std::cout << "take[knight] ";
-        }else if(taken_piece_ == Pieces::bishop){
-            std::cout << "take[bishop] ";
-        }else if(taken_piece_ == Pieces::rook){
-            std::cout << "take[rook] ";
-        }else if(taken_piece_ == Pieces::queen){
-            std::cout << "take[queen] ";
-        }else if(taken_piece_ == Pieces::empty){
-            std::cout << "take[empty] ";
-        }
-
-        if(promotion_piece_ == Pieces::knight){
-            std::cout << "promote[knight]\n";
-        }else if(promotion_piece_ == Pieces::bishop){
-            std::cout << "promote[bishop]\n";
-        }else if(promotion_piece_ == Pieces::rook){
-            std::cout << "promote[rook]\n";
-        }else if(promotion_piece_ == Pieces::queen){
-            std::cout << "promote[queen]\n";
-        }else if(promotion_piece_ == Pieces::empty){
-            std::cout << "promote[empty]\n";
-        }
-    }
-    void setFrom(int from){ from_ = from; }
-    void setTo(int to){ to_ = to; }
-    
-    void setMovedPiece(Pieces moved){ move_piece_ = moved; }
-    void setTakenPiece(Pieces taken){ taken_piece_ = taken; }
-    void setPromotedPiece(Pieces promote){ promotion_piece_ = promote; }
-    
-    void set00(bool shortcastle){ shortcastle_ = shortcastle; }
-    void set000(bool longcastle){ longcastle_ = longcastle; }
-    void setEnPassant(bool enpassant){ enpassant_ = enpassant;}
-    
-    bool is00() const { return shortcastle_;}
-    bool is000() const { return longcastle_;}
-    bool isEnPassant() const { return enpassant_;}
-
-    int getFrom() const { return from_;}
-    int getTo() const { return to_;}
-    
-    Pieces getMovedPiece() const { return move_piece_; }
-    Pieces getTakenPiece() const { return taken_piece_; }
-    Pieces getPromotedPiece() const { return promotion_piece_; }
-    
-private:
-    Pieces move_piece_;         // King, Queen, Rook, Bishop, Knight, pawn
-    Pieces taken_piece_;        // King, Queen, Rook, Bishop, Knight, pawn
-    Pieces promotion_piece_;    // Queen, Rook, Bishop, Knight
-    int from_;      // 0-63
-    int to_;        // 0-63
-    int move_id_;   // 8x8x73
-    bool shortcastle_;
-    bool longcastle_;
-    bool enpassant_;
 };
 
 #define NUM_OF_PIECES 12    // 6 for each
@@ -148,14 +70,12 @@ private:
 class Hash{
 public:
     Hash(){
-
         std::mt19937_64 generator;
         generator.seed(0);
 
         for(int i = 0; i < NUM_OF_PIECES; i++)
             for(int j = 0; j < NUM_OF_SQUARE; j++)
                 key_[i][j] = generator();
-
         reset();
     }
     void reset(){
@@ -165,15 +85,18 @@ public:
 
         hash_ = key_[ROOK][0] ^ key_[KNIGHT][1] ^ key_[BISHOP][2] ^ key_[QUEEN][3];
         hash_ ^= key_[ROOK][7] ^ key_[KNIGHT][6] ^ key_[BISHOP][5] ^ key_[KING][4];
+        
         for(int i = 8; i < 16; i++)
             hash_ ^= key_[PAWN][i];
 
         for(int i = 48; i < 56; i++)
             hash_ ^= key_[PAWN + 6][i];
+        
         hash_ ^= key_[ROOK + 6][56] ^ key_[KNIGHT + 6][57] ^ key_[BISHOP + 6][58] ^ key_[QUEEN + 6][59];
         hash_ ^= key_[ROOK + 6][63] ^ key_[KNIGHT + 6][62] ^ key_[BISHOP + 6][61] ^ key_[KING + 6][60];
         
         hash_table_1.insert(hash_);
+        
     }
 
     int positionToRow(int position) const {
@@ -186,7 +109,7 @@ public:
         return row * 8 + col;
     }
     
-    int storeTable(std::uint64_t newhash){
+    int storeTable(std::uint64_t newhash) {
         if(hash_table_1.count(newhash) == 0){
             hash_table_1.insert(newhash);
             return 1;
@@ -197,19 +120,20 @@ public:
         return 3;
     }
 
-    std::uint64_t applyMove(const ChessAction& action){
-        int from = action.getFrom();
-        int to = action.getTo();
+    std::uint64_t applyMove(Player turn, int move_from, int move_to, Pieces moved, Pieces taken, Pieces promote_to, bool is00, bool is000, bool isenpassant){
+         
+        int from = move_from;
+        int to = move_to;
         
-        Pieces move = action.getMovedPiece();
-        Pieces take = action.getTakenPiece();
-        Pieces promote = action.getPromotedPiece();
+        Pieces move = moved;
+        Pieces take = taken;
+        Pieces promote = promote_to;
         
-        bool is_00 = action.is00();
-        bool is_000 = action.is000();
-        bool enpassant = action.isEnPassant();
+        bool is_00 = is00;
+        bool is_000 = is000;
+        bool enpassant = isenpassant;
         
-        int turn_id = action.getPlayer() == Player::kPlayer1 ? 0 : 6;
+        int turn_id = turn == Player::kPlayer1 ? 0 : 6;
         
         if(is_00){
             hash_ ^= key_[KING + turn_id][from] ^ key_[KING + turn_id][to];
@@ -353,67 +277,20 @@ public:
                 board_[i].second = Pieces::king;
         }
 
-        setInt(0, 0, 0, 4, 60);
-        setBoolean(false, false, false, false, false, false, false, false, false, false);
+        setInt(0, 0, 4, 60);
+        setBoolean(false, false, false, false, false, false, false, false, false, false, false, false, false, false);
         setBitboard(0x8100000081000081, 0x0000810081810000, 0x0081000000008100, 0x4242424242424242, 0x0303030303030303, 0xC0C0C0C0C0C0C0C0);
         clearBitboardHistory();
         board_hash_.reset();
     }
     
-    void setBoard(std::vector<std::pair<Player, Pieces>> board){
-        board_.resize(kChessBoardSize * kChessBoardSize);
-        for(int i = 0; i < 64; i++){
-            board_[i].first = board[i].first;
-            board_[i].second = board[i].second;
-        }
-    }
-
-    void setBitboard(std::uint64_t rooks, std::uint64_t bishops, std::uint64_t knights, std::uint64_t pawns, std::uint64_t ply1, std::uint64_t ply2){
-        rooks_.setboard(rooks);
-        bishops_.setboard(bishops);
-        knights_.setboard(knights);
-        pawns_.setboard(pawns);
-        ply1_pieces_.setboard(ply1);
-        ply2_pieces_.setboard(ply2);
-    }
-
-    void setRemain(int ply1[], int ply2[]){
-        for(int i = 0; i < 5; i++){
-            ply1_remain_[i] = ply1[i];
-            ply2_remain_[i] = ply2[i];
-        }
-    }
-
-    void setBoolean(bool ply1_k, bool ply1_kr, bool ply1_qr, bool ply1_check, bool ply1_insuff,
-                    bool ply2_k, bool ply2_kr, bool ply2_qr, bool ply2_check, bool ply2_insuff){
-        ply1_k_moved_ = ply1_k;
-        ply1_kr_moved_ = ply1_kr;
-        ply1_qr_moved_ = ply1_qr;
-        ply1_ischecked_ = ply1_check;
-        ply1_insuffi_ = ply1_insuff;
-        
-        ply2_k_moved_ = ply2_k;
-        ply2_kr_moved_ = ply2_kr;
-        ply2_qr_moved_ = ply2_qr;
-        ply2_ischecked_ = ply2_check;
-        ply2_insuffi_ = ply2_insuff;
-    }
-
-    void setInt(int fifty1, int fifty2, int three_rep, int ply1_k_pos, int ply2_k_pos){
-        fifty_steps_1_ = fifty1;
-        fifty_steps_2_ = fifty2;
-        repetitions_ = three_rep;
-        ply1_king_pos_ = ply1_k_pos;
-        ply2_king_pos_ = ply2_k_pos;
-    }
-    void clearBitboardHistory(){
-        pawns_history_.clear();
-        knights_history_.clear();
-        bishops_history_.clear();
-        rooks_history_.clear();
-        queens_history_.clear();
-        king_history_.clear();
-    }
+    void setBoard(std::vector<std::pair<Player, Pieces>> board);
+    void setBitboard(std::uint64_t rooks, std::uint64_t bishops, std::uint64_t knights, std::uint64_t pawns, std::uint64_t ply1, std::uint64_t ply2);
+    void setRemain(int ply1[], int ply2[]);
+    void setBoolean(bool ply1_k, bool ply1_kr, bool ply1_qr, bool ply1_check, bool ply1_insuff, bool ply1_00, bool ply1_000,
+                    bool ply2_k, bool ply2_kr, bool ply2_qr, bool ply2_check, bool ply2_insuff, bool ply2_00, bool ply2_000);
+    void setInt(int fifty, int three_rep, int ply1_k_pos, int ply2_k_pos);
+    void clearBitboardHistory();
     bool rowOutOfBoard(int row) const { return row < 0 || row >= 8; }
     bool colOutOfBoard(int col) const { return col < 0 || col >= 8; }
     bool outOfBoard(int square) const { return square < 0 || square >= 64; }
@@ -430,13 +307,13 @@ public:
     int toBitBoardSquare(int row, int col) const { return row + 8 * col; }
     int toBitBoardSquare(int position) const { return toBitBoardSquare(positionToRow(position), positionToCol(position)); }
     
-    bool squareIsAttack(Player ply, int position, bool check_kings_attack) const ;
+    bool squareIsAttacked(Player ply, int position, bool check_kings_attack) const ;
     bool PlyIsCheck(Player ply) const {
         assert(ply != Player::kPlayerNone);
         if(ply == Player::kPlayer1)
-            return squareIsAttack(ply, ply1_king_pos_, false);
+            return squareIsAttacked(ply, ply1_king_pos_, false);
         else
-            return squareIsAttack(ply, ply2_king_pos_, false);
+            return squareIsAttacked(ply, ply2_king_pos_, false);
     }
 
     void checkRemain() const {
@@ -462,18 +339,7 @@ public:
             assert(ply2_remain_[i] >= 0);
         }
     }
-    void checkBitboard() const {
-        /*if(pawns_.countPawns() != (ply1_remain_[PAWN] + ply2_remain_[PAWN])){
-            std::cout << "pawns.count: " << pawns_.countPawns() <<std::endl;
-            std::cout << "remain pawns (w/b): " << ply1_remain_[PAWN] << ", " << ply2_remain_[PAWN] << std::endl;
-            pawns_.showBitboard();
-            std::cout << "\n-- Current Board --\n" << toString() << std::endl;
-        }*/
-        assert(pawns_.countPawns() == (ply1_remain_[PAWN] + ply2_remain_[PAWN]));
-        assert(knights_.count() == (ply1_remain_[KNIGHT] + ply2_remain_[KNIGHT]));
-        assert(bishops_.count() == (ply1_remain_[BISHOP] + ply1_remain_[QUEEN] + ply2_remain_[BISHOP] + ply2_remain_[QUEEN]));
-        assert(rooks_.count() == (ply1_remain_[ROOK] + ply1_remain_[QUEEN] + ply2_remain_[ROOK] + ply2_remain_[QUEEN]));
-    }
+    void checkBitboard() const; 
     void showRemain() const {
         std::cout << "White: ";
         for(int i = 0; i < 5 ; i ++){
@@ -485,62 +351,83 @@ public:
         }
         std::cout << std::endl;
     }
+    
+
     bool act(const ChessAction& action) override
     {
-        int from = action.getFrom();
-        int to = action.getTo();
+        int action_id = action.getActionID(); // pos * 73 + dir
+        Player action_turn = action.getPlayer();
+        int from = (action_id - 1) / 73;
+        int move_dir = (action_id - 1) % 73 + 1;
+        int to = from;
         
+        Pieces promote = Pieces::empty;
+
+        if (move_dir <= 56) {
+            int new_row = positionToRow(from) + kActionIdDirections56[move_dir - 1].second;
+            int new_col = positionToCol(from) + kActionIdDirections56[move_dir - 1].first; 
+            to = rowColToPosition(new_row, new_col);
+        } else if (move_dir <= 64) {
+            int new_row = positionToRow(from) + kActionIdDirections64[move_dir - 57].second;
+            int new_col = positionToCol(from) + kActionIdDirections64[move_dir - 57].first; 
+            to = rowColToPosition(new_row, new_col);
+        } else {
+            int new_row = (action_turn == Player::kPlayer1) ? 7 : 0;
+            int new_col = positionToCol(from) + kActionIdDirections73[move_dir - 65].first;
+            to = rowColToPosition(new_row, new_col);
+            promote = kActionIdDirections73[move_dir - 65].second;
+        }
+        
+        Pieces move = board_[from].second;
+        Pieces take = board_[to].second;
+        
+        if (move == Pieces::pawn && move_dir <= 56) {
+            if (positionToRow(to) == 7 || positionToRow(to) == 0)
+                promote = Pieces::queen;
+        }
+
         board_[to].first = turn_;
-        board_[to].second = action.getPromotedPiece() == Pieces::empty ? board_[from].second : action.getPromotedPiece();
+        board_[to].second = promote == Pieces::empty ? board_[from].second : promote;
         board_[from].first = Player::kPlayerNone;
         board_[from].second = Pieces::empty;
-        
-        if(action.is00()){
-            // std::cout << "shortcastle\n";
+            
+        bool is00 = (move == Pieces::king && move_dir == 9);
+        bool is000 = (move == Pieces::king && move_dir == 13);
+        bool is_enpassant = (move == Pieces::pawn && positionToCol(from) != positionToCol(to) && take == Pieces::empty);
+        if (is_enpassant) {
+            take = Pieces::pawn;
+        }
+        if(is00){
             board_[from + 1].first = turn_;
             board_[from + 1].second = Pieces::rook;
             board_[from + 3].first = Player::kPlayerNone;
             board_[from + 3].second = Pieces::empty;
-        }else if(action.is000()){
-            // std::cout << "longcastle\n";
+        }else if(is000){
             board_[from - 1].first = turn_;
             board_[from - 1].second = Pieces::rook;
             board_[from - 4].first = Player::kPlayerNone;
             board_[from - 4].second = Pieces::empty;
         }
-
-        if(action.isEnPassant()){
-            // std::cout << "enpassant\n";
-            assert(action.getTakenPiece() == Pieces::pawn);
+        if(is_enpassant){
+            assert(take == Pieces::pawn);
             board_[rowColToPosition(positionToRow(from), positionToCol(to))].first = Player::kPlayerNone;
             board_[rowColToPosition(positionToRow(from), positionToCol(to))].second = Pieces::empty; 
         }
 
-        if(action.getTakenPiece() == Pieces::king){
-            std::cout << "King is taken ~^^" << std::endl ;
-            action.showActionInfo();
-            assert(action.getTakenPiece() != Pieces::king);
-        }
+        assert(take != Pieces::king);
 
-        if(action.getTakenPiece() == Pieces::empty && action.getMovedPiece() != Pieces::pawn){
-            if(turn_ == Player::kPlayer1)
-                fifty_steps_1_++;
-            else 
-                fifty_steps_2_++;
+        if(take == Pieces::empty && move != Pieces::pawn){
+            fifty_steps_++;
         }else{
-            if(turn_ == Player::kPlayer1)
-                fifty_steps_1_ = 0;
-            else 
-                fifty_steps_2_ = 0;
+            fifty_steps_ = 0;
         }
 
         if(turn_ == Player::kPlayer1){
-            // std::cout << "turn = white\n";
-            if(!ply1_kr_moved_ && action.getMovedPiece() == Pieces::rook && from == 7)
+            if(!ply1_kr_moved_ && move == Pieces::rook && from == 7)
                 ply1_kr_moved_ = true;
-            if(!ply1_qr_moved_ && action.getMovedPiece() == Pieces::rook && from == 0)
+            if(!ply1_qr_moved_ && move == Pieces::rook && from == 0)
                 ply1_qr_moved_ = true;
-            if(action.getTakenPiece() == Pieces::rook){
+            if(take == Pieces::rook){
                 if(!ply2_kr_moved_ && to == 63)
                     ply2_kr_moved_ = true;
                 if(!ply2_qr_moved_ && to == 56)
@@ -548,11 +435,11 @@ public:
             }
         }else{
             // std::cout << "turn = black\n";
-            if(!ply2_kr_moved_ && action.getMovedPiece() == Pieces::rook && from == 63)
+            if(!ply2_kr_moved_ && move == Pieces::rook && from == 63)
                 ply2_kr_moved_ = true;
-            if(!ply2_qr_moved_ && action.getMovedPiece() == Pieces::rook && from == 56)
+            if(!ply2_qr_moved_ && move == Pieces::rook && from == 56)
                 ply2_qr_moved_ = true;
-            if(action.getTakenPiece() == Pieces::rook){
+            if(take == Pieces::rook){
                 if(!ply1_kr_moved_ && to == 7)
                     ply1_kr_moved_ = true;
                 if(!ply1_qr_moved_ && to == 0)
@@ -560,63 +447,63 @@ public:
             }
         }
 
-        if(turn_ == Player::kPlayer1 && action.getMovedPiece() == Pieces::king){
+        if(turn_ == Player::kPlayer1 && move == Pieces::king){
             ply1_k_moved_ = true;
             ply1_king_pos_ = to;
-        }else if(turn_ == Player::kPlayer2 && action.getMovedPiece() == Pieces::king){
+        }else if(turn_ == Player::kPlayer2 && move == Pieces::king){
             ply2_k_moved_ = true;
             ply2_king_pos_ = to;
         }
-        
+            
         if(turn_ == Player::kPlayer1){
             ply1_pieces_.reset(toBitBoardSquare(from)); // to 0
             ply1_pieces_.set(toBitBoardSquare(to)); // to 1 (K)
-            if(action.is00()){
+            if(is00){
                 ply1_pieces_.set(toBitBoardSquare(from + 1)); // to 1 (R)
                 ply1_pieces_.reset(toBitBoardSquare(from + 3)); // to 0
                 rooks_.set(toBitBoardSquare(from + 1));
                 rooks_.reset(toBitBoardSquare(from + 3));
-            }else if(action.is000()){
+            }else if(is000){
                 ply1_pieces_.set(toBitBoardSquare(from - 1));
                 ply1_pieces_.reset(toBitBoardSquare(from - 4));
                 rooks_.set(toBitBoardSquare(from - 1));
                 rooks_.reset(toBitBoardSquare(from - 4));
             }
-            if(action.isEnPassant()){
+            if(is_enpassant){
                 pawns_.reset(toBitBoardSquare(4, positionToCol(to)));
                 ply2_pieces_.reset(toBitBoardSquare(4, positionToCol(to)));
-            }else if(action.getTakenPiece() != Pieces::empty)
+            }else if(take != Pieces::empty)
                 ply2_pieces_.reset(toBitBoardSquare(to));
-            
+                
             for(int i = 0; i < kChessBoardSize; i++)
                 pawns_.reset(toBitBoardSquare(0, i));
         }else{
             ply2_pieces_.reset(toBitBoardSquare(from)); // to 0
             ply2_pieces_.set(toBitBoardSquare(to)); // to 1 (K)
-            if(action.is00()){
+            if(is00){
                 ply2_pieces_.set(toBitBoardSquare(from + 1)); // to 1 (R)
                 ply2_pieces_.reset(toBitBoardSquare(from + 3)); // to 0
                 rooks_.set(toBitBoardSquare(from + 1));
                 rooks_.reset(toBitBoardSquare(from + 3));
-            }else if(action.is000()){
+            }else if(is000){
                 ply2_pieces_.set(toBitBoardSquare(from - 1));
                 ply2_pieces_.reset(toBitBoardSquare(from - 4));
                 rooks_.set(toBitBoardSquare(from - 1));
                 rooks_.reset(toBitBoardSquare(from - 4));
             }
-            
-            if(action.isEnPassant()){
+                
+            if(is_enpassant){
                 pawns_.reset(toBitBoardSquare(3, positionToCol(to)));
                 ply1_pieces_.reset(toBitBoardSquare(3, positionToCol(to)));
-            }else if(action.getTakenPiece() != Pieces::empty)
+            }else if(take != Pieces::empty)
                 ply1_pieces_.reset(toBitBoardSquare(to));
             
             for(int i = 0; i < kChessBoardSize; i++)
                 pawns_.reset(toBitBoardSquare(7, i));
         }
 
-        if(action.getTakenPiece() == Pieces::pawn){
-            if(action.isEnPassant())
+        if(take == Pieces::pawn){
+            if(is_enpassant)
                 pawns_.reset(toBitBoardSquare(positionToRow(from), positionToCol(to)));
             else
                 pawns_.reset(toBitBoardSquare(to));
@@ -624,9 +511,9 @@ public:
                 ply1_remain_[PAWN] -= 1;
             else
                 ply2_remain_[PAWN] -= 1;
-        }else if(action.getTakenPiece() == Pieces::bishop || action.getTakenPiece() == Pieces::queen){
+        }else if(take == Pieces::bishop || take == Pieces::queen){
             bishops_.reset(toBitBoardSquare(to));
-            if(action.getTakenPiece() == Pieces::bishop){
+            if(take == Pieces::bishop){
                 if(turn_ == Player::kPlayer2)
                     ply1_remain_[BISHOP] -= 1;
                 else
@@ -637,16 +524,16 @@ public:
                 else
                     ply2_remain_[QUEEN] -= 1;
             }
-        }else if(action.getTakenPiece() == Pieces::knight){
+        }else if(take == Pieces::knight){
             knights_.reset(toBitBoardSquare(to));
             if(turn_ == Player::kPlayer2)
                 ply1_remain_[KNIGHT] -= 1;
             else
                 ply2_remain_[KNIGHT] -= 1;
         }
-        if(action.getTakenPiece() == Pieces::rook || action.getTakenPiece() == Pieces::queen){
+        if(take == Pieces::rook || take == Pieces::queen){
             rooks_.reset(toBitBoardSquare(to));
-            if(action.getTakenPiece() == Pieces::rook){
+            if(take == Pieces::rook){
                 if(turn_ == Player::kPlayer2)
                     ply1_remain_[ROOK] -= 1;
                 else
@@ -654,29 +541,29 @@ public:
             }
         }
 
-        if(action.getMovedPiece() == Pieces::pawn){
+        if(move == Pieces::pawn){
             pawns_.reset(toBitBoardSquare(from));
-            if(action.getPromotedPiece() != Pieces::empty){
+            if(promote != Pieces::empty){
                 if(turn_ == Player::kPlayer1)
                     ply1_remain_[PAWN] -= 1;
                 else
                     ply2_remain_[PAWN] -= 1;
                     
             }
-            if(action.getPromotedPiece() == Pieces::empty)
+            if(promote == Pieces::empty)
                 pawns_.set(toBitBoardSquare(to));
-            else if(action.getPromotedPiece() == Pieces::bishop || action.getPromotedPiece() == Pieces::queen){
+            else if(promote == Pieces::bishop || promote == Pieces::queen){
                 bishops_.set(toBitBoardSquare(to));
-                if(action.getPromotedPiece() == Pieces::bishop){
+                if(promote == Pieces::bishop){
                     if(turn_ == Player::kPlayer1)
                         ply1_remain_[BISHOP] += 1;
                     else
                         ply2_remain_[BISHOP] += 1;
                 }
             }
-            if (action.getPromotedPiece() == Pieces::rook || action.getPromotedPiece() == Pieces::queen){
+            if (promote == Pieces::rook || promote == Pieces::queen){
                 rooks_.set(toBitBoardSquare(to));
-                if(action.getPromotedPiece() == Pieces::rook){
+                if(promote == Pieces::rook){
                     if(turn_ == Player::kPlayer1)
                         ply1_remain_[ROOK] += 1;
                     else
@@ -688,7 +575,7 @@ public:
                         ply2_remain_[QUEEN] += 1;
                 }
             }
-            if(action.getPromotedPiece() == Pieces::knight){
+            if(promote == Pieces::knight){
                 knights_.set(toBitBoardSquare(to));
                 if(turn_ == Player::kPlayer1)
                     ply1_remain_[KNIGHT] += 1;
@@ -701,45 +588,29 @@ public:
                 pawns_.set(toBitBoardSquare(0, positionToCol(to)));
             }
 
-        }else if(action.getMovedPiece() == Pieces::bishop || action.getMovedPiece() == Pieces::queen){
+        }else if(move == Pieces::bishop || move == Pieces::queen){
             bishops_.reset(toBitBoardSquare(from));
             bishops_.set(toBitBoardSquare(to));
-        }else if(action.getMovedPiece() == Pieces::knight){
+        }else if(move == Pieces::knight){
             knights_.reset(toBitBoardSquare(from));
             knights_.set(toBitBoardSquare(to));
         }
-        if(action.getMovedPiece() == Pieces::rook || action.getMovedPiece() == Pieces::queen){
+        if(move == Pieces::rook || move == Pieces::queen){
             rooks_.reset(toBitBoardSquare(from));
             rooks_.set(toBitBoardSquare(to));
         }
-
-        /*for(int i = 0; i < 5 ; i ++){
-            if(ply1_remain_[i] < 0){
-                // std::cout << toString() << std::endl;
-                action.showActionInfo();
-                std::cout << "ply1_remain[" << i << "] < 0\n";
-                assert(ply1_remain_[i] >= 0);
-            }
-            if(ply2_remain_[i] < 0){
-                std::cout << toString() << std::endl;
-                action.showActionInfo();
-                std::cout << "ply2_remain[" << i << "] < 0\n";
-                assert(ply2_remain_[i] >= 0);
-            }
-        }*/
         checkRemain();
 
         if(ply1_remain_[PAWN] > 0 || ply1_remain_[ROOK] > 0 || ply1_remain_[QUEEN] > 0 || 
-           ply1_remain_[BISHOP] >= 2 || ((ply1_remain_[BISHOP] > 0 && ply1_remain_[KNIGHT]  > 0)) ||
-           ply1_remain_[KNIGHT] >= 2){
+        ply1_remain_[BISHOP] >= 2 || ((ply1_remain_[BISHOP] > 0 && ply1_remain_[KNIGHT]  > 0)) ||
+            ply1_remain_[KNIGHT] >= 2){
             ply1_insuffi_ = false;
         }else{
             ply1_insuffi_ = true;
         }
-
         if(ply2_remain_[PAWN] > 0 || ply2_remain_[ROOK] > 0 || ply2_remain_[QUEEN] > 0 || 
-           ply2_remain_[BISHOP] >= 2 || ((ply2_remain_[BISHOP] > 0 && ply2_remain_[KNIGHT]  > 0)) ||
-           ply2_remain_[KNIGHT] >= 2){
+        ply2_remain_[BISHOP] >= 2 || ((ply2_remain_[BISHOP] > 0 && ply2_remain_[KNIGHT]  > 0)) ||
+            ply2_remain_[KNIGHT] >= 2){
             ply2_insuffi_ = false;
         }else{
             ply2_insuffi_ = true;
@@ -749,13 +620,10 @@ public:
             if(turn_ == Player::kPlayer1)
                 return false;
             ply1_ischecked_ = true;
-            // std::cout << "------white is check------\n";
-            // action.showActionInfo();
-            // std::cout << "--------------------------\n";
         }else{
             ply1_ischecked_ = false;
         }
-        
+            
         if(PlyIsCheck(Player::kPlayer2)){
             if(turn_ == Player::kPlayer2)
                 return false;
@@ -764,13 +632,23 @@ public:
             ply2_ischecked_ = false;
         }
 
-        int repeat = board_hash_.storeTable(board_hash_.applyMove(action));
+        ply1_can00_ = !(ply1_ischecked_ || ply1_k_moved_ || ply1_kr_moved_ || board_[5].second != Pieces::empty ||
+                        board_[6].second != Pieces::empty || squareIsAttacked(Player::kPlayer1, 5, true) || squareIsAttacked(Player::kPlayer1, 6, true));
+        ply1_can000_ = !(ply1_ischecked_ || ply1_k_moved_ || ply1_qr_moved_ || board_[2].second != Pieces::empty ||
+                        board_[3].second != Pieces::empty || squareIsAttacked(Player::kPlayer1, 2, true) || squareIsAttacked(Player::kPlayer1, 3, true));
+        ply2_can00_ = !(ply2_ischecked_ || ply2_k_moved_ || ply2_kr_moved_ || board_[58].second != Pieces::empty ||
+                        board_[59].second != Pieces::empty || squareIsAttacked(Player::kPlayer2, 58, true) || squareIsAttacked(Player::kPlayer2, 59, true));
+        ply2_can000_ = !(ply2_ischecked_ || ply2_k_moved_ || ply2_qr_moved_ || board_[61].second != Pieces::empty ||
+                        board_[62].second != Pieces::empty || squareIsAttacked(Player::kPlayer2, 61, true) || squareIsAttacked(Player::kPlayer2, 62, true));
+
+        int repeat = board_hash_.storeTable(board_hash_.applyMove(turn_, from, to, move, take, promote, is00, is000, is_enpassant));
+
         if(repetitions_ < repeat){
             repetitions_ = repeat;
         }
 
         checkBitboard();
-        
+            
         if(turn_ == Player::kPlayer1){
             pawns_history_.push_back(ply1_pieces_ & pawns_);
             knights_history_.push_back(ply1_pieces_ & knights_);
@@ -786,11 +664,9 @@ public:
             queens_history_.push_back(ply2_pieces_ & (bishops_ & rooks_));
             king_history_.push_back(ply2_king_pos_);
         }
-        
+            
         actions_.push_back(action);
         turn_ = action.nextPlayer();
-
-        // std::cout << ToString();
 
         for(int i = 0; i < 64; i++){
             if(board_[i].second == Pieces::empty)
@@ -800,7 +676,6 @@ public:
         }
         return true;
     }
-
     bool act(const std::vector<std::string>& action_string_args) override
     {
         // TODO
@@ -815,180 +690,191 @@ public:
         }
         if(i == 1858)
             return false;
-        Pieces move, taken, promote = Pieces::empty;
+        Pieces move, taken;
         // promote: q n b r
-        
-        if(move_str.size() == 5){
-            if(move_str[4] == 'q')
-                promote = Pieces::queen;
-            else if(move_str[4] == 'r')
-                promote = Pieces::rook;
-            else if(move_str[4] == 'b')
-                promote = Pieces::bishop;
-            else if(move_str[4] == 'n')
-                promote = Pieces::knight;
-        }else{
-            promote = Pieces::empty;
-        }
-        
         int from_col = move_str[0] - 'a';
         int from_row = move_str[1] - '1';
         int to_col = move_str[2] - 'a';
         int to_row = move_str[3] - '1';
-
+        int dir_row = to_row - from_row;
+        int dir_col = to_col - from_col;
         int from = rowColToPosition(from_row, from_col);
         int to = rowColToPosition(to_row, to_col);
-
+        int id = 0;
         move = board_[from].second;
         taken = board_[to].second;
 
-        // std::cout << turn_ << from << to << move << taken << promote << endl;
-        if(move == Pieces::pawn && ((turn_ == Player::kPlayer1 && from_row == 6) || (turn_ == Player::kPlayer2 && from_row == 1)))
-            promote = Pieces::queen;
-
-        ChessAction action(turn_, from, to, move, taken, promote, -1);
+        if(move_str.size() == 5){
+            if(move_str[4] == 'q') {
+                if(dir_col != 0 && (taken == Pieces::empty || board_[to].first == turn_)) return false;
+                if (turn_ == Player::kPlayer1) {
+                    if(from_row != 6 || dir_row != 1) return false;
+                    if (dir_col == -1) {
+                        id = from * 73 + 8;
+                    } else if (dir_col == 0) {
+                        if (taken != Pieces::empty) return false;
+                        id = from * 73 + 1;
+                    } else if (dir_col == 1) {
+                        id = from * 73 + 2;
+                    }
+                } else {
+                    if (from_row != 1 || dir_row != -1) return false;
+                    if (dir_col == -1) {
+                        id = from * 73 + 6;
+                    } else if (dir_col == 0) {
+                        if (taken != Pieces::empty) return false;
+                        id = from * 73 + 5;
+                    } else if (dir_col == 1) {
+                        id = from * 73 + 4;
+                    } else {
+                        return false;
+                    }
+                }
+            } else if(move_str[4] == 'r') {
+                if (dir_col == -1) {
+                    id = from * 73 + 65;
+                } else if (dir_col == 0) {
+                    id = from * 73 + 68;
+                } else if (dir_col == 1) {
+                    id = from * 73 + 71;
+                } else {
+                    return false;
+                }
+            } else if(move_str[4] == 'b') {
+                if (dir_col == -1) {
+                    id = from * 73 + 66;
+                } else if (dir_col == 0) {
+                    id = from * 73 + 69;
+                } else if (dir_col == 1) {
+                    id = from * 73 + 72;
+                } else {
+                    return false;
+                }
+            } else if(move_str[4] == 'n') {
+                if (dir_col == -1) {
+                    id = from * 73 + 67;
+                } else if (dir_col == 0) {
+                    id = from * 73 + 70;
+                } else if (dir_col == 1) {
+                    id = from * 73 + 73;
+                } else {
+                    return false;
+                }
+            }
+            ChessAction action(id, turn_);
+            if(!isLegalAction(action)) return false;
+            return act(action);  
+        }
 
         if(move == Pieces::king){
-            if((turn_ == Player::kPlayer1 && move_str == "e1g1") || (turn_ == Player::kPlayer2 && move_str == "e8g8")){
-                action.set00(true);
-            }else if((turn_ == Player::kPlayer1 && move_str == "e1c1") || (turn_ == Player::kPlayer2 && move_str == "e8c8")){
-                action.set000(true);
+            if((turn_ == Player::kPlayer1 && move_str == "e1g1") || (turn_ == Player::kPlayer2 && move_str == "e8g8")) {
+                id = from * 73 + 11;
+            } else if((turn_ == Player::kPlayer1 && move_str == "e1c1") || (turn_ == Player::kPlayer2 && move_str == "e8c8")) {
+                id = from * 73 + 15;
+            } else {
+                if (dir_col == 0) {
+                    if (dir_row == 1) id = from * 73 + 1;
+                    else if ( dir_row == -1) id = from * 73 + 5;
+                } else if (dir_col == 1) {
+                    if (dir_row == 1) id = from * 73 + 2;
+                    else if (dir_row == 0) id = from * 73 + 3;
+                    else if (dir_row == -1) id = from * 73 + 4;
+                } else if (dir_col == -1) {
+                    if (dir_row == 1) id = from * 73 + 7;
+                    else if (dir_row == 0) id = from * 73 + 6;
+                    else if (dir_row == -1) id = from * 73 + 5;
+                } else {
+                    return false;
+                }
             }
         }else if(move == Pieces::pawn){
             if(turn_ == Player::kPlayer1){
-                if(to_row <= from_row)
+                if(dir_row <= 0)
                     return false;
-                if(from_col != to_col && taken == Pieces::empty){
-                    
-                    std::cout << std::endl;
-                    if(from_row == 4 && board_[rowColToPosition(from_row, to_col)].first == Player::kPlayer2 && board_[rowColToPosition(from_row, to_col)].second == Pieces::pawn){
-                        taken = Pieces::pawn;
-                        action.setEnPassant(true);
-                    }else{
+                if(dir_col != 0 && taken == Pieces::empty){
+                    if(!(from_row == 4 && board_[rowColToPosition(from_row, to_col)].first == Player::kPlayer2 && board_[rowColToPosition(from_row, to_col)].second == Pieces::pawn)){
                         return false;
                     }
                 }
+                if (dir_row == 2) {
+                    if (dir_col != 0) return false;
+                    id = from * 73 + 9;
+                } else if (dir_row == 1) {
+                    if (dir_col == -1) id = from * 73 + 8;
+                    else if (dir_col == 0) id = from * 73 + 1;
+                    else if (dir_col == 1) id = from * 73 + 2;
+                    else return false;
+                }
             }else{
-                if(to_row >= from_row)
+                if(dir_row >= 0)
                     return false;
-                if(from_col != to_col && taken == Pieces::empty){
-                    if(from_row == 3 && board_[rowColToPosition(from_row, to_col)].first == Player::kPlayer1 && board_[rowColToPosition(from_row, to_col)].second == Pieces::pawn){
-                        taken = Pieces::pawn;
-                        action.setEnPassant(true);
-                    }else{
+                if(dir_col != 0 && taken == Pieces::empty){
+                    if(!(from_row == 3 && board_[rowColToPosition(from_row, to_col)].first == Player::kPlayer1 && board_[rowColToPosition(from_row, to_col)].second == Pieces::pawn)){
                         return false;
                     }
+                }
+                if (dir_row == -2) {
+                    if (dir_col != 0) return false;
+                    id = from * 73 + 13;
+                } else if (dir_row == -1) {
+                    if (dir_col == -1) id = from * 73 + 6;
+                    else if (dir_col == 0) id = from * 73 + 5;
+                    else if (dir_col == 1) id = from * 73 + 4;
+                    else return false;
+                }
+            }
+        } else if (move == Pieces::knight) {
+            if (dir_col == -1) {
+                if (dir_row == 2) id = from * 73 + 64;
+                else if ( dir_row == -2) id = from * 73 + 61;
+            } else if (dir_col == 1) {
+                if (dir_row == 2) id = from * 73 + 57;
+                else if ( dir_row == -2) id = from * 73 + 60;
+            } else if (dir_col == -2) {
+                if (dir_row == 1) id = from * 73 + 63;
+                else if ( dir_row == -1) id = from * 73 + 62;
+            } else if (dir_col == 2) {
+                if (dir_row == 1) id = from * 73 + 58;
+                else if ( dir_row == -1) id = from * 73 + 59;
+            } else {
+                return false;
+            }
+        } else {
+            if (dir_col == 0) {
+                if (dir_row > 0) id = from * 73 + (dir_row - 1) * 8 + 1;
+                else id = from * 73 + (-1 * dir_row - 1) * 8 + 5;
+            } else if (dir_row == 0) {
+                if (dir_col > 0) id = from * 73 + (dir_col - 1) * 8 + 3;
+                else id = from * 73 + (-1 * dir_col - 1) * 8 + 7;
+            } else {
+                if (dir_col > 0 && dir_row > 0) {
+                    if (dir_col != dir_row) return false;
+                    id = from * 73 + (dir_col - 1) * 8 + 2;
+                }else if ((dir_col > 0 && dir_row < 0)) {
+                    if (dir_col != -1 * dir_row) return false;
+                    id = from * 73 + (dir_col - 1) * 8 + 4;
+                }else if ((dir_col < 0 && dir_row < 0)) {
+                    if (dir_col != dir_row) return false;
+                    id = from * 73 + (-1 * dir_col - 1) * 8 + 6;
+                }else { //left-up
+                    if (dir_col != -1 * dir_row) return false;
+                    id = from * 73 + (dir_row - 1) * 8 + 8;
                 }
             }
         }
+        if (id == 0) { return false; }
+        ChessAction action(id, turn_);
         if (!isLegalAction(action)) { return false; }
         return act(action);
     }
-    
-
     std::vector<ChessAction> getLegalActions() const override
     {
         // TODO
         std::vector<ChessAction> actions;
         for(int pos = 0; pos < kChessBoardSize * kChessBoardSize; pos++){
             for(int id = 1; id <=73; id++){
-
-                int from = pos, to = -1;
-                int row = positionToRow(from), col = positionToCol(from);
-                bool is_00 = false, is_000 = false, isenpassant = false;
-
-                Pieces move = board_[from].second;
-                Pieces take = Pieces::empty; 
-                Pieces promote = Pieces::empty;
-
                 int action_id = pos * 73 + id;
-                
-                if(id <= 56){
-                    if(move == Pieces::knight)
-                        continue;
-                    
-                    int new_row = row + kActionIdDirections56[id - 1].second;
-                    int new_col = col + kActionIdDirections56[id - 1].first;
-                    if(outOfBoard(new_row, new_col))
-                        continue;
-
-                    to = rowColToPosition(new_row, new_col);
-                    take = board_[to].second;
-
-                    if(move == Pieces::king){
-                        if(turn_ == Player::kPlayer1 && from == 4){
-                            if(to == 6){
-                                is_00 = true;
-                            }else if(to == 2){
-                                is_000 = true;
-                            }
-                        }else if(turn_ == Player::kPlayer2 && from == 60){
-                            if(to == 62){
-                                is_00 = true;
-                            }else if(to == 58){
-                                is_000 = true;
-                            }
-                        }
-                    }else if(move == Pieces::pawn && take == Pieces::empty){
-                        if(kActionIdDirections56[id - 1].first == 1 || kActionIdDirections56[id - 1].first == -1){
-                            if(turn_ == Player::kPlayer1 && kActionIdDirections56[id - 1].second != 1)
-                                continue;
-                            else if(turn_ == Player::kPlayer2 && kActionIdDirections56[id - 1].second != -1)
-                                continue;
-                            if((turn_ == Player::kPlayer1 && row == 4) || (turn_ == Player::kPlayer2 && row == 3)){
-                                if(board_[from + kActionIdDirections56[id - 1].first].second == Pieces::pawn){
-                                    if(board_[from + kActionIdDirections56[id - 1].first].first != turn_){
-                                        take = Pieces::pawn;
-                                        isenpassant = true;
-                                    }else{
-                                        continue;
-                                    }
-                                }
-                            }    
-                        }
-                    }
-                    if(move == Pieces::pawn && ((turn_ == Player::kPlayer1 && row == 6) || (turn_ == Player::kPlayer2 && row == 1)))
-                        promote = Pieces::queen;
-
-                }else if(id <= 64){
-                    if(move != Pieces::knight)
-                        continue;
-                    int direction = id - 57;
-                    int new_row = row + kActionIdDirections64[direction].second;
-                    int new_col = col + kActionIdDirections64[direction].first;
-                    if(outOfBoard(new_row, new_col))
-                        continue;
-                    to = rowColToPosition(new_row, new_col);
-                    take = board_[to].second;
-                }else{
-                    if(move != Pieces::pawn)
-                        continue;
-
-                    //       l  f  r           l  f  r           l  f  r
-                    // rook: 0, 3, 6   bishop: 1, 4, 7   knight: 2, 5, 8
-                    
-                    if ((turn_ == Player::kPlayer2 && row != 1) || (turn_ == Player::kPlayer1 && row != 6))
-                        continue;
-                    
-                    int new_row = (turn_ == Player::kPlayer2) ? 0 : 7;
-                    int new_col = col + kActionIdDirections73[id - 65].first;
-
-                    if(outOfBoard(new_row, new_col))
-                        continue;
-
-                    to = rowColToPosition(new_row, new_col);
-                    take = board_[to].second;
-                    
-                    promote = kActionIdDirections73[id - 65].second;
-                }
-
-
-                ChessAction action(turn_, from, to, move, take, promote, action_id);
-                
-                action.setEnPassant(isenpassant);
-                action.set00(is_00);
-                action.set000(is_000);
-
+                ChessAction action(action_id, turn_); 
                 if(isLegalAction(action)){
                     actions.push_back(action);
                 }
@@ -996,22 +882,40 @@ public:
         }   
         return actions;
     }
-    
+
     bool isLegalAction(const ChessAction& action) const override
     {
-        int from = action.getFrom();
-        int to = action.getTo();
+        
+        int action_id = action.getActionID();
+        Player action_turn = action.getPlayer();
+        int id = (action_id - 1) % 73 + 1; // 1-73
+        int from = (action_id - 1) / 73;
+        int to = from;
+        Pieces promote = Pieces::empty;
+
+        if (id <= 56) {
+            int new_row = positionToRow(from) + kActionIdDirections56[id - 1].second;
+            int new_col = positionToCol(from) + kActionIdDirections56[id - 1].first; 
+            to = rowColToPosition(new_row, new_col);
+        } else if (id <= 64) {
+            int new_row = positionToRow(from) + kActionIdDirections64[id - 57].second;
+            int new_col = positionToCol(from) + kActionIdDirections64[id - 57].first; 
+            to = rowColToPosition(new_row, new_col);
+        } else {
+            int new_row = (action_turn == Player::kPlayer1) ? 7 : 0;
+            int new_col = positionToCol(from) + kActionIdDirections73[id - 65].first;
+            to = rowColToPosition(new_row, new_col);
+            promote = kActionIdDirections73[id - 65].second;
+        }
 
         if(board_[from].first != turn_)
             return false;
         if(outOfBoard(from) || outOfBoard(to))
             return false;
 
-        int action_id = action.getActionID();
-        int id = (action_id - 1) % 73 + 1; // 1-73
         int row = positionToRow(from);
         int col = positionToCol(from);
-        
+            
         if(id <= 56){
             // std::cout << "direction: " << kActionIdDirections56[id - 1].first << ", " << kActionIdDirections56[id - 1].second << std::endl;
             if(outOfBoard(row + kActionIdDirections56[id - 1].second, col + kActionIdDirections56[id - 1].first))
@@ -1024,31 +928,36 @@ public:
             if(outOfBoard(row, col + kActionIdDirections73[id - 65].first))
                 return false;
         }
-        Pieces move = action.getMovedPiece();
+        Pieces move = board_[from].second;
+        Pieces take = board_[to].second;
+        if (take == Pieces::king) return false;
         if(move == Pieces::empty)
             return false;
-
-        Pieces take = action.getTakenPiece();
         if(take != Pieces::empty){
             if(turn_ == board_[to].first)
                 return false;
         }
 
-        Pieces promote = action.getPromotedPiece();
+        bool is_00 = (move == Pieces::king && id == 11);
+        bool is_000 = (move == Pieces::king && id == 15);
+        bool isenpassant = (move == Pieces::pawn && positionToCol(from) != positionToCol(to) && take == Pieces::empty);
 
-        bool is_00 = action.is00();
-        bool is_000 = action.is000();
-        bool isenpassant = action.isEnPassant();
-        
-        if((is_00 || is_000) && move != Pieces::king)
-            return false;
-        
-        if(isenpassant && move != Pieces::pawn)
-            return false;
-        
+        if (is_00) {
+            if ((turn_ == Player::kPlayer1 && ply1_can00_ == false) || (turn_ == Player::kPlayer2 && ply2_can00_ == false))
+                return false;
+        } else if (is_000) {
+            if ((turn_ == Player::kPlayer1 && ply1_can000_ == false) || (turn_ == Player::kPlayer2 && ply2_can000_ == false))
+                return false;
+        }
+            
+        if(isenpassant) {
+            if ((turn_ == Player::kPlayer1 && row != 4) || (turn_ == Player::kPlayer2 && row != 3))
+                return false;
+        }
+            
         if(move != Pieces::pawn && (promote != Pieces::empty || id > 64))
             return false;
-        
+            
         if(move != Pieces::knight && (id <= 64 && id > 56))
             return false;
 
@@ -1061,7 +970,7 @@ public:
                     return false;
                 if(turn_ == Player::kPlayer2 && kActionIdDirections56[id - 1].second > 0)
                     return false;
-                
+                    
                 if(kActionIdDirections56[id - 1].first == 0){   // move forward
                     if(take != Pieces::empty)
                         return false;
@@ -1074,12 +983,10 @@ public:
                             return false;
                         if(turn_ == Player::kPlayer2 && !pawns_.get(toBitBoardSquare(7, positionToCol(to))))
                             return false;
-
                         if(board_[to].first != Player::kPlayerNone || board_[to].second != Pieces::empty)
                             return false;
                         if(board_[rowColToPosition(row, positionToCol(to))].first == turn_ || board_[rowColToPosition(row, positionToCol(to))].second != Pieces::pawn)
                             return false;
-
                     }else if(board_[to].first == turn_ || board_[to].second == Pieces::empty)
                         return false;
                 }
@@ -1098,25 +1005,17 @@ public:
                         return false;
                 }
             }else if(id >= 65){ // underpromotion
-                
+                    
                 if(turn_ == Player::kPlayer1 && row != 6)
                     return false;
                 if(turn_ == Player::kPlayer2 && row != 1)
                     return false;
-                
+                    
                 int direction = kActionIdDirections73[id - 65].first;
-                if(promote != kActionIdDirections73[id - 65].second){
-                    std::cout << "assertion failed !\n";
-                    if(promote == Pieces::knight)
-                        std::cout << "id: " << id << ", promote: knight\n";
-                    else if(promote == Pieces::rook)
-                        std::cout << "id: " << id << ", promote: rook\n";
-                    if(promote == Pieces::bishop)
-                        std::cout << "id: " << id << ", promote: bishop\n";
-                }
                 assert(promote == kActionIdDirections73[id - 65].second);
-
                 if(direction == 0 && (take != Pieces::empty || board_[to].first != Player::kPlayerNone || board_[to].second != Pieces::empty))
+                    return false;
+                if (direction != 0 && take == Pieces::empty)
                     return false;
 
             }else{
@@ -1139,17 +1038,17 @@ public:
             int dir_row = kActionIdDirections56[id - 1].second;
             int dir_col = kActionIdDirections56[id - 1].first;
             int num_of_square = (dir_row == 0) ? dir_col : dir_row;
-            
+                
             if(dir_row < 0)
                 dir_row = -1;
             else if(dir_row > 0)
                 dir_row = 1;
-            
+                
             if(dir_col < 0)
                 dir_col = -1;
             else if(dir_col > 0)
                 dir_col = 1;
-            
+                
             num_of_square = (num_of_square < 0) ? -1 * num_of_square : num_of_square;
 
             for(int i = 1; i < num_of_square; i++){
@@ -1159,110 +1058,60 @@ public:
         }else if(move == Pieces::king){
             if(is_00){
                 if(turn_ == Player::kPlayer1){
-                    if(ply1_king_pos_ != 4)
-                        return false;
-                    if(ply1_ischecked_ || ply1_k_moved_ || ply1_kr_moved_)
-                        return false;
-                    if(board_[5].second != Pieces::empty || board_[to].second != Pieces::empty)
-                        return false;
-                    if(squareIsAttack(turn_, 5, true) || squareIsAttack(turn_, to, true))
+                    if (!ply1_can00_)
                         return false;
                 }else{
-                    if(ply2_king_pos_ != 60)
-                        return false;
-                    if(ply2_ischecked_ || ply2_k_moved_ || ply2_kr_moved_)
-                        return false;
-                    if(board_[61].second != Pieces::empty || board_[to].second != Pieces::empty)
-                        return false;
-                    if(squareIsAttack(turn_, 61, true) || squareIsAttack(turn_, to, true))
+                    if (!ply2_can00_)
                         return false;
                 }
             }else if(is_000){
                 if(turn_ == Player::kPlayer1){
-                    if(ply1_king_pos_ != 4)
-                        return false;
-                    if(ply1_ischecked_ || ply1_k_moved_ || ply1_qr_moved_)
-                        return false;
-                    if(board_[3].second != Pieces::empty || board_[to].second != Pieces::empty)
-                        return false;
-                    if(squareIsAttack(turn_, 3, true) || squareIsAttack(turn_, to, true))
+                    if (!ply1_can000_)
                         return false;
                 }else{
-                    if(ply2_king_pos_ != 60)
-                        return false;
-                    if(ply2_ischecked_ || ply2_k_moved_ || ply2_qr_moved_)
-                        return false;
-                    if(board_[59].second != Pieces::empty || board_[to].second != Pieces::empty)
-                        return false;
-                    if(squareIsAttack(turn_, 59, true) || squareIsAttack(turn_, to, true))
+                    if (!ply2_can000_)
                         return false;
                 }
             }else{
                 if(id > 8)
                     return false;
-                if(squareIsAttack(turn_, to, true))
+                if(squareIsAttacked(turn_, to, true))
                     return false;
                 if(board_[to].first == turn_)
-                    return false;
-                /*if(from == 11 && to == 18 && board_[25].second == Pieces::pawn){
-                    std::cout << "====================================\n";
-                    action.showActionInfo();
-                    std::cout << "====================================\n";
-                }*/
-                    
+                    return false;     
             }
         }
-        // if(move == Pieces::king && from == 11 && to == 18 && board_[25].second == Pieces::pawn && board_[25].first != turn_)system("read -p 'Press Enter to continue...' var");
         ChessEnv AfterAction(*this);
         AfterAction.act(action);
-        if(move == Pieces::king && AfterAction.PlyIsCheck(this->turn_)){
-            // std::cout << "-- illegal action [king's checked] --\n";
-            // action.showActionInfo();
-            // std::cout << "-------------------------------------\n";
+        if(AfterAction.PlyIsCheck(this->turn_)) {
             return false;
         }
-        // if(move == Pieces::king && from == 11 && to == 18 && board_[25].second == Pieces::pawn && board_[25].first != turn_)system("read -p 'Press Enter to continue...' var");
-        // if(move == Pieces::king && from == 11 && to == 18 && board_[25].second == Pieces::pawn && board_[25].first != turn_)assert(move != Pieces::king);
-        if(move != Pieces::king && AfterAction.PlyIsCheck(this->turn_)){
-            // std::cout << "-- illegal action [king's checked] --\n";
-            // action.showActionInfo();
-            // std::cout << "-------------------------------------\n";
-            return false;
-        }
-
         return true;
     }
-    
     bool isTerminal() const override
     {
         Player who = eval();
         if(who != Player::kPlayerNone) return true;
-        else{           
-            if(fifty_steps_2_ >= 50 || fifty_steps_1_ >= 50 || repetitions_ >= 3 || (ply1_insuffi_ && ply2_insuffi_)){
-                // std::cout << "result: .5-.5\n";
-                // std::cout << "fifty-step(white/black): " << fifty_steps_1_ << '/' << fifty_steps_2_ << std::endl;
-                // std::cout << "three-repe: " << repetitions_ << std::endl;
-                // showRemain();
-                // std::cout << std::endl;
-                // std::cout << "insuffi. (w/b): ";
-                // if(ply1_insuffi_) std::cout << "true/";
-                // else std::cout << "false/";
-                // if(ply2_insuffi_) std::cout << "true";
-                // else std::cout << "false";
-                // std::cout << std::endl;
+        else{        
+    
+            int fifty_steps =  fifty_steps_;
+            if (fifty_steps % 2) {
+                fifty_steps = (fifty_steps + 1) / 2;
+            } else {
+                fifty_steps = (fifty_steps) / 2;
+            }
+            
+            if(fifty_steps >= 50 || repetitions_ >= 3 || (ply1_insuffi_ && ply2_insuffi_)){
                 return true;
             }else{
                 std::vector<ChessAction> actions = getLegalActions();
                 if(actions.size() == 0) {
-                    // std::cout << "result: .5-.5\n";
-                    // std::cout << "stalemate\n";
                     return true;
                 }
             }
         }
         return false;
     }
-    
     Player eval() const
     {
         // TODO
@@ -1307,31 +1156,31 @@ public:
                         vFeatures.push_back(0.0f);
                     }else{
                         int channel_id = channel % 14;
-                        if(channel_id == 0)         // our-pawns
+                        if(channel_id == 0) {        // our-pawns
                             vFeatures.push_back(pawns_history_[ind].get(toBitBoardSquare(pos)) ? 1.0f : 0.0f);
-                        else if(channel_id == 1)    // opp-pawns        
+                        }else if(channel_id == 1) {   // opp-pawns        
                             vFeatures.push_back(pawns_history_[ind - 1].get(toBitBoardSquare(pos)) ? 1.0f : 0.0f);
-                        else if(channel_id == 2)    // our-knights        
+                        }else if(channel_id == 2) {   // our-knights        
                             vFeatures.push_back(knights_history_[ind].get(toBitBoardSquare(pos)) ? 1.0f : 0.0f);
-                        else if(channel_id == 3)    // opp-knights         
+                        }else if(channel_id == 3) {   // opp-knights         
                             vFeatures.push_back(knights_history_[ind - 1].get(toBitBoardSquare(pos)) ? 1.0f : 0.0f);
-                        else if(channel_id == 4)    // our-bishops         
+                        }else if(channel_id == 4) {   // our-bishops         
                             vFeatures.push_back(bishops_history_[ind].get(toBitBoardSquare(pos)) ? 1.0f : 0.0f);
-                        else if(channel_id == 5)    // opp-bishops         
+                        }else if(channel_id == 5) {   // opp-bishops         
                             vFeatures.push_back(bishops_history_[ind - 1].get(toBitBoardSquare(pos)) ? 1.0f : 0.0f);
-                        else if(channel_id == 6)    // our-rooks     
+                        }else if(channel_id == 6) {   // our-rooks  
                             vFeatures.push_back(rooks_history_[ind].get(toBitBoardSquare(pos)) ? 1.0f : 0.0f);
-                        else if(channel_id == 7)    // opp-rooks        
+                        }else if(channel_id == 7) {   // opp-rooks
                             vFeatures.push_back(rooks_history_[ind - 1].get(toBitBoardSquare(pos)) ? 1.0f : 0.0f);
-                        else if(channel_id == 8)    // our-queens        
+                        }else if(channel_id == 8) {   // our-queens        
                             vFeatures.push_back(queens_history_[ind].get(toBitBoardSquare(pos)) ? 1.0f : 0.0f);
-                        else if(channel_id == 9)    // opp-queens         
+                        }else if(channel_id == 9) {    // opp-queens         
                             vFeatures.push_back(queens_history_[ind - 1].get(toBitBoardSquare(pos)) ? 1.0f : 0.0f);
-                        else if(channel_id == 10)   // our-king        
+                        }else if(channel_id == 10) {  // our-king        
                             vFeatures.push_back(toBitBoardSquare(king_history_[ind]) == pos ? 1.0f : 0.0f);
-                        else if(channel_id == 11)   // opp-king        
+                        }else if(channel_id == 11) {   // opp-king        
                             vFeatures.push_back(toBitBoardSquare(king_history_[ind - 1]) == pos ? 1.0f : 0.0f);
-                        else { // TODO: repetition-1, repetition-2
+                        }else { // TODO: repetition-1, repetition-2
                             if ((repetitions_ == 1 && channel_id == 12) || (repetitions_ == 2 && channel_id == 13))
                                 vFeatures.push_back(0.0f);
                             else if (repetitions_ == 3 || (repetitions_ == 1 && channel_id == 13) || (repetitions_ == 2 && channel_id == 12))
@@ -1350,38 +1199,33 @@ public:
                     vFeatures.push_back((turn_ == Player::kPlayer1) ? (pawns_history_.size() + 1) / 200 : pawns_history_.size() / 200);
                 } else if (channel == 115) {
                     // TODO: turn_ 0-0
-                    vFeatures.push_back(actions_[actions_.size() - 1].is00() ? 1.0f : 0.0f);
+                    if (turn_ == Player::kPlayer1) vFeatures.push_back(ply1_can00_ ? 1.0f : 0.0f);
+                    else vFeatures.push_back(ply2_can00_ ? 1.0f : 0.0f);   
                 } else if (channel == 116) {
                     // TODO: turn_ 0-0-0
-                    vFeatures.push_back(actions_[actions_.size() - 1].is000() ? 1.0f : 0.0f);
+                    if (turn_ == Player::kPlayer1) vFeatures.push_back(ply1_can000_ ? 1.0f : 0.0f);
+                    else vFeatures.push_back(ply2_can000_ ? 1.0f : 0.0f);
                 } else if (channel == 117) {
                     // TODO: opponent 0-0
-                    if (actions_.size() > 1)
-                        vFeatures.push_back(actions_[actions_.size() - 2].is00() ? 1.0f : 0.0f);
-                    else
-                        vFeatures.push_back(0.0f);
+                    if (turn_ == Player::kPlayer1) vFeatures.push_back(ply2_can00_ ? 1.0f : 0.0f);
+                    else vFeatures.push_back(ply1_can00_ ? 1.0f : 0.0f);
                 } else if (channel == 118) {
                     // TODO: opponent 0-0-0
-                    if (actions_.size() > 1)
-                        vFeatures.push_back(actions_[actions_.size() - 2].is000() ? 1.0f : 0.0f);
-                    else
-                        vFeatures.push_back(0.0f);
+                    if (turn_ == Player::kPlayer1) vFeatures.push_back(ply2_can000_ ? 1.0f : 0.0f);
+                    else vFeatures.push_back(ply1_can000_ ? 1.0f : 0.0f);
                 } else if (channel == 119) {
                     // TODO: no progress count /50
-                    vFeatures.push_back((turn_ == Player::kPlayer1) ? fifty_steps_1_ / 50 : fifty_steps_2_ / 50);
+                    vFeatures.push_back((fifty_steps_ % 2) ? (fifty_steps_ + 1) / 100 : fifty_steps_ / 100);
                 }
             }
         }
         return vFeatures;
     }
-
     std::vector<float> getActionFeatures(const ChessAction& action, utils::Rotation rotation = utils::Rotation::kRotationNone) const override
     {
         // TODO
         return {};
     }
-    
-
     std::string toString() const override
     {
         // TODO
@@ -1431,18 +1275,14 @@ public:
         oss << "    a   b   c   d   e   f   g   h" << std::endl;
         return oss.str(); 
     }
-
     inline std::string name() const override { return kChessName; }
 private:
         
     int ply1_remain_[5];
     int ply2_remain_[5];
-
-    int fifty_steps_1_;
-    int fifty_steps_2_;
+    int fifty_steps_;
     int repetitions_;
     int total_numof_moves_;
-    
     bool ply1_ischecked_;
     bool ply2_ischecked_;
     bool ply1_k_moved_;
@@ -1453,28 +1293,26 @@ private:
     bool ply2_qr_moved_;
     bool ply1_insuffi_;
     bool ply2_insuffi_;
-
+    bool ply1_can00_;
+    bool ply1_can000_;
+    bool ply2_can00_;
+    bool ply2_can000_;
     int ply1_king_pos_;
     int ply2_king_pos_;
-    
     Bitboard ply1_pieces_;
     Bitboard ply2_pieces_;
     Bitboard rooks_; // R + Q
     Bitboard bishops_; // B + Q
     Bitboard knights_;
     Bitboard pawns_;
-    
     Hash board_hash_;
-
     std::vector<std::pair<Player, Pieces>> board_;
-    
     std::vector<Bitboard> pawns_history_;
     std::vector<Bitboard> knights_history_;
     std::vector<Bitboard> bishops_history_;
     std::vector<Bitboard> rooks_history_;
     std::vector<Bitboard> queens_history_;
     std::vector<int> king_history_;
-
 };
 
 class ChessEnvLoader : public BaseEnvLoader<ChessAction, ChessEnv> {
