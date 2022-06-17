@@ -90,16 +90,6 @@ class MuZeroNetwork(nn.Module):
         self.dynamics_network = MuZeroDynamicsNetwork(num_hidden_channels, num_action_feature_channels, num_blocks)
         self.prediction_network = MuZeroPredictionNetwork(num_hidden_channels, hidden_channel_height, hidden_channel_width, num_blocks, num_action_channels, action_size, num_value_hidden_channels)
 
-    def scale_hidden_state(self, hidden_state):
-        # scale hidden state to range [0, 1] for each feature plane
-        batch_size, channel, _, _ = hidden_state.shape
-        min_val = hidden_state.min(-1).values.min(-1).values.view(batch_size, channel, 1, 1)
-        max_val = hidden_state.max(-1).values.max(-1).values.view(batch_size, channel, 1, 1)
-        scale = (max_val - min_val)
-        scale[scale < 1e-5] += 1e-5
-        hidden_state = (hidden_state - min_val) / scale
-        return hidden_state
-
     @torch.jit.export
     def get_type_name(self):
         return "muzero"
@@ -167,6 +157,16 @@ class MuZeroNetwork(nn.Module):
         next_hidden_state = self.scale_hidden_state(next_hidden_state)
         policy, value = self.prediction_network(next_hidden_state)
         return {"policy": policy, "value": value, "hidden_state": next_hidden_state}
+
+    def scale_hidden_state(self, hidden_state):
+        # scale hidden state to range [0, 1] for each feature plane
+        batch_size, channel, _, _ = hidden_state.shape
+        min_val = hidden_state.min(-1).values.min(-1).values.view(batch_size, channel, 1, 1)
+        max_val = hidden_state.max(-1).values.max(-1).values.view(batch_size, channel, 1, 1)
+        scale = (max_val - min_val)
+        scale[scale < 1e-5] += 1e-5
+        hidden_state = (hidden_state - min_val) / scale
+        return hidden_state
 
     def forward(self, state, action_plane=torch.empty(0)):
         if action_plane.numel() == 0:
