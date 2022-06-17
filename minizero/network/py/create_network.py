@@ -16,7 +16,7 @@ def create_network(game_name="tietactoe",
                    num_action_channels=1,
                    action_size=9,
                    num_value_hidden_channels=256,
-                   value_size=601,
+                   discrete_value_size=601,
                    network_type_name="alphazero"):
 
     network = None

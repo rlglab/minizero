@@ -37,7 +37,7 @@ public:
     inline int getNNNumActionChannels() const { return config::nn_num_action_channels; }
     inline int getNNActionSize() const { return config::nn_action_size; }
     inline int getNNNumValueHiddenChannels() const { return config::nn_num_value_hidden_channels; }
-    inline int getNNValueSize() const { return config::nn_value_size; }
+    inline int getNNDiscreteValueSize() const { return config::nn_discrete_value_size; }
     inline std::string getNNTypeName() const { return config::nn_type_name; }
 };
 
@@ -65,7 +65,7 @@ PYBIND11_MODULE(minizero_py, m)
         .def("get_nn_num_action_channels", &Conf::getNNNumActionChannels)
         .def("get_nn_action_size", &Conf::getNNActionSize)
         .def("get_nn_num_value_hidden_channels", &Conf::getNNNumValueHiddenChannels)
-        .def("get_nn_value_size", &Conf::getNNValueSize)
+        .def("get_nn_discrete_value_size", &Conf::getNNDiscreteValueSize)
         .def("get_nn_type_name", &Conf::getNNTypeName);
 
     py::class_<learner::DataLoader>(m, "DataLoader")
