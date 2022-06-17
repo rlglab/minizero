@@ -43,14 +43,14 @@ class PolicyNetwork(nn.Module):
 
 
 class ValueNetwork(nn.Module):
-    def __init__(self, num_channels, channel_height, channel_width, num_output_channels):
+    def __init__(self, num_channels, channel_height, channel_width, num_value_hidden_channels):
         super(ValueNetwork, self).__init__()
         self.channel_height = channel_height
         self.channel_width = channel_width
         self.conv = nn.Conv2d(num_channels, 1, kernel_size=1)
         self.bn = nn.BatchNorm2d(1)
-        self.fc1 = nn.Linear(channel_height*channel_width, num_output_channels)
-        self.fc2 = nn.Linear(num_output_channels, 1)
+        self.fc1 = nn.Linear(channel_height*channel_width, num_value_hidden_channels)
+        self.fc2 = nn.Linear(num_value_hidden_channels, 1)
         self.tanh = nn.Tanh()
 
     def forward(self, x):
@@ -62,4 +62,25 @@ class ValueNetwork(nn.Module):
         x = F.relu(x)
         x = self.fc2(x)
         x = self.tanh(x)
+        return x
+
+
+class DiscreteValueNetwork(nn.Module):
+    def __init__(self, num_channels, channel_height, channel_width, num_value_hidden_channels, value_size):
+        super(DiscreteValueNetwork, self).__init__()
+        self.channel_height = channel_height
+        self.channel_width = channel_width
+        self.conv = nn.Conv2d(num_channels, 1, kernel_size=1)
+        self.bn = nn.BatchNorm2d(1)
+        self.fc1 = nn.Linear(channel_height*channel_width, num_value_hidden_channels)
+        self.fc2 = nn.Linear(num_value_hidden_channels, value_size)
+
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.bn(x)
+        x = F.relu(x)
+        x = x.view(-1, self.channel_height*self.channel_width)
+        x = self.fc1(x)
+        x = F.relu(x)
+        x = self.fc2(x)
         return x
