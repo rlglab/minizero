@@ -13,6 +13,8 @@ int actor_num_parallel_games = 32;
 int actor_num_simulation = 50;
 float actor_mcts_puct_base = 19652;
 float actor_mcts_puct_init = 1.25;
+float actor_mcts_reward_discount = 1.0f;
+bool actor_mcts_value_rescale = false;
 bool actor_select_action_by_count = false;
 bool actor_select_action_by_softmax_count = true;
 float actor_select_action_softmax_temperature = 1.0f;
@@ -78,6 +80,8 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("actor_num_simulation", actor_num_simulation, "", "Actor");
     cl.addParameter("actor_mcts_puct_base", actor_mcts_puct_base, "", "Actor");
     cl.addParameter("actor_mcts_puct_init", actor_mcts_puct_init, "", "Actor");
+    cl.addParameter("actor_mcts_reward_discount", actor_mcts_reward_discount, "", "Actor");
+    cl.addParameter("actor_mcts_value_rescale", actor_mcts_value_rescale, "", "Actor");
     cl.addParameter("actor_select_action_by_count", actor_select_action_by_count, "", "Actor");
     cl.addParameter("actor_select_action_by_softmax_count", actor_select_action_by_softmax_count, "", "Actor");
     cl.addParameter("actor_select_action_softmax_temperature", actor_select_action_softmax_temperature, "", "Actor");

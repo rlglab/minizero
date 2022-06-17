@@ -5,6 +5,7 @@
 #include "random.h"
 #include "tree.h"
 #include <cmath>
+#include <map>
 #include <vector>
 
 namespace minizero::actor {
@@ -23,6 +24,7 @@ public:
         policy_logit_ = 0.0f;
         policy_noise_ = 0.0f;
         value_ = 0.0f;
+        reward_ = 0.0f;
         first_child_ = nullptr;
     }
 
@@ -46,11 +48,26 @@ public:
         }
     }
 
-    float getPUCTScore(int total_simulation, float init_q_value = -1.0f)
+    float getNormalizedMean(const std::map<float, int>& tree_value_map) const
+    {
+        float value = mean_;
+        if (config::actor_mcts_value_rescale) {
+            if (tree_value_map.size() < 2) { return 1.0f; }
+            const float value_lower_bound = tree_value_map.begin()->first;
+            const float value_upper_bound = tree_value_map.rbegin()->first;
+            value = (mean_ - value_lower_bound) / (value_upper_bound - value_lower_bound);
+            value = fmin(1, fmax(-1, 2 * value - 1)); // normalize to [-1, 1]
+        }
+        // flip value according to player
+        value = (action_.getPlayer() == env::Player::kPlayer1 ? value : -value);
+        return value;
+    }
+
+    float getNormalizedPUCTScore(int total_simulation, const std::map<float, int>& tree_value_map, float init_q_value = -1.0f) const
     {
         float puct_bias = config::actor_mcts_puct_init + log((1 + total_simulation + config::actor_mcts_puct_base) / config::actor_mcts_puct_base);
-        float value_u = (puct_bias * getPolicy() * sqrt(total_simulation)) / (1 + getCount());
-        float value_q = (getCount() == 0 ? init_q_value : (action_.getPlayer() == env::Player::kPlayer1 ? getMean() : -getMean()));
+        float value_u = (puct_bias * getPolicy() * sqrt(total_simulation)) / (1 + count_);
+        float value_q = (count_ == 0 ? init_q_value : getNormalizedMean(tree_value_map));
         return value_u + value_q;
     }
 
@@ -62,6 +79,7 @@ public:
             << ", p_logit = " << policy_logit_
             << ", p_noise = " << policy_noise_
             << ", v = " << value_
+            << ", r = " << reward_
             << ", mean = " << mean_
             << ", count = " << count_;
         return oss.str();
@@ -77,6 +95,7 @@ public:
     inline void setPolicyLogit(float policy_logit) { policy_logit_ = policy_logit; }
     inline void setPolicyNoise(float policy_noise) { policy_noise_ = policy_noise; }
     inline void setValue(float value) { value_ = value; }
+    inline void setReward(float reward) { reward_ = reward; }
     inline void setFirstChild(MCTSNode* first_child) { BaseTreeNode::setFirstChild(first_child); }
 
     // getter
@@ -87,6 +106,7 @@ public:
     inline float getPolicyLogit() const { return policy_logit_; }
     inline float getPolicyNoise() const { return policy_noise_; }
     inline float getValue() const { return value_; }
+    inline float getReward() const { return reward_; }
     inline MCTSNode* getFirstChild() const { return static_cast<MCTSNode*>(BaseTreeNode::getFirstChild()); }
 
 protected:
@@ -97,6 +117,7 @@ protected:
     float policy_logit_;
     float policy_noise_;
     float value_;
+    float reward_;
 };
 
 class MCTSNodeExtraData {
@@ -125,13 +146,14 @@ public:
     {
         tree_.reset();
         tree_extra_data_.reset();
+        tree_value_map_.clear();
     }
 
     virtual bool isResign(const Node* selected_node) const
     {
         const Action& action = selected_node->getAction();
-        float root_win_rate = (action.getPlayer() == env::Player::kPlayer1 ? tree_.getRootNode()->getMean() : -tree_.getRootNode()->getMean());
-        float action_win_rate = (action.getPlayer() == env::Player::kPlayer1 ? selected_node->getMean() : -selected_node->getMean());
+        float root_win_rate = tree_.getRootNode()->getNormalizedMean(tree_value_map_);
+        float action_win_rate = selected_node->getNormalizedMean(tree_value_map_);
         return (root_win_rate < config::actor_resign_threshold && action_win_rate < config::actor_resign_threshold);
     }
 
@@ -156,11 +178,11 @@ public:
         Node* selected = nullptr;
         Node* child = node->getFirstChild();
         Node* best_child = selectChildByMaxCount(node);
-        float best_mean = (best_child->getAction().getPlayer() == env::Player::kPlayer1 ? best_child->getMean() : -best_child->getMean());
+        float best_mean = best_child->getNormalizedMean(tree_value_map_);
         float sum = 0.0f;
         for (int i = 0; i < node->getNumChildren(); ++i, ++child) {
             float count = std::pow(child->getCount(), 1 / temperature);
-            float mean = (child->getAction().getPlayer() == env::Player::kPlayer1 ? child->getMean() : -child->getMean());
+            float mean = child->getNormalizedMean(tree_value_map_);
             if (count == 0 || (mean < best_mean - value_threshold)) { continue; }
             sum += count;
             float rand = utils::Random::randReal(sum);
@@ -212,13 +234,18 @@ public:
         }
     }
 
-    virtual void backup(const std::vector<Node*>& node_path, const float value)
+    virtual void backup(const std::vector<Node*>& node_path, const float value, const float reward = 0.0f)
     {
         assert(node_path.size() > 0);
+        float updated_value = value;
         node_path.back()->setValue(value);
+        node_path.back()->setReward(reward);
         for (int i = static_cast<int>(node_path.size() - 1); i >= 0; --i) {
             Node* node = node_path[i];
-            node->add(value);
+            float old_mean = node->getMean();
+            node->add(updated_value);
+            updateTreeValueMap(old_mean, node->getMean());
+            updated_value = node->getReward() + config::actor_mcts_reward_discount * updated_value;
         }
     }
 
@@ -230,6 +257,8 @@ public:
     inline const Node* getRootNode() const { return tree_.getRootNode(); }
     inline TreeExtraData& getTreeExtraData() { return tree_extra_data_; }
     inline const TreeExtraData& getTreeExtraData() const { return tree_extra_data_; }
+    inline std::map<float, int>& getTreeValueMap() { return tree_value_map_; }
+    inline const std::map<float, int>& getTreeValueMap() const { return tree_value_map_; }
 
 protected:
     virtual Node* selectChildByPUCTScore(const Node* node) const
@@ -241,7 +270,7 @@ protected:
         int total_simulation = node->getCount();
         float init_q_value = calculateInitQValue(node);
         for (int i = 0; i < node->getNumChildren(); ++i, ++child) {
-            float score = child->getPUCTScore(total_simulation, init_q_value);
+            float score = child->getNormalizedPUCTScore(total_simulation, tree_value_map_, init_q_value);
             if (score <= best_score) { continue; }
             best_score = score;
             selected = child;
@@ -258,15 +287,26 @@ protected:
         Node* child = node->getFirstChild();
         for (int i = 0; i < node->getNumChildren(); ++i, ++child) {
             if (child->getCount() == 0) { continue; }
-            sum_of_win += child->getMean();
+            sum_of_win += child->getNormalizedMean(tree_value_map_);
             sum += 1;
         }
-        sum_of_win = (node->getFirstChild()->getAction().getPlayer() == env::Player::kPlayer1 ? sum_of_win : -sum_of_win);
         return (sum_of_win - 1) / (sum + 1);
+    }
+
+    virtual void updateTreeValueMap(float old_value, float new_value)
+    {
+        if (!config::actor_mcts_value_rescale) { return; }
+        if (tree_value_map_.count(old_value)) {
+            assert(tree_value_map_[old_value] > 0);
+            --tree_value_map_[old_value];
+            if (tree_value_map_[old_value] == 0) { tree_value_map_.erase(old_value); }
+        }
+        ++tree_value_map_[new_value];
     }
 
     Tree tree_;
     TreeExtraData tree_extra_data_;
+    std::map<float, int> tree_value_map_;
 };
 
 typedef Tree<MCTSNode> MCTSTree;
