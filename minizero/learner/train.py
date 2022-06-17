@@ -71,6 +71,7 @@ def load_model(training_dir, model_file, conf):
                              conf.get_nn_num_action_channels(),
                              conf.get_nn_action_size(),
                              conf.get_nn_num_value_hidden_channels(),
+                             conf.get_nn_value_size(),
                              conf.get_nn_type_name())
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     network.to(device)
