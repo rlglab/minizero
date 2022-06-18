@@ -1,7 +1,7 @@
 import sys
-import torch
 from .alphazero_network import AlphaZeroNetwork
 from .muzero_network import MuZeroNetwork
+from .muzero_reward_network import MuZeroRewardNetwork
 
 
 def create_network(game_name="tietactoe",
@@ -45,5 +45,21 @@ def create_network(game_name="tietactoe",
                                 num_action_channels,
                                 action_size,
                                 num_value_hidden_channels)
+    elif network_type_name == "muzero_reward":
+        network = MuZeroRewardNetwork(game_name,
+                                      num_input_channels,
+                                      input_channel_height,
+                                      input_channel_width,
+                                      num_hidden_channels,
+                                      hidden_channel_height,
+                                      hidden_channel_width,
+                                      num_action_feature_channels,
+                                      num_blocks,
+                                      num_action_channels,
+                                      action_size,
+                                      num_value_hidden_channels,
+                                      discrete_value_size)
+    else:
+        assert False
 
     return network

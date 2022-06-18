@@ -74,7 +74,7 @@ void ZeroActor::afterNNEvaluation(const std::shared_ptr<NetworkOutput>& network_
     } else if (muzero_network_) {
         std::shared_ptr<MuZeroNetworkOutput> muzero_output = std::static_pointer_cast<MuZeroNetworkOutput>(network_output);
         mcts_.expand(leaf_node, calculateMuZeroActionPolicy(leaf_node, muzero_output));
-        mcts_.backup(node_path, muzero_output->value_);
+        mcts_.backup(node_path, muzero_output->value_, muzero_output->reward_);
         leaf_node->setExtraDataIndex(mcts_.getTreeExtraData().store(MCTSNodeExtraData(muzero_output->hidden_state_)));
     } else {
         assert(false);
@@ -90,7 +90,7 @@ void ZeroActor::setNetwork(const std::shared_ptr<network::Network>& network)
     muzero_network_ = nullptr;
     if (network->getNetworkTypeName() == "alphazero") {
         alphazero_network_ = std::static_pointer_cast<AlphaZeroNetwork>(network);
-    } else if (network->getNetworkTypeName() == "muzero") {
+    } else if (network->getNetworkTypeName() == "muzero" || network->getNetworkTypeName() == "muzero_reward") {
         muzero_network_ = std::static_pointer_cast<MuZeroNetwork>(network);
     } else {
         assert(false);
