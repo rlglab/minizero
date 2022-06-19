@@ -3,7 +3,7 @@
 #include <boost/algorithm/string.hpp>
 #include <iostream>
 
-namespace minizero::server {
+namespace minizero::zero {
 
 using namespace minizero;
 using namespace minizero::utils;

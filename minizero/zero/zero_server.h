@@ -9,7 +9,7 @@
 #include <fstream>
 #include <queue>
 
-namespace minizero::server {
+namespace minizero::zero {
 
 class ZeroLogger {
 public:

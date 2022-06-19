@@ -76,7 +76,7 @@ void runSelfPlay()
 
 void runZeroServer()
 {
-    server::ZeroServer server;
+    zero::ZeroServer server;
     server.run();
 }
 
