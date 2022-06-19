@@ -17,8 +17,7 @@ void initialize()
 {
     std::mt19937_64 generator;
     generator.seed(0);
-    assert(config::env_go_ko_rule == "positional" || config::env_go_ko_rule == "situational");
-    turn_hash_key = (config::env_go_ko_rule == "positional" ? 0 : generator());
+    turn_hash_key = generator();
 
     // empty & grid hash key
     empty_hash_key.resize(kMaxGoBoardSize * kMaxGoBoardSize);
@@ -42,7 +41,8 @@ void initialize()
 
 GoHashKey getGoTurnHashKey()
 {
-    return turn_hash_key;
+    assert(config::env_go_ko_rule == "positional" || config::env_go_ko_rule == "situational");
+    return (config::env_go_ko_rule == "positional" ? 0 : turn_hash_key);
 }
 
 GoHashKey getGoEmptyHashKey(int position)
