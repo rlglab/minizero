@@ -119,7 +119,7 @@ void ZeroActor::handleSearchDone()
     mcts_search_data_.selected_node_ = decideActionNode();
     const Action action = getSearchAction();
     std::ostringstream oss;
-    oss << TimeSystem::getTimeString("[Y/m/d H:i:s.f] ")
+    oss << utils::TimeSystem::getTimeString("[Y/m/d H:i:s.f] ")
         << "move number: " << env_.getActionHistory().size()
         << ", action: " << action.toConsoleString()
         << " (" << action.getActionID() << ")"

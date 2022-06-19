@@ -8,7 +8,7 @@ target_link_libraries(
     console
     environment
     network
-    server
     utils
+    zero
     ${TORCH_LIBRARIES}
 )

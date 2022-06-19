@@ -1,12 +1,12 @@
 file(GLOB SRCS *.cpp)
 
-add_library(server ${SRCS})
+add_library(zero ${SRCS})
 target_include_directories(
-    server PUBLIC
+    zero PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 target_link_libraries(
-    server
+    zero
     config
     utils
     ${Boost_LIBRARIES}

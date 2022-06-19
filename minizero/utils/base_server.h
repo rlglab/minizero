@@ -8,6 +8,8 @@
 #include <string>
 #include <vector>
 
+namespace minizero::utils {
+
 class ConnectionHandler : public boost::enable_shared_from_this<ConnectionHandler> {
 public:
     ConnectionHandler(boost::asio::io_service& io_service)
@@ -165,3 +167,5 @@ protected:
     boost::asio::ip::tcp::acceptor acceptor_;
     std::vector<boost::shared_ptr<_ConnectionHandler>> connections_;
 };
+
+} // namespace minizero::utils

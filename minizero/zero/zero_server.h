@@ -48,7 +48,7 @@ public:
     boost::mutex& worker_mutex_;
 };
 
-class ZeroWorkerHandler : public ConnectionHandler {
+class ZeroWorkerHandler : public utils::ConnectionHandler {
 public:
     ZeroWorkerHandler(boost::asio::io_service& io_service, ZeroWorkerSharedData& shared_data)
         : ConnectionHandler(io_service),
@@ -72,7 +72,7 @@ private:
     ZeroWorkerSharedData& shared_data_;
 };
 
-class ZeroServer : public BaseServer<ZeroWorkerHandler> {
+class ZeroServer : public utils::BaseServer<ZeroWorkerHandler> {
 public:
     ZeroServer()
         : BaseServer(minizero::config::zero_server_port),

@@ -6,6 +6,7 @@
 namespace minizero::server {
 
 using namespace minizero;
+using namespace minizero::utils;
 
 void ZeroLogger::createLog()
 {

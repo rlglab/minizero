@@ -5,6 +5,8 @@
 #include <ctime>
 #include <string>
 
+namespace minizero::utils {
+
 class TimeSystem {
 public:
     static boost::posix_time::ptime getLocalTime() { return boost::posix_time::microsec_clock::local_time(); }
@@ -51,3 +53,5 @@ private:
         return buf;
     }
 };
+
+} // namespace minizero::utils
