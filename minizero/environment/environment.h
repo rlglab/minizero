@@ -20,16 +20,21 @@ typedef minizero::env::go::GoEnvLoader EnvironmentLoader;
 typedef minizero::env::gomoku::GomokuAction Action;
 typedef minizero::env::gomoku::GomokuEnv Environment;
 typedef minizero::env::gomoku::GomokuEnvLoader EnvironmentLoader;
-#elif OTHELLO
-#include "othello.h"
-typedef minizero::env::othello::OthelloAction Action;
-typedef minizero::env::othello::OthelloEnv Environment;
-typedef minizero::env::othello::OthelloEnvLoader EnvironmentLoader;
+#elif HEX
+#include "hex.h"
+typedef minizero::env::hex::HexAction Action;
+typedef minizero::env::hex::HexEnv Environment;
+typedef minizero::env::hex::HexEnvLoader EnvironmentLoader;
 #elif KILLALLGO
 #include "killallgo.h"
 typedef minizero::env::killallgo::KillAllGoAction Action;
 typedef minizero::env::killallgo::KillAllGoEnv Environment;
 typedef minizero::env::killallgo::KillAllGoEnvLoader EnvironmentLoader;
+#elif OTHELLO
+#include "othello.h"
+typedef minizero::env::othello::OthelloAction Action;
+typedef minizero::env::othello::OthelloEnv Environment;
+typedef minizero::env::othello::OthelloEnvLoader EnvironmentLoader;
 #else
 #include "tictactoe.h"
 typedef minizero::env::tictactoe::TicTacToeAction Action;

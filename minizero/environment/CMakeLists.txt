@@ -9,6 +9,7 @@ target_include_directories(
     chess
     go
     gomoku
+    hex
     killallgo
     othello
     tictactoe
