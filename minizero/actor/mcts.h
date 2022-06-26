@@ -264,11 +264,11 @@ protected:
     virtual Node* selectChildByPUCTScore(const Node* node) const
     {
         assert(node && !node->isLeaf());
-        float best_score = -1.0f;
         Node* selected = nullptr;
         Node* child = node->getFirstChild();
         int total_simulation = node->getCount();
         float init_q_value = calculateInitQValue(node);
+        float best_score = -std::numeric_limits<float>::max();
         for (int i = 0; i < node->getNumChildren(); ++i, ++child) {
             float score = child->getNormalizedPUCTScore(total_simulation, tree_value_map_, init_q_value);
             if (score <= best_score) { continue; }
