@@ -46,7 +46,7 @@ bool SlaveThread::doCPUJob()
         actor->afterNNEvaluation(shared_data_.network_outputs_[network_id][network_output_id]);
         if (actor->isSearchDone() && !actor->isResign()) { actor->act(actor->getSearchAction(), actor->getActionComment()); }
     }
-    actor->beforeNNEvaluation();
+    if (!actor->isSearchDone()) { actor->beforeNNEvaluation(); }
     return true;
 }
 
@@ -56,14 +56,13 @@ void SlaveThread::doGPUJob()
 
     std::shared_ptr<Network>& network = shared_data_.networks_[id_];
     if (network->getNetworkTypeName() == "alphazero") {
-        shared_data_.network_outputs_[id_] = std::static_pointer_cast<AlphaZeroNetwork>(network)->forward();
+        std::shared_ptr<AlphaZeroNetwork> az_network = std::static_pointer_cast<AlphaZeroNetwork>(network);
+        if (az_network->getBatchSize() > 0) { shared_data_.network_outputs_[id_] = az_network->forward(); }
     } else if (network->getNetworkTypeName() == "muzero" || network->getNetworkTypeName() == "muzero_reward") {
         std::shared_ptr<MuZeroNetwork> muzero_network = std::static_pointer_cast<MuZeroNetwork>(network);
         if (muzero_network->getInitialInputBatchSize() > 0) {
-            assert(muzero_network->getRecurrentInputBatchSize() == 0);
             shared_data_.network_outputs_[id_] = std::static_pointer_cast<MuZeroNetwork>(network)->initialInference();
-        } else {
-            assert(muzero_network->getRecurrentInputBatchSize() > 0);
+        } else if (muzero_network->getRecurrentInputBatchSize() > 0) {
             shared_data_.network_outputs_[id_] = std::static_pointer_cast<MuZeroNetwork>(network)->recurrentInference();
         }
     }
