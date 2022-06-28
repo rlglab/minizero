@@ -48,7 +48,7 @@ public:
         }
     }
 
-    float getNormalizedMean(const std::map<float, int>& tree_value_map) const
+    virtual float getNormalizedMean(const std::map<float, int>& tree_value_map) const
     {
         float value = mean_;
         if (config::actor_mcts_value_rescale) {
@@ -63,7 +63,7 @@ public:
         return value;
     }
 
-    float getNormalizedPUCTScore(int total_simulation, const std::map<float, int>& tree_value_map, float init_q_value = -1.0f) const
+    virtual float getNormalizedPUCTScore(int total_simulation, const std::map<float, int>& tree_value_map, float init_q_value = -1.0f) const
     {
         float puct_bias = config::actor_mcts_puct_init + log((1 + total_simulation + config::actor_mcts_puct_base) / config::actor_mcts_puct_base);
         float value_u = (puct_bias * getPolicy() * sqrt(total_simulation)) / (1 + count_);
