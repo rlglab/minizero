@@ -115,9 +115,10 @@ void ActorGroup::handleFinishedGame()
     for (size_t actor_id = 0; actor_id < shared_data_.actors_.size(); ++actor_id) {
         std::shared_ptr<BaseActor>& actor = shared_data_.actors_[actor_id];
         if (!actor->isSearchDone()) { continue; }
-        if (actor_id == 0 && config::actor_num_simulation >= 100) { std::cerr << actor->getEnvironment().toString() << actor->getSearchInfo() << std::endl; }
-        if (actor->isResign() || actor->isEnvTerminal()) {
-            if (actor_id == 0 && config::actor_num_simulation < 100) { std::cerr << actor->getEnvironment().toString() << actor->getSearchInfo() << std::endl; }
+        bool is_endgame = (actor->isResign() || actor->isEnvTerminal());
+        bool display_game = (actor_id == 0 && (config::actor_num_simulation >= 100 || (config::actor_num_simulation < 100 && is_endgame)));
+        if (display_game) { std::cerr << actor->getEnvironment().toString() << actor->getSearchInfo() << std::endl; }
+        if (is_endgame) {
             std::cout << actor->getRecord() << std::endl;
             actor->reset();
         } else {
