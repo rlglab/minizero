@@ -91,6 +91,7 @@ class AlphaZeroNetwork(nn.Module):
         for residual_block in self.residual_blocks:
             x = residual_block(x)
 
-        policy = self.policy(x)
+        policy_logit = self.policy(x)
+        policy = torch.softmax(policy_logit, dim=1)
         value = self.value(x)
-        return {"policy": policy, "value": value}
+        return {"policy_logit": policy_logit, "policy": policy, "value": value}
