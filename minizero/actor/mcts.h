@@ -152,7 +152,7 @@ public:
     virtual bool isResign(const Node* selected_node) const
     {
         const Action& action = selected_node->getAction();
-        float root_win_rate = tree_.getRootNode()->getNormalizedMean(tree_value_map_);
+        float root_win_rate = (selected_node->getAction().getPlayer() == env::Player::kPlayer1 ? tree_.getRootNode()->getMean() : -tree_.getRootNode()->getMean());
         float action_win_rate = selected_node->getNormalizedMean(tree_value_map_);
         return (root_win_rate < config::actor_resign_threshold && action_win_rate < config::actor_resign_threshold);
     }
