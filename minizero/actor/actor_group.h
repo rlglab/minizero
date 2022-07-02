@@ -3,6 +3,7 @@
 #include "base_actor.h"
 #include "network.h"
 #include "paralleler.h"
+#include <deque>
 #include <mutex>
 #include <vector>
 
@@ -45,7 +46,12 @@ public:
 protected:
     void createNeuralNetworks();
     void createActors();
+    void handleIO();
     void handleFinishedGame();
+    void handleCommand();
+
+    bool running_;
+    std::deque<std::string> commands_;
 };
 
 } // namespace minizero::actor

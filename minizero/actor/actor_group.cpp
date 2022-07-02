@@ -3,6 +3,7 @@
 #include "configuration.h"
 #include "muzero_network.h"
 #include "random.h"
+#include "utils.h"
 #include <iostream>
 #include <string>
 #include <torch/cuda.h>
@@ -71,8 +72,10 @@ void SlaveThread::doGPUJob()
 void ActorGroup::run()
 {
     initialize();
-    shared_data_.do_cpu_job_ = true;
     while (true) {
+        handleCommand();
+
+        if (!running_) { continue; }
         shared_data_.actor_index_ = 0;
         for (auto& t : slave_threads_) { t->start(); }
         for (auto& t : slave_threads_) { t->finish(); }
@@ -87,6 +90,12 @@ void ActorGroup::initialize()
     createSlaveThreads(num_threads);
     createNeuralNetworks();
     createActors();
+    running_ = false;
+    shared_data_.do_cpu_job_ = true;
+
+    // create one thread to handle I/O
+    commands_.clear();
+    thread_groups_.create_thread(boost::bind(&ActorGroup::handleIO, this));
 }
 
 void ActorGroup::createNeuralNetworks()
@@ -110,6 +119,17 @@ void ActorGroup::createActors()
     }
 }
 
+void ActorGroup::handleIO()
+{
+    std::string command;
+    const int buffer_size = 10000000;
+    command.reserve(buffer_size);
+    while (getline(std::cin, command)) {
+        std::lock_guard<std::mutex> lock(shared_data_.mutex_);
+        commands_.push_back(command);
+    }
+}
+
 void ActorGroup::handleFinishedGame()
 {
     for (size_t actor_id = 0; actor_id < shared_data_.actors_.size(); ++actor_id) {
@@ -123,6 +143,38 @@ void ActorGroup::handleFinishedGame()
             actor->reset();
         } else {
             actor->resetSearch();
+        }
+    }
+}
+
+void ActorGroup::handleCommand()
+{
+    if (commands_.empty()) { return; }
+
+    std::lock_guard<std::mutex> lock(shared_data_.mutex_);
+    while (!commands_.empty()) {
+        const std::string command = commands_.front();
+        commands_.pop_front();
+
+        if (command.find("reset_actors") != std::string::npos) {
+            std::cerr << "[command] " << command << std::endl;
+            for (auto& actor : shared_data_.actors_) { actor->reset(); }
+            shared_data_.do_cpu_job_ = true;
+        } else if (command.find("load_model") != std::string::npos) {
+            std::cerr << "[command] " << command << std::endl;
+            std::vector<std::string> args = utils::stringToVector(command);
+            assert(args.size() == 2);
+            config::nn_file_name = args[1];
+            for (auto& network : shared_data_.networks_) { network->loadModel(config::nn_file_name, network->getGPUID()); }
+        } else if (command.find("start") != std::string::npos) {
+            std::cerr << "[command] " << command << std::endl;
+            running_ = true;
+        } else if (command.find("stop") != std::string::npos) {
+            std::cerr << "[command] " << command << std::endl;
+            running_ = false;
+        } else if (command.find("quit") != std::string::npos) {
+            std::cerr << "[command] " << command << std::endl;
+            exit(0);
         }
     }
 }

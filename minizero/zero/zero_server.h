@@ -84,14 +84,15 @@ public:
 
     void run();
     boost::shared_ptr<ZeroWorkerHandler> handleAcceptNewConnection();
-    void sendInitialMessage(boost::shared_ptr<ZeroWorkerHandler> connection);
+    void sendInitialMessage(boost::shared_ptr<ZeroWorkerHandler> connection) {}
 
 private:
     void initialize();
     void selfPlay();
     void broadCastSelfPlayJob();
     void optimization();
-    void stopJob();
+    void stopJob(const std::string& job_type);
+    void close();
     void keepAlive();
     void startKeepAlive();
 
