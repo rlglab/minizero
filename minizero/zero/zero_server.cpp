@@ -62,6 +62,18 @@ void ZeroWorkerHandler::handleReceivedMessage(const std::string& message)
         type_ = args[2];
         boost::lock_guard<boost::mutex> lock(shared_data_.worker_mutex_);
         shared_data_.logger_.addWorkerLog("[Worker Connection] " + getName() + " " + getType());
+        std::string job_command = "";
+        if (type_ == "sp") {
+            job_command += "Job_SelfPlay ";
+            job_command += config::zero_training_directory + " ";
+            job_command += "nn_file_name=" + config::zero_training_directory + "/model/weight_iter_" + std::to_string(shared_data_.getModelIetration()) + ".pt";
+            job_command += ":program_auto_seed=false:program_seed=" + std::to_string(utils::Random::randInt());
+            job_command += ":program_quiet=true";
+            write(job_command);
+        } else if (type_ == "op") {
+        } else {
+            close();
+        }
         is_idle_ = true;
     } else if (args[0] == "SelfPlay") {
         if (message.find("SelfPlay", message.find("SelfPlay", 0) + 1) != std::string::npos) { return; }
@@ -101,18 +113,13 @@ void ZeroServer::run()
         optimization();
     }
 
-    exit(0);
+    close();
 }
 
 boost::shared_ptr<ZeroWorkerHandler> ZeroServer::handleAcceptNewConnection()
 {
     boost::shared_ptr<ZeroWorkerHandler> worker = boost::make_shared<ZeroWorkerHandler>(io_service_, shared_data_);
     return worker;
-}
-
-void ZeroServer::sendInitialMessage(boost::shared_ptr<ZeroWorkerHandler> connection)
-{
-    connection->write("Info");
 }
 
 void ZeroServer::initialize()
@@ -166,7 +173,7 @@ void ZeroServer::selfPlay()
         }
     }
 
-    stopJob();
+    stopJob("sp");
     shared_data_.logger_.getSelfPlayFileStream().close();
     shared_data_.logger_.addTrainingLog("[SelfPlay] Finished.");
     shared_data_.logger_.addTrainingLog("[SelfPlay Game Lengths] " + std::to_string(game_length * 1.0f / num_collect_game));
@@ -174,16 +181,13 @@ void ZeroServer::selfPlay()
 
 void ZeroServer::broadCastSelfPlayJob()
 {
-    std::string job_command = "Job_SelfPlay ";
-    job_command += config::zero_training_directory + " ";
-    job_command += "nn_file_name=" + config::zero_training_directory + "/model/weight_iter_" + std::to_string(shared_data_.getModelIetration()) + ".pt";
-    job_command += ":program_quiet=true";
-
     boost::lock_guard<boost::mutex> lock(worker_mutex_);
-    for (auto worker : connections_) {
-        if (!worker->isIdle()) { continue; }
+    for (auto& worker : connections_) {
+        if (!worker->isIdle() || worker->getType() != "sp") { continue; }
         worker->setIdle(false);
-        worker->write(job_command + ":program_auto_seed=false:program_seed=" + std::to_string(utils::Random::randInt()));
+        worker->write("load_model " + config::zero_training_directory + "/model/weight_iter_" + std::to_string(shared_data_.getModelIetration()) + ".pt");
+        worker->write("reset_actors");
+        worker->write("start");
     }
 }
 
@@ -201,23 +205,33 @@ void ZeroServer::optimization()
     while (shared_data_.isOptimizationPahse()) {
         boost::lock_guard<boost::mutex> lock(worker_mutex_);
         for (auto worker : connections_) {
-            if (!worker->isIdle()) { continue; }
+            if (!worker->isIdle() || worker->getType() != "op") { continue; }
             worker->setIdle(false);
             worker->write(job_command);
         }
     }
-    stopJob();
+    stopJob("op");
 
     shared_data_.logger_.addTrainingLog("[Optimization] Finished.");
 }
 
-void ZeroServer::stopJob()
+void ZeroServer::stopJob(const std::string& job_type)
 {
     boost::lock_guard<boost::mutex> lock(worker_mutex_);
     for (auto worker : connections_) {
+        if (worker->getType() != job_type) { continue; }
+        if (job_type == "sp") { worker->write("stop"); }
         worker->setIdle(true);
-        worker->write("Job_Done");
     }
+}
+
+void ZeroServer::close()
+{
+    boost::lock_guard<boost::mutex> lock(worker_mutex_);
+    for (auto worker : connections_) {
+        if (worker->getType() == "sp") { worker->write("quit"); }
+    }
+    exit(0);
 }
 
 void ZeroServer::keepAlive()
@@ -235,4 +249,4 @@ void ZeroServer::startKeepAlive()
     keep_alive_timer_.async_wait(boost::bind(&ZeroServer::keepAlive, this));
 }
 
-} // namespace minizero::server
+} // namespace minizero::zero

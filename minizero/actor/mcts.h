@@ -48,7 +48,7 @@ public:
         }
     }
 
-    float getNormalizedMean(const std::map<float, int>& tree_value_map) const
+    virtual float getNormalizedMean(const std::map<float, int>& tree_value_map) const
     {
         float value = mean_;
         if (config::actor_mcts_value_rescale) {
@@ -63,7 +63,7 @@ public:
         return value;
     }
 
-    float getNormalizedPUCTScore(int total_simulation, const std::map<float, int>& tree_value_map, float init_q_value = -1.0f) const
+    virtual float getNormalizedPUCTScore(int total_simulation, const std::map<float, int>& tree_value_map, float init_q_value = -1.0f) const
     {
         float puct_bias = config::actor_mcts_puct_init + log((1 + total_simulation + config::actor_mcts_puct_base) / config::actor_mcts_puct_base);
         float value_u = (puct_bias * getPolicy() * sqrt(total_simulation)) / (1 + count_);
@@ -152,7 +152,7 @@ public:
     virtual bool isResign(const Node* selected_node) const
     {
         const Action& action = selected_node->getAction();
-        float root_win_rate = tree_.getRootNode()->getNormalizedMean(tree_value_map_);
+        float root_win_rate = (selected_node->getAction().getPlayer() == env::Player::kPlayer1 ? tree_.getRootNode()->getMean() : -tree_.getRootNode()->getMean());
         float action_win_rate = selected_node->getNormalizedMean(tree_value_map_);
         return (root_win_rate < config::actor_resign_threshold && action_win_rate < config::actor_resign_threshold);
     }
@@ -264,11 +264,11 @@ protected:
     virtual Node* selectChildByPUCTScore(const Node* node) const
     {
         assert(node && !node->isLeaf());
-        float best_score = -1.0f;
         Node* selected = nullptr;
         Node* child = node->getFirstChild();
         int total_simulation = node->getCount();
         float init_q_value = calculateInitQValue(node);
+        float best_score = -std::numeric_limits<float>::max();
         for (int i = 0; i < node->getNumChildren(); ++i, ++child) {
             float score = child->getNormalizedPUCTScore(total_simulation, tree_value_map_, init_q_value);
             if (score <= best_score) { continue; }

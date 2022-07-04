@@ -124,8 +124,8 @@ private:
         assert(network_.find_method(method));
 
         auto forward_result = network_.get_method(method)(inputs).toGenericDict();
-        auto policy_output = torch::softmax(forward_result.at("policy").toTensor(), 1).to(at::kCPU);
-        auto policy_logits_output = forward_result.at("policy").toTensor().to(at::kCPU);
+        auto policy_output = forward_result.at("policy").toTensor().to(at::kCPU);
+        auto policy_logits_output = forward_result.at("policy_logit").toTensor().to(at::kCPU);
         auto value_output = forward_result.at("value").toTensor().to(at::kCPU);
         auto reward_output = (forward_result.contains("reward") ? forward_result.at("reward").toTensor().to(at::kCPU) : torch::zeros(0));
         auto hidden_state_output = forward_result.at("hidden_state").toTensor().to(at::kCPU);

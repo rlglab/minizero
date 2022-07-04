@@ -35,6 +35,24 @@
 
 namespace minizero::env::chess {
 
+template <class T>
+class ChessPair {
+public:
+    ChessPair() { reset(); }
+    ChessPair(T white, T black) : white_(white), black_(black) {}
+    inline void reset() { black_ = white_ = T(); }
+    inline T& get(Player p) { return (p == Player::kPlayer1 ? white_ : black_); }
+    inline const T& get(Player p) const { return (p == Player::kPlayer1 ? white_ : black_); }
+    inline void set(Player p, const T& value) { (p == Player::kPlayer1 ? white_ : black_) = value; }
+    inline void set(const T& white, const T& black) {
+        white_ = white;
+        black_ = black;
+    }
+private:
+    T white_;
+    T black_;
+};
+
 class Bitboard{
 public:
     Bitboard(std::uint64_t board = 0){ setboard(board); }
@@ -82,6 +100,58 @@ public:
 private:
     // 0~2^64-1 
     std::uint64_t board_;
+};
+
+class Pieces_Bitboard {
+public:
+    Bitboard white_;
+    Bitboard black_;
+    Bitboard pawns_;
+    Bitboard knights_;
+    Bitboard bishops_;
+    Bitboard rooks_;
+    Pieces_Bitboard () { reset(); }
+    Pieces_Bitboard (Bitboard white, Bitboard black, Bitboard pawn, Bitboard knight, Bitboard bishop, Bitboard rook)
+        : white_(white), black_(black), pawns_(pawn), knights_(knight), bishops_(bishop), rooks_(rook) {}
+    void reset() {
+        rooks_.setboard(0x8100000081000081);
+        bishops_.setboard(0x0000810081810000);
+        knights_.setboard(0x0081000000008100);
+        pawns_.setboard(0x4242424242424242);
+        white_.setboard(0x0303030303030303);
+        black_.setboard(0xC0C0C0C0C0C0C0C0);
+    }
+};
+
+class Pieces_History{
+public:
+    std::vector<ChessPair<Bitboard>> pawn_;
+    std::vector<ChessPair<Bitboard>> knight_;
+    std::vector<ChessPair<Bitboard>> bishop_;
+    std::vector<ChessPair<Bitboard>> rook_;
+    std::vector<ChessPair<Bitboard>> queen_;
+    std::vector<ChessPair<int>> king_;
+    Pieces_History() {}
+    void update(Pieces_Bitboard pieces, ChessPair<int> king_pos) {
+        pawn_.push_back(ChessPair(pieces.white_ & pieces.pawns_, pieces.black_ & pieces.pawns_));
+        knight_.push_back(ChessPair(pieces.white_ & pieces.knights_, pieces.black_ & pieces.knights_));
+        bishop_.push_back(ChessPair((pieces.white_ & pieces.bishops_) - (pieces.bishops_ & pieces.rooks_), (pieces.black_ & pieces.bishops_) - (pieces.bishops_ & pieces.rooks_)));
+        rook_.push_back(ChessPair((pieces.white_ & pieces.rooks_) - (pieces.bishops_ & pieces.rooks_), (pieces.black_ & pieces.rooks_) - (pieces.bishops_ & pieces.rooks_)));
+        queen_.push_back(ChessPair(pieces.white_ & (pieces.bishops_ & pieces.rooks_), pieces.black_ & (pieces.bishops_ & pieces.rooks_)));
+        king_.push_back(king_pos);
+    }
+    void clear() {
+        pawn_.clear();
+        knight_.clear();
+        bishop_.clear();
+        rook_.clear();
+        queen_.clear();
+        king_.clear();
+    }
+    int size() const{
+        return pawn_.size();
+    }
+    
 };
 
 

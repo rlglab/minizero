@@ -23,7 +23,7 @@ Console::Console()
     RegisterFunction("boardsize", this, &Console::cmdBoardSize);
     RegisterFunction("genmove", this, &Console::cmdGenmove);
     RegisterFunction("reg_genmove", this, &Console::cmdRegGenmove);
-
+    RegisterFunction("final_score", this, &Console::cmdFinalScore);
     initialize();
 }
 
@@ -107,6 +107,10 @@ void Console::cmdBoardSize(const std::vector<std::string>& args)
 void Console::cmdGenmove(const std::vector<std::string>& args)
 {
     if (!checkArgument(args, 1, 1)) { return; }
+    if (actor_->isEnvTerminal()) {
+        reply(ConsoleResponse::kSuccess, "PASS");
+        return;
+    }
     const Action action = actor_->think(true, true);
     reply(ConsoleResponse::kSuccess, action.toConsoleString());
 }
@@ -116,6 +120,11 @@ void Console::cmdRegGenmove(const std::vector<std::string>& args)
     if (!checkArgument(args, 1, 1)) { return; }
     const Action action = actor_->think(false, true);
     reply(ConsoleResponse::kSuccess, action.toConsoleString());
+}
+
+void Console::cmdFinalScore(const std::vector<std::string>& args)
+{
+    reply(ConsoleResponse::kSuccess, std::to_string(actor_->getEvalScore()));
 }
 
 bool Console::checkArgument(const std::vector<std::string>& args, int min_argc, int max_argc)

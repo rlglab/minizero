@@ -59,8 +59,8 @@ public:
         assert(batch_size_ > 0);
         auto forward_result = network_.forward(std::vector<torch::jit::IValue>{torch::cat(tensor_input_).to(getDevice())}).toGenericDict();
 
-        auto policy_output = torch::softmax(forward_result.at("policy").toTensor(), 1).to(at::kCPU);
-        auto policy_logits_output = forward_result.at("policy").toTensor().to(at::kCPU);
+        auto policy_output = forward_result.at("policy").toTensor().to(at::kCPU);
+        auto policy_logits_output = forward_result.at("policy_logit").toTensor().to(at::kCPU);
         auto value_output = forward_result.at("value").toTensor().to(at::kCPU);
         assert(policy_output.numel() == batch_size_ * getActionSize());
         assert(policy_logits_output.numel() == batch_size_ * getActionSize());

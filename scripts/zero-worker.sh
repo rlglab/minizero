@@ -68,8 +68,6 @@ function onExit()
 {
 	if [[ ! -z $broker_fd ]]
 	then
-		[[ -z  $selfPlay_pid ]] || flock -x $broker_fd kill -CONT $selfPlay_pid
-		[[ -z  $selfPlay_pid ]] || flock -x $broker_fd kill $selfPlay_pid 2>/dev/null
 		rm -f $broker_fd
 		closeFd $broker_fd
 	fi
@@ -79,20 +77,6 @@ function onExit()
 # kill all background process when exit
 trap onExit SIGINT SIGTERM EXIT
 trap true SIGALRM
-
-function kill_descendant_processes()
-{
-	local pid="$1"
-	local and_self="${2:-false}"
-	if children="$(pgrep -P "$pid")"; then
-		for child in $children; do
-			kill_descendant_processes "$child" true
-		done
-	fi
-	if [[ "$and_self" == true ]]; then
-		kill "$pid" 2>/dev/null
-	fi
-}
 
 retry_connection_counter=0
 while true
@@ -114,6 +98,12 @@ do
 		sleep 60
 	else
 		echo "connect success"
+
+		# send info
+		NAME=$(hostname)"_"$GPU_LIST
+		echo "Info $NAME $TYPE"
+		echo "Info $NAME $TYPE" 1>&$broker_fd
+
 		while true
 		do
 			# read from broker
@@ -121,58 +111,25 @@ do
 			error_code=$?
 			if [ $error_code -eq 0 ]
 			then
-				if [ "$line" != "keep_alive" ]
-				then
-					echo "read: $line"
-				fi
-				
-				if [ "$line" == "Info" ]
-				then
-					#NAME="hostname_GPU_LIST@ip"
-					NAME=$(hostname)"_"$GPU_LIST
-					
-					# format: Info name gpu_list worker_type
-					echo "Info $NAME $TYPE"
-					echo "Info $NAME $TYPE" 1>&$broker_fd
-				elif [ "$line" == "keep_alive" ]
+				if [ "$line" == "keep_alive" ]
 				then
 					true
-					#echo "read: $line"
 				elif [[ $line =~ ^Job_SelfPlay\ (.+) ]]
 				then
-					if [ "$TYPE" == "sp" ]
-					then
-						# kill previous selfPlay process
-						[[ -z  $selfPlay_pid ]] || flock -x $broker_fd kill $selfPlay_pid 2>/dev/null
-
-						# format: Self-play train_dir conf_str
-						var=(${BASH_REMATCH[1]})
-						CONF_FILE=$(ls ${var[0]}/*.cfg)
-						CONF_STR="${var[1]}:actor_num_threads=${NUM_CPU_THREAD}:actor_num_parallel_games=$((${BATCH_SIZE}*${NUM_GPU}))"
-						CUDA_DEVICES=$(echo ${GPU_LIST} | awk '{ split($0, chars, ""); printf(chars[1]); for(i=2; i<=length(chars); ++i) { printf(","chars[i]); } }')
-						echo "CUDA_VISIBLE_DEVICES=${CUDA_DEVICES} ${sp_executable_file} -mode sp -conf_file ${CONF_FILE} -conf_str \"${CONF_STR}\""
-						CUDA_VISIBLE_DEVICES=${CUDA_DEVICES} ${sp_executable_file} -conf_file ${CONF_FILE} -conf_str "${CONF_STR}" -mode sp 1>&$broker_fd &
-						selfPlay_pid=$!
-					elif [ "$TYPE" == "op" ]
-					then
-						echo "skip Job_Selfplay"
-					fi
+					# format: Self-play train_dir conf_str
+					var=(${BASH_REMATCH[1]})
+					CONF_FILE=$(ls ${var[0]}/*.cfg)
+					CONF_STR="${var[1]}:actor_num_threads=${NUM_CPU_THREAD}:actor_num_parallel_games=$((${BATCH_SIZE}*${NUM_GPU}))"
+					CUDA_DEVICES=$(echo ${GPU_LIST} | awk '{ split($0, chars, ""); printf(chars[1]); for(i=2; i<=length(chars); ++i) { printf(","chars[i]); } }')
+					echo "CUDA_VISIBLE_DEVICES=${CUDA_DEVICES} ${sp_executable_file} -mode sp -conf_file ${CONF_FILE} -conf_str \"${CONF_STR}\""
+					CUDA_VISIBLE_DEVICES=${CUDA_DEVICES} ${sp_executable_file} -conf_file ${CONF_FILE} -conf_str "${CONF_STR}" -mode sp 0<&$broker_fd 1>&$broker_fd
 				elif [[ $line =~ ^Job_Optimization\ (.+) ]]
 				then
-					if [ "$TYPE" == "sp" ]
-					then
-						echo "skip Job_Optimization"
-					elif [ "$TYPE" == "op" ]
-					then
-						var=(${BASH_REMATCH[1]})
-						CONF_FILE=$(ls ${var[0]}/*.cfg)
-						# py/Train.py train_dir model sgf_start sgf_end conf_file
-						echo "PYTHONPATH=. python ${op_executable_file} ${var[0]} ${var[1]} ${var[2]} ${var[3]} ${CONF_FILE} 2>>${var[0]}/op.log"
-						PYTHONPATH=. python ${op_executable_file} ${var[0]} ${var[1]} ${var[2]} ${var[3]} ${CONF_FILE} 1>&$broker_fd 2>>${var[0]}/op.log
-					fi
-				elif [ "$line" == "Job_Done" ]
-				then
-					[[ -z  $selfPlay_pid ]] || flock -x $broker_fd kill $selfPlay_pid 2>/dev/null
+					var=(${BASH_REMATCH[1]})
+					CONF_FILE=$(ls ${var[0]}/*.cfg)
+					# py/Train.py train_dir model sgf_start sgf_end conf_file
+					echo "PYTHONPATH=. python ${op_executable_file} ${var[0]} ${var[1]} ${var[2]} ${var[3]} ${CONF_FILE} 2>>${var[0]}/op.log"
+					PYTHONPATH=. python ${op_executable_file} ${var[0]} ${var[1]} ${var[2]} ${var[3]} ${CONF_FILE} 1>&$broker_fd 2>>${var[0]}/op.log
 				else
 					echo "read format error"
 					echo "msg: $line"
@@ -181,7 +138,6 @@ do
 					closeFd $broker_fd
 					echo "disconnected from broker"
 					sleep 10
-					
 					break
 				fi
 			elif [ $error_code -gt 128 ]
@@ -192,15 +148,8 @@ do
 				# disconnected
 				echo "disconnected from broker"
 				sleep 10
-				
 				break
 			fi
 		done
-	fi
-
-	# disconnected, clean up running process
-	if [[ ! -z  $broker_fd ]]
-	then
-		[[ -z  $selfPlay_pid ]] || flock -x $broker_fd kill $selfPlay_pid 2>/dev/null
 	fi
 done

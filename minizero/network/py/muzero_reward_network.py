@@ -45,8 +45,8 @@ class MuZeroDynamicsNetwork(nn.Module):
         x = F.relu(x)
         for residual_block in self.residual_blocks:
             x = residual_block(x)
-        discrete_reward = self.reward_network(x)
-        return x, discrete_reward
+        reward_logit = self.reward_network(x)
+        return x, reward_logit
 
 
 class MuZeroPredictionNetwork(nn.Module):
@@ -64,9 +64,9 @@ class MuZeroPredictionNetwork(nn.Module):
         x = F.relu(x)
         for residual_block in self.residual_blocks:
             x = residual_block(x)
-        policy = self.policy(x)
-        discrete_value = self.value(x)
-        return policy, discrete_value
+        policy_logit = self.policy(x)
+        value_logit = self.value(x)
+        return policy_logit, value_logit
 
 
 class MuZeroRewardNetwork(nn.Module):
@@ -165,19 +165,31 @@ class MuZeroRewardNetwork(nn.Module):
         # representation + prediction
         hidden_state = self.representation_network(state)
         hidden_state = self.scale_hidden_state(hidden_state)
-        policy, discrete_value = self.prediction_network(hidden_state)
-        value = self.discrete_value_to_value_scalar(discrete_value)
-        return {"policy": policy, "value": value, "discrete_value": discrete_value, "hidden_state": hidden_state}
+        policy_logit, value_logit = self.prediction_network(hidden_state)
+        policy = torch.softmax(policy_logit, dim=1)
+        value = torch.softmax(value_logit, dim=1)
+        return {"policy_logit": policy_logit,
+                "policy": policy,
+                "value_logit": value_logit,
+                "value": value,
+                "hidden_state": hidden_state}
 
     @torch.jit.export
     def recurrent_inference(self, hidden_state, action_plane):
         # dynamics + prediction
-        next_hidden_state, discrete_reward = self.dynamics_network(hidden_state, action_plane)
+        next_hidden_state, reward_logit = self.dynamics_network(hidden_state, action_plane)
         next_hidden_state = self.scale_hidden_state(next_hidden_state)
-        policy, discrete_value = self.prediction_network(next_hidden_state)
-        reward = self.discrete_value_to_value_scalar(discrete_reward)
-        value = self.discrete_value_to_value_scalar(discrete_value)
-        return {"policy": policy, "value": value, "discrete_value": discrete_value, "reward": reward, "discrete_reward": discrete_reward, "hidden_state": next_hidden_state}
+        policy_logit, value_logit = self.prediction_network(next_hidden_state)
+        policy = torch.softmax(policy_logit, dim=1)
+        value = torch.softmax(value_logit, dim=1)
+        reward = torch.softmax(reward_logit, dim=1)
+        return {"policy_logit": policy_logit,
+                "policy": policy,
+                "value": value,
+                "value_logit": value_logit,
+                "reward": reward,
+                "reward_logit": reward_logit,
+                "hidden_state": next_hidden_state}
 
     def scale_hidden_state(self, hidden_state):
         # scale hidden state to range [0, 1] for each feature plane
@@ -188,15 +200,6 @@ class MuZeroRewardNetwork(nn.Module):
         scale[scale < 1e-5] += 1e-5
         hidden_state = (hidden_state - min_val) / scale
         return hidden_state
-
-    def discrete_value_to_value_scalar(self, discrete_value):
-        discrete_value_prob = torch.softmax(discrete_value, dim=1)
-        value_range = torch.tensor([v for v in range(self.discrete_value_size // 2, self.discrete_value_size // 2 + 1)]).expand(discrete_value.size(0), -1).to(device=discrete_value_prob.device)
-        value = (discrete_value_prob * value_range).sum(1, keepdim=True)
-        # invert
-        epsilon = 0.001
-        value = torch.sign(value) * (((torch.sqrt(1 + 4 * epsilon * (torch.abs(value) + 1 + epsilon)) - 1) / (2 * epsilon)) ** 2 - 1)
-        return value
 
     def forward(self, state, action_plane=torch.empty(0)):
         if action_plane.numel() == 0:

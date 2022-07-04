@@ -21,6 +21,8 @@ void OthelloEnv::reset()
 {
     turn_ = Player::kPlayer1;
     actions_.clear();
+    white_legal_pass = false;
+    black_legal_pass = false;
     black_board.reset();
     white_board.reset();
     black_legal_board.reset(); //reset to 0
@@ -136,6 +138,7 @@ bool OthelloEnv::act(const OthelloAction& action)
     if (!isLegalAction(action)) { return false; }
     actions_.push_back(action);
     turn_ = action.nextPlayer();
+    if (isPassAction(action)) { return true; }
     if (action.getPlayer() == Player::kPlayer1) {
         black_board.set(action.getActionID(), 1);
     } else {
@@ -199,7 +202,16 @@ bool OthelloEnv::act(const OthelloAction& action)
         black_legal_board = moves_2;
         white_legal_board = moves;
     }
-
+    if (black_legal_board.none()) {
+        black_legal_pass = true;
+    } else {
+        black_legal_pass = false;
+    }
+    if (white_legal_board.none()) {
+        white_legal_pass = true;
+    } else {
+        white_legal_pass = false;
+    }
     return true;
 }
 
@@ -236,24 +248,13 @@ std::string OthelloEnv::toString() const
 std::vector<OthelloAction> OthelloEnv::getLegalActions() const //改判斷
 {
     std::vector<OthelloAction> actions;
-    for (int pos = 0; pos < kOthelloBoardSize * kOthelloBoardSize; ++pos) {
+    actions.clear();
+    for (int pos = 0; pos <= kOthelloBoardSize * kOthelloBoardSize; ++pos) {
         OthelloAction action(pos, turn_);
         if (!isLegalAction(action)) {
             continue;
         }
         actions.push_back(action);
-    }
-    Player next_player = getNextPlayer(turn_, kOthelloNumPlayer);
-
-    if (actions.size() == 0 && eval() == Player::kPlayerNone) //一方沒辦法下下一步且雙方都還有旗子
-    {
-        for (int pos = 0; pos < kOthelloBoardSize * kOthelloBoardSize; ++pos) {
-            OthelloAction action(pos, next_player);
-            if (!isLegalAction(action)) {
-                continue;
-            }
-            actions.push_back(action);
-        }
     }
     return actions;
 }
@@ -263,8 +264,14 @@ std::vector<OthelloAction> OthelloEnv::getLegalActions() const //改判斷
 bool OthelloEnv::isLegalAction(const OthelloAction& action) const
 {
     if (action.getPlayer() == Player::kPlayer1) {
+        if (action.getActionID() == kOthelloBoardSize * kOthelloBoardSize) {
+            return black_legal_pass;
+        }
         return black_legal_board[action.getActionID()];
     } else {
+        if (action.getActionID() == kOthelloBoardSize * kOthelloBoardSize) {
+            return white_legal_pass;
+        }
         return white_legal_board[action.getActionID()];
     }
 }
@@ -304,6 +311,13 @@ std::vector<float> OthelloEnv::getFeatures(utils::Rotation rotation) const
 {
     std::vector<OthelloBitboard> feature_bitboard_list;
     feature_bitboard_list.clear();
+    // if (turn_ == Player::kPlayer1) {
+    //     feature_bitboard_list.push_back(black_board);
+    //     feature_bitboard_list.push_back(white_board);
+    // } else {
+    //     feature_bitboard_list.push_back(white_board);
+    //     feature_bitboard_list.push_back(black_board);
+    // }
     feature_bitboard_list.push_back(black_board);
     feature_bitboard_list.push_back(white_board);
     if (turn_ == Player::kPlayer1) {
@@ -327,7 +341,9 @@ std::vector<float> OthelloEnv::getFeatures(utils::Rotation rotation) const
 std::vector<float> OthelloEnv::getActionFeatures(const OthelloAction& action, utils::Rotation rotation /*= utils::Rotation::kRotationNone*/) const
 {
     std::vector<float> action_features(kOthelloBoardSize * kOthelloBoardSize, 0.0f);
-    action_features[getPositionByRotating(rotation, action.getActionID(), kOthelloBoardSize)] = 1.0f;
+    if (!isPassAction(action)) {
+        action_features[getPositionByRotating(rotation, action.getActionID(), kOthelloBoardSize)] = 1.0f;
+    }
     return action_features;
 }
 } // namespace minizero::env::othello

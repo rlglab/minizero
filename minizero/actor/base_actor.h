@@ -20,6 +20,7 @@ public:
     std::string getRecord() const;
 
     inline bool isEnvTerminal() const { return env_.isTerminal(); }
+    inline const float getEvalScore() const { return env_.getEvalScore(); }
     inline const Environment& getEnvironment() const { return env_; }
     inline const int getNNEvaluationBatchIndex() const { return nn_evaluation_batch_id_; }
 

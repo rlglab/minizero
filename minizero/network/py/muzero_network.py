@@ -53,9 +53,9 @@ class MuZeroPredictionNetwork(nn.Module):
         for residual_block in self.residual_blocks:
             x = residual_block(x)
 
-        policy = self.policy(x)
+        policy_logit = self.policy(x)
         value = self.value(x)
-        return policy, value
+        return policy_logit, value
 
 
 class MuZeroNetwork(nn.Module):
@@ -147,16 +147,18 @@ class MuZeroNetwork(nn.Module):
         # representation + prediction
         hidden_state = self.representation_network(state)
         hidden_state = self.scale_hidden_state(hidden_state)
-        policy, value = self.prediction_network(hidden_state)
-        return {"policy": policy, "value": value, "hidden_state": hidden_state}
+        policy_logit, value = self.prediction_network(hidden_state)
+        policy = torch.softmax(policy_logit, dim=1)
+        return {"policy_logit": policy_logit, "policy": policy, "value": value, "hidden_state": hidden_state}
 
     @torch.jit.export
     def recurrent_inference(self, hidden_state, action_plane):
         # dynamics + prediction
         next_hidden_state = self.dynamics_network(hidden_state, action_plane)
         next_hidden_state = self.scale_hidden_state(next_hidden_state)
-        policy, value = self.prediction_network(next_hidden_state)
-        return {"policy": policy, "value": value, "hidden_state": next_hidden_state}
+        policy_logit, value = self.prediction_network(next_hidden_state)
+        policy = torch.softmax(policy_logit, dim=1)
+        return {"policy_logit": policy_logit, "policy": policy, "value": value, "hidden_state": next_hidden_state}
 
     def scale_hidden_state(self, hidden_state):
         # scale hidden state to range [0, 1] for each feature plane

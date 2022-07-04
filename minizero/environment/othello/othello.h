@@ -34,11 +34,11 @@ public:
     bool isLegalAction(const OthelloAction& action) const override;
     bool isTerminal() const override;
     float getEvalScore(bool is_resign = false) const override;
-    void setObservation(const std::vector<float>& observation) override {}
     std::vector<float> getFeatures(utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::vector<float> getActionFeatures(const OthelloAction& action, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::string toString() const override;
     inline std::string name() const override { return kOthelloName; }
+    inline bool isPassAction(const OthelloAction& action) const { return (action.getActionID() == kOthelloBoardSize * kOthelloBoardSize); }
 
 private:
     Player eval() const;
@@ -65,11 +65,13 @@ private:
         OthelloBitboard opponent_board,
         OthelloBitboard player_board);
     OthelloBitboard getCandidateAlongDirectionBoard(int direction, OthelloBitboard candidate);
+    bool black_legal_pass;
+    bool white_legal_pass;
 };
 
 class OthelloEnvLoader : public BaseEnvLoader<OthelloAction, OthelloEnv> {
 public:
-    inline int getPolicySize() const override { return kOthelloBoardSize * kOthelloBoardSize; }
+    inline int getPolicySize() const override { return kOthelloBoardSize * kOthelloBoardSize + 1; }
     inline int getRotatePosition(int position, utils::Rotation rotation) const override { return getPositionByRotating(rotation, position, kOthelloBoardSize); }
     inline std::string getEnvName() const override { return kOthelloName; }
 };
