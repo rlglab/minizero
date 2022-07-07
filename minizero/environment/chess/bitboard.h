@@ -1,20 +1,6 @@
 # include <iostream>
-/* Class Bitboard 
- *  int count(): return #bits that = 1
- *  void clear(): set all bits to 0
- *  void setif(square, cond): set the square-th bit to 1 if cond is true
- *  void set(square): set the square-th bit to 1
- *  void reset(square): set the square-th bit to 0
- *  bool get(square): get the square-th bit's value
- *  bool empty(): check if all bits are 0
- *  bool intersects(other): check if board_ and other.board_ have same bits that both = 1
- *  bool operator==(other): check if board_ == other.board_
- *  bool operator!=(other): check if board_ != other.board_
- */
 
 // BitBoard format
-// bit0 is a1, bit1 is a2, bit7 is a8, bit8 is b1.
-// 
 // 8| 07 15 23 31 39 47 55 63
 // 7| 06 14 22 30 38 46 54 62
 // 6| 05 13 21 29 37 45 53 61
@@ -104,22 +90,22 @@ private:
 
 class Pieces_Bitboard {
 public:
-    Bitboard white_;
-    Bitboard black_;
+    ChessPair<Bitboard> pieces_;
     Bitboard pawns_;
     Bitboard knights_;
     Bitboard bishops_;
     Bitboard rooks_;
     Pieces_Bitboard () { reset(); }
-    Pieces_Bitboard (Bitboard white, Bitboard black, Bitboard pawn, Bitboard knight, Bitboard bishop, Bitboard rook)
-        : white_(white), black_(black), pawns_(pawn), knights_(knight), bishops_(bishop), rooks_(rook) {}
+    Pieces_Bitboard (ChessPair<Bitboard> pieces, Bitboard black, Bitboard pawn, Bitboard knight, Bitboard bishop, Bitboard rook)
+        : pieces_(pieces), pawns_(pawn), knights_(knight), bishops_(bishop), rooks_(rook) {}
     void reset() {
         rooks_.setboard(0x8100000081000081);
         bishops_.setboard(0x0000810081810000);
         knights_.setboard(0x0081000000008100);
         pawns_.setboard(0x4242424242424242);
-        white_.setboard(0x0303030303030303);
-        black_.setboard(0xC0C0C0C0C0C0C0C0);
+        Bitboard white(0x0303030303030303);
+        Bitboard black(0xC0C0C0C0C0C0C0C0);
+        pieces_.set(white, black);
     }
 };
 
@@ -131,13 +117,13 @@ public:
     std::vector<ChessPair<Bitboard>> rook_;
     std::vector<ChessPair<Bitboard>> queen_;
     std::vector<ChessPair<int>> king_;
-    Pieces_History() {}
+    Pieces_History() { clear(); }
     void update(Pieces_Bitboard pieces, ChessPair<int> king_pos) {
-        pawn_.push_back(ChessPair(pieces.white_ & pieces.pawns_, pieces.black_ & pieces.pawns_));
-        knight_.push_back(ChessPair(pieces.white_ & pieces.knights_, pieces.black_ & pieces.knights_));
-        bishop_.push_back(ChessPair((pieces.white_ & pieces.bishops_) - (pieces.bishops_ & pieces.rooks_), (pieces.black_ & pieces.bishops_) - (pieces.bishops_ & pieces.rooks_)));
-        rook_.push_back(ChessPair((pieces.white_ & pieces.rooks_) - (pieces.bishops_ & pieces.rooks_), (pieces.black_ & pieces.rooks_) - (pieces.bishops_ & pieces.rooks_)));
-        queen_.push_back(ChessPair(pieces.white_ & (pieces.bishops_ & pieces.rooks_), pieces.black_ & (pieces.bishops_ & pieces.rooks_)));
+        pawn_.push_back(ChessPair(pieces.pieces_.get(Player::kPlayer1) & pieces.pawns_, pieces.pieces_.get(Player::kPlayer2) & pieces.pawns_));
+        knight_.push_back(ChessPair(pieces.pieces_.get(Player::kPlayer1) & pieces.knights_, pieces.pieces_.get(Player::kPlayer2) & pieces.knights_));
+        bishop_.push_back(ChessPair((pieces.pieces_.get(Player::kPlayer1) & pieces.bishops_) - (pieces.bishops_ & pieces.rooks_), (pieces.pieces_.get(Player::kPlayer2) & pieces.bishops_) - (pieces.bishops_ & pieces.rooks_)));
+        rook_.push_back(ChessPair((pieces.pieces_.get(Player::kPlayer1) & pieces.rooks_) - (pieces.bishops_ & pieces.rooks_), (pieces.pieces_.get(Player::kPlayer2) & pieces.rooks_) - (pieces.bishops_ & pieces.rooks_)));
+        queen_.push_back(ChessPair(pieces.pieces_.get(Player::kPlayer1) & (pieces.bishops_ & pieces.rooks_), pieces.pieces_.get(Player::kPlayer2) & (pieces.bishops_ & pieces.rooks_)));
         king_.push_back(king_pos);
     }
     void clear() {
@@ -153,7 +139,6 @@ public:
     }
     
 };
-
 
 static const Bitboard kBishopAttacks[] = {
     0x8040201008040200ULL, 0x0080402010080500ULL, 0x0000804020110A00ULL,
