@@ -30,12 +30,14 @@ float actor_resign_threshold = -0.9f;
 
 // zero parameters
 int zero_server_port = 9999;
-std::string zero_training_directory;
+std::string zero_training_directory = "";
 int zero_num_games_per_iteration = 5000;
 int zero_start_iteration = 0;
 int zero_end_iteration = 100;
 int zero_replay_buffer = 20;
 float zero_disable_resign_ratio = 0.1;
+std::string zero_actor_ignored_command = "";
+bool zero_server_accept_different_model_games = false;
 
 // learner parameters
 int learner_training_step = 500;
@@ -104,6 +106,8 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("zero_end_iteration", zero_end_iteration, "", "Zero");
     cl.addParameter("zero_replay_buffer", zero_replay_buffer, "", "Zero");
     cl.addParameter("zero_disable_resign_ratio", zero_disable_resign_ratio, "", "Zero");
+    cl.addParameter("zero_actor_ignored_command", zero_actor_ignored_command, "format: command1 command2 ...", "Zero");
+    cl.addParameter("zero_server_accept_different_model_games", zero_server_accept_different_model_games, "", "Zero");
 
     // learner parameters
     cl.addParameter("learner_training_step", learner_training_step, "", "Learner");

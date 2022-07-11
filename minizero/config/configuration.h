@@ -38,6 +38,8 @@ extern int zero_start_iteration;
 extern int zero_end_iteration;
 extern int zero_replay_buffer;
 extern float zero_disable_resign_ratio;
+extern std::string zero_actor_ignored_command;
+extern bool zero_server_accept_different_model_games;
 
 // learner parameters
 extern int learner_training_step;

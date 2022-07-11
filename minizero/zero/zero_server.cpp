@@ -80,6 +80,12 @@ void ZeroWorkerHandler::handleReceivedMessage(const std::string& message)
         std::string game_record = message.substr(message.find(args[0]) + args[0].length() + 1);
         boost::lock_guard<boost::mutex> lock(shared_data_.mutex_);
         shared_data_.self_play_queue_.push(game_record);
+
+        // print number of games if the queue already received many games in buffer
+        if (shared_data_.self_play_queue_.size() % static_cast<int>(config::zero_num_games_per_iteration * 0.25) == 0) {
+            boost::lock_guard<boost::mutex> lock(shared_data_.worker_mutex_);
+            shared_data_.logger_.addWorkerLog("[SelfPlay Game Buffer] " + std::to_string(shared_data_.self_play_queue_.size()) + " games");
+        }
     } else if (args[0] == "Optimization_Done") {
         boost::lock_guard<boost::mutex> lock(shared_data_.mutex_);
         shared_data_.model_iteration_ = stoi(args[1]);
@@ -151,7 +157,7 @@ void ZeroServer::selfPlay()
         if (self_play_game.empty()) {
             boost::this_thread::sleep(boost::posix_time::milliseconds(100));
             continue;
-        } else if (self_play_game.find("weight_iter_" + std::to_string(shared_data_.getModelIetration())) == std::string::npos) {
+        } else if (!config::zero_server_accept_different_model_games && self_play_game.find("weight_iter_" + std::to_string(shared_data_.getModelIetration())) == std::string::npos) {
             // discard previous self-play games
             continue;
         }
