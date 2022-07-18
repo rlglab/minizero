@@ -1,0 +1,30 @@
+- self-eval.sh:
+    - ./self-eval.sh [Folder] [Config] [Interval] [Game num] [-s Start] [-b Board_Size] [-g GPU_LIST]  [-d Result Folder Name]
+        - e.g. ./self-eval.sh go_gbaz_n16_L go_az_L.cfg 15 100 -s 0 -b 9 -g 0123 -d self_eval
+    - Folder: The folder contains model/
+    - Config: The configure file
+    - Interval: The interval between the fighting models
+    - Game num: How many games to play (default 100)
+    - Start: Start from which file in the folder (default 0)
+    - Board Size: Board size (default 9)
+    - GPU LIST: Which GPUs to use (default all)
+    - Result Folder Name: (default self_eval)
+
+- fight-eval.sh:
+    - ./fight-eval.sh [Folder1] [Folder2] [Config 1] [Interval] [Game num] [-s Start] [-f Config 2] [-b Board_Size] [-g GPU_LIST] [-d Result Folder Name]
+    - Folder1 & Folder2: The folders contains model/
+    - Config 1: The configure file of Folder1
+    - Config 2: The configure file of Folder2(default Config 1)
+    - Interval: The interval between the fighting models
+    - Game num: How many games to play (default 100)
+    - Start: Start from which file in the folder (default 0)
+    - Board Size: Board size (default 9)
+    - GPU LIST: Which GPUs to use (default all)
+    - Result Folder Name: (default [Folder1]\_vs\_[Folder2]\_eval)
+
+- eval.py:
+    - python3 eval.py [-h] [-d DIR] [-o FOUT_NAME] [-e PLAYER1_ELO_FILE] [-w]
+    - -d: The eval folder
+    - -o: The elo rating csv file name (default elo.csv)
+    - -e: The elo rating csv file of player 1 (for fight-eval)
+    - -w: Show the win rate of the white player in the first game (default false)
