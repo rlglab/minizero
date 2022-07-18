@@ -96,6 +96,10 @@ void ActorGroup::initialize()
     // create one thread to handle I/O
     commands_.clear();
     thread_groups_.create_thread(boost::bind(&ActorGroup::handleIO, this));
+
+    // initialize ignored command
+    std::vector<std::string> ignored_commands = utils::stringToVector(config::zero_actor_ignored_command);
+    for (const auto& command : ignored_commands) { ignored_commands_.insert(command); }
 }
 
 void ActorGroup::createNeuralNetworks()
@@ -156,23 +160,31 @@ void ActorGroup::handleCommand()
         const std::string command = commands_.front();
         commands_.pop_front();
 
-        if (command.find("reset_actors") != std::string::npos) {
+        // ignore specific command
+        std::string command_prefix = ((command.find(" ") == std::string::npos) ? command : command.substr(0, command.find(" ")));
+        if (ignored_commands_.count(command_prefix)) {
+            std::cerr << "[ignored command] " << command << std::endl;
+            continue;
+        }
+
+        // do command
+        if (command_prefix == "reset_actors") {
             std::cerr << "[command] " << command << std::endl;
             for (auto& actor : shared_data_.actors_) { actor->reset(); }
             shared_data_.do_cpu_job_ = true;
-        } else if (command.find("load_model") != std::string::npos) {
+        } else if (command_prefix == "load_model") {
             std::cerr << "[command] " << command << std::endl;
             std::vector<std::string> args = utils::stringToVector(command);
             assert(args.size() == 2);
             config::nn_file_name = args[1];
             for (auto& network : shared_data_.networks_) { network->loadModel(config::nn_file_name, network->getGPUID()); }
-        } else if (command.find("start") != std::string::npos) {
+        } else if (command_prefix == "start") {
             std::cerr << "[command] " << command << std::endl;
             running_ = true;
-        } else if (command.find("stop") != std::string::npos) {
+        } else if (command_prefix == "stop") {
             std::cerr << "[command] " << command << std::endl;
             running_ = false;
-        } else if (command.find("quit") != std::string::npos) {
+        } else if (command_prefix == "quit") {
             std::cerr << "[command] " << command << std::endl;
             exit(0);
         }

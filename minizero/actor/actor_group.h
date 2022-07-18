@@ -5,6 +5,7 @@
 #include "paralleler.h"
 #include <deque>
 #include <mutex>
+#include <unordered_set>
 #include <vector>
 
 namespace minizero::actor {
@@ -52,6 +53,7 @@ protected:
 
     bool running_;
     std::deque<std::string> commands_;
+    std::unordered_set<std::string> ignored_commands_;
 };
 
 } // namespace minizero::actor
