@@ -164,7 +164,7 @@ B 1  0-R-B-B-0-0-0 B
             rr.push_back(' ');
         }
         rr.push_back(' ');
-        std::string rowNum{std::to_string(kHexBoardSize - ii - 1)};
+        std::string rowNum{std::to_string(kHexBoardSize - ii)};
         if (rowNum.size() == 1) {
             rr.push_back(' ');
             rr.push_back(rowNum.at(0));
@@ -216,7 +216,7 @@ B 1  0-R-B-B-0-0-0 B
         rr.push_back(' ');
     }
     for (size_t ii = 0; ii < kHexBoardSize; ii++) {
-        rr.push_back(ii + 97);
+        rr.push_back(ii + 97 + (ii>7?1:0));
         rr.push_back(' ');
     }
     rr.push_back('\n');
@@ -256,7 +256,7 @@ B 1   0 - R - B - B - 0 - 0 - 0 B
             rr.push_back(' ');
         }
         rr.push_back(' ');
-        std::string rowNum{std::to_string(kHexBoardSize - ii - 1)};
+        std::string rowNum{std::to_string(kHexBoardSize - ii)};
         if (rowNum.size() == 1) {
             rr.push_back(' ');
             rr.push_back(rowNum.at(0));
@@ -313,7 +313,7 @@ B 1   0 - R - B - B - 0 - 0 - 0 B
         rr.push_back(' ');
     }
     for (size_t ii = 0; ii < kHexBoardSize; ii++) {
-        rr.push_back(ii + 97);
+        rr.push_back(ii + 97 + (ii>7?1:0));
         rr.push_back(' ');
         rr.push_back(' ');
         rr.push_back(' ');

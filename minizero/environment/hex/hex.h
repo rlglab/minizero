@@ -66,7 +66,7 @@ private:
 class HexEnvLoader : public BaseEnvLoader<HexAction, HexEnv> {
 public:
     inline int getPolicySize() const override { return kHexBoardSize * kHexBoardSize; }
-    inline int getRotatePosition(int position, utils::Rotation rotation) const override { return getPositionByRotating(rotation, position, kHexBoardSize); }
+    inline int getRotatePosition(int position, utils::Rotation rotation) const override { return position; }
     inline std::string getEnvName() const override { return kHexName; }
 };
 
