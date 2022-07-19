@@ -44,8 +44,8 @@ if [ ! -d "${FOLDER}" ]; then
     exit 1
 fi
 
-if [ ! -d "${FOLDER}/self_eval" ]; then
-    mkdir "${FOLDER}/self_eval"
+if [ ! -d "${FOLDER}/$NAME" ]; then
+    mkdir "${FOLDER}/$NAME"
 fi
 
 function run_twogtp(){

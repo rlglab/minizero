@@ -50,8 +50,8 @@ if [ ! -d "${FOLDER1}" ] || [ ! -d "${FOLDER2}" ]; then
     exit 1
 fi
 
-if [ ! -d "${FOLDER1}/${FOLDER1}_vs_${FOLDER2}_eval" ]; then
-    mkdir "${FOLDER1}/${FOLDER1}_vs_${FOLDER2}_eval"
+if [ ! -d "${FOLDER1}/$NAME" ]; then
+    mkdir "${FOLDER1}/$NAME"
 fi
 echo "FOLDERS: $FOLDER1 & $FOLDER2, CONF_FILES: $CONF_FILE1 & $CONF_FILE2 "
 function run_twogtp(){
