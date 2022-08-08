@@ -20,12 +20,13 @@
     - Start: Start from which file in the folder (default 0)
     - Board Size: Board size (default 9)
     - GPU LIST: Which GPUs to use (default all)
-    - Result Folder Name: (default [Folder1]\_vs\_[Folder2]\_eval)
+    - Result Folder Name: (default [ Folder1 ]\_vs\_[ Folder2 ]\_eval)
 
 - eval.py:
-    - python3 eval.py [-h] [-d DIR] [-o FOUT_NAME] [-e PLAYER1_ELO_FILE] [-w]
+    - python3 eval.py [ -h ] [-d DIR] [-o FOUT_NAME] [-e PLAYER1_ELO_FILE] [-w] [--step STEP_NUM] [--plot]
     - -d: The eval folder
     - -o: The elo rating csv file name (default elo.csv)
     - -e: The elo rating csv file of player 1 (for fight-eval)
     - -w: Player 1 is the white player in the first game (default false)
     - --step: Training step, show the players in iteration (default 1, show the players in training step)
+    - --plot: plot elo curve

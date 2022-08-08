@@ -69,7 +69,7 @@ def plot_elo_curve(fig_name, *args):
     ax.set_ylabel('elo rating')
     for i, (its, elos) in enumerate(args):
         player_name = input(f'player{i+1} name: ')
-        ax.plot([0]+its, [0]+elos, label=player_name)
+        ax.plot([0]+its, [0]+elos, label=player_name, markersize=10, marker='.')
     ax.legend()
     plt.savefig(fig_name)
 
