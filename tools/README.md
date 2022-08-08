@@ -27,4 +27,5 @@
     - -d: The eval folder
     - -o: The elo rating csv file name (default elo.csv)
     - -e: The elo rating csv file of player 1 (for fight-eval)
-    - -w: Show the win rate of the white player in the first game (default false)
+    - -w: Player 1 is the white player in the first game (default false)
+    - --step: Training step, show the players in iteration (default 1, show the players in training step)

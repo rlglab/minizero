@@ -112,6 +112,10 @@ void Console::cmdGenmove(const std::vector<std::string>& args)
         return;
     }
     const Action action = actor_->think(true, true);
+    if (actor_->isResign()) {
+        reply(ConsoleResponse::kSuccess, "Resign");
+        return;
+    }
     reply(ConsoleResponse::kSuccess, action.toConsoleString());
 }
 
