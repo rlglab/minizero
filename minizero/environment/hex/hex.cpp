@@ -16,8 +16,8 @@ HexAction::HexAction(const std::vector<std::string>& action_string_args)
             "Number of actions must be exactly two."} +
             " Length of argument was " + std::to_string(action_string_args.size());
     }
-    size_t actionSize{action_string_args[1].size()};
-    if ((actionSize != 2) && (actionSize != 3)) {
+    size_t action_size{action_string_args[1].size()};
+    if ((action_size < 2) || (action_size > 4)) {
         throw std::string{
             "Number of letters in action must be exactly 2. For example \"d5\"."} +
             " Length of argument was " + std::to_string(action_string_args[1].size());
