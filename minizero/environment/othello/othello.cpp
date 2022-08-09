@@ -9,12 +9,30 @@
 namespace minizero::env::othello {
 using namespace minizero::utils;
 
-OthelloAction::OthelloAction(const std::vector<std::string>& action_string_args)
+OthelloAction::OthelloAction(const std::vector<std::string>& action_string_args, int board_size)
 {
     assert(action_string_args.size() == 2);
     assert(action_string_args[0].size() == 1 && (charToPlayer(action_string_args[0][0]) == Player::kPlayer1 || charToPlayer(action_string_args[0][0]) == Player::kPlayer2));
     player_ = charToPlayer(action_string_args[0][0]);
-    action_id_ = SGFLoader::boardCoordinateStringToActionID(action_string_args[1], kOthelloBoardSize);
+    action_id_ = SGFLoader::boardCoordinateStringToActionID(action_string_args[1], board_size);
+}
+
+OthelloEnv::OthelloEnv(const OthelloEnv& env)
+{
+    board_size_ = env.board_size_;
+    turn_ = env.turn_;
+    black_board=env.black_board;
+    white_board=env.white_board;
+    one_board=env.one_board;
+    black_legal_board=env.black_legal_board;
+    white_legal_board=env.white_legal_board;
+    black_legal_pass=env.black_legal_pass;
+    white_legal_pass=env.white_legal_pass;
+    actions_ = env.actions_;
+    for(int i=0;i<8;i++)
+    {
+        mask[i]=env.mask[i];
+    }
 }
 
 void OthelloEnv::reset()
@@ -29,39 +47,40 @@ void OthelloEnv::reset()
     white_legal_board.reset(); //reset to 0
     one_board.set();           //set to 1
     //initial pieces for othello
-    int init_place = kOthelloBoardSize * (kOthelloBoardSize / 2 - 1) + (kOthelloBoardSize / 2 - 1); //初始黑棋位置(27)
+    int init_place = board_size_ * (board_size_ / 2 - 1) + (board_size_ / 2 - 1); //初始黑棋位置(27)
     black_board.set(init_place, 1);
     white_board.set(init_place + 1, 1);
-    white_board.set(init_place + kOthelloBoardSize, 1);
-    black_board.set(init_place + kOthelloBoardSize + 1, 1);
+    white_board.set(init_place + board_size_, 1);
+    black_board.set(init_place + board_size_ + 1, 1);
     //initial legal board for white and black
     white_legal_board.set(init_place - 1, 1);
-    white_legal_board.set(init_place - kOthelloBoardSize, 1);
-    white_legal_board.set(init_place + kOthelloBoardSize + 2, 1);
-    white_legal_board.set(init_place + 2 * kOthelloBoardSize + 1, 1);
+    white_legal_board.set(init_place - board_size_, 1);
+    white_legal_board.set(init_place + board_size_ + 2, 1);
+    white_legal_board.set(init_place + 2 * board_size_ + 1, 1);
     black_legal_board.set(init_place + 2, 1);
-    black_legal_board.set(init_place - kOthelloBoardSize + 1, 1);
-    black_legal_board.set(init_place + kOthelloBoardSize - 1, 1);
-    black_legal_board.set(init_place + 2 * kOthelloBoardSize, 1);
+    black_legal_board.set(init_place - board_size_ + 1, 1);
+    black_legal_board.set(init_place + board_size_ - 1, 1);
+    black_legal_board.set(init_place + 2 * board_size_, 1);
     std::string vert_synths;
-    for (int i = 0; i < kOthelloBoardSize; i++) {
-        for (int j = 0; j < kOthelloBoardSize; j++) {
-            (i == 0 || i == kOthelloBoardSize - 1) ? vert_synths += "0" : vert_synths += "1";
+    for (int i = 0; i < board_size_; i++) {
+        for (int j = 0; j < board_size_; j++) {
+            //mask[0][].set(1)
+            (i == 0 || i == board_size_ - 1) ? vert_synths += "0" : vert_synths += "1";
         }
     }
     std::string hori_synths;
-    for (int i = 0; i < kOthelloBoardSize; i++) {
-        for (int j = 0; j < kOthelloBoardSize; j++) {
-            (j == 0 || j == kOthelloBoardSize - 1) ? hori_synths += "0" : hori_synths += "1";
+    for (int i = 0; i < board_size_; i++) {
+        for (int j = 0; j < board_size_; j++) {
+            (j == 0 || j == board_size_ - 1) ? hori_synths += "0" : hori_synths += "1";
         }
     }
     std::string allside_synths;
-    for (int i = 0; i < kOthelloBoardSize; i++) {
-        for (int j = 0; j < kOthelloBoardSize; j++) {
-            if (i == 0 || i == kOthelloBoardSize - 1) {
+    for (int i = 0; i < board_size_; i++) {
+        for (int j = 0; j < board_size_; j++) {
+            if (i == 0 || i == board_size_ - 1) {
                 allside_synths += "0";
                 continue;
-            } else if (j == 0 || j == kOthelloBoardSize - 1) {
+            } else if (j == 0 || j == board_size_ - 1) {
                 allside_synths += "0";
                 continue;
             } else {
@@ -82,7 +101,7 @@ void OthelloEnv::reset()
 //return the bitset that candidate shift toward the direction
 OthelloBitboard OthelloEnv::getCandidateAlongDirectionBoard(int direction, OthelloBitboard candidate)
 {
-    return (direction > 0) ? candidate << direction : candidate >> abs(direction);
+    return (direction > 0) ? (candidate << direction) : (candidate >> abs(direction));
 }
 
 //return the pieces that should be flip after the action
@@ -157,13 +176,13 @@ bool OthelloEnv::act(const OthelloAction& action)
         player_board = white_board;
         opponent_board = black_board;
     }
-    int dir_step[kOthelloBoardSize] = {kOthelloBoardSize, -kOthelloBoardSize, -1, 1, kOthelloBoardSize - 1, kOthelloBoardSize + 1, -kOthelloBoardSize + 1, -kOthelloBoardSize - 1}; //上下左右、左上、右上、右下、左下
+    int dir_step[8] = {board_size_, -board_size_, -1, 1, board_size_ - 1, board_size_ + 1, -board_size_ + 1, -board_size_ - 1}; //上下左右、左上、右上、右下、左下
 
     //do action flip the points
     tmp_flip.reset();
     flip.reset();
     moves.reset();
-    for (int i = 0; i < kOthelloBoardSize; i++) {
+    for (int i = 0; i < 8; i++) {
         flip |= getFlipPoint(dir_step[i], mask[i], moves, placed_pos, opponent_board, player_board);
     } //do action flip the points
 
@@ -187,12 +206,12 @@ bool OthelloEnv::act(const OthelloAction& action)
     }
     empty_board = (one_board ^ (black_board | white_board));
     moves.reset(); // store the candidate of the legal bitboard
-    for (int i = 0; i < kOthelloBoardSize; i++) {
+    for (int i = 0; i < 8; i++) {
         moves |= getCanPutPoint(dir_step[i], mask[i], moves, empty_board, opponent_board, player_board);
     } // generate the legal bitboard
 
     moves_2.reset(); // store the candidate of the legal bitboard
-    for (int i = 0; i < kOthelloBoardSize; i++) {
+    for (int i = 0; i < 8; i++) {
         moves_2 |= getCanPutPoint(dir_step[i], mask[i], moves_2, empty_board, player_board, opponent_board);
     } // generate the legal bitboard
     if (player == Player::kPlayer1) {
@@ -217,7 +236,7 @@ bool OthelloEnv::act(const OthelloAction& action)
 
 bool OthelloEnv::act(const std::vector<std::string>& action_string_args)
 {
-    return act(OthelloAction(action_string_args));
+    return act(OthelloAction(action_string_args, board_size_));
 }
 
 std::string OthelloEnv::toString() const
@@ -227,21 +246,33 @@ std::string OthelloEnv::toString() const
     std::string white_to_string = white_board.to_string();
     std::reverse(black_to_string.begin(), black_to_string.end());
     std::reverse(white_to_string.begin(), white_to_string.end());
-    oss << "   A  B  C  D  E  F  G  H" << std::endl;
-    for (int row = kOthelloBoardSize - 1; row >= 0; --row) {
-        oss << row + 1 << " ";
-        for (int col = 0; col < kOthelloBoardSize; ++col) {
-            if (black_to_string[row * kOthelloBoardSize + col] == '1') {
+    oss <<" "<< getCoordinateString() << std::endl;
+    for (int row = board_size_ - 1; row >= 0; --row) {
+        oss <<(row>=9?"":" ")<< row + 1 << " ";
+        for (int col = 0; col < board_size_; ++col) {
+            if (black_to_string[row * board_size_ + col] == '1') {
                 oss << " O ";
-            } else if (white_to_string[row * kOthelloBoardSize + col] == '1') {
+            } else if (white_to_string[row * board_size_ + col] == '1') {
                 oss << " X ";
             } else {
                 oss << " . ";
             }
         }
-        oss << " " << row + 1 << std::endl;
+        oss <<(row>=9?"":" ")<< row + 1 << std::endl;
     }
-    oss << "   A  B  C  D  E  F  G  H" << std::endl;
+    oss <<" "<< getCoordinateString() << std::endl;
+    return oss.str();
+}
+
+std::string OthelloEnv::getCoordinateString() const
+{
+    std::ostringstream oss;
+    oss << "  ";
+    for (int i = 0; i < board_size_; ++i) {
+        char c = 'A' + i + ('A' + i >= 'I' ? 1 : 0);
+        oss << " " + std::string(1, c) + " ";
+    }
+    oss << "   ";
     return oss.str();
 }
 
@@ -249,7 +280,7 @@ std::vector<OthelloAction> OthelloEnv::getLegalActions() const //改判斷
 {
     std::vector<OthelloAction> actions;
     actions.clear();
-    for (int pos = 0; pos <= kOthelloBoardSize * kOthelloBoardSize; ++pos) {
+    for (int pos = 0; pos <= board_size_ * board_size_; ++pos) {
         OthelloAction action(pos, turn_);
         if (!isLegalAction(action)) {
             continue;
@@ -264,12 +295,12 @@ std::vector<OthelloAction> OthelloEnv::getLegalActions() const //改判斷
 bool OthelloEnv::isLegalAction(const OthelloAction& action) const
 {
     if (action.getPlayer() == Player::kPlayer1) {
-        if (action.getActionID() == kOthelloBoardSize * kOthelloBoardSize) {
+        if (action.getActionID() == board_size_ * board_size_) {
             return black_legal_pass;
         }
         return black_legal_board[action.getActionID()];
     } else {
-        if (action.getActionID() == kOthelloBoardSize * kOthelloBoardSize) {
+        if (action.getActionID() == board_size_ * board_size_) {
             return white_legal_pass;
         }
         return white_legal_board[action.getActionID()];
@@ -278,8 +309,10 @@ bool OthelloEnv::isLegalAction(const OthelloAction& action) const
 //若只剩白棋在盤面上isterminal結束
 bool OthelloEnv::isTerminal() const
 {
-    if (black_legal_board.none() && white_legal_board.none()) return true;
-    return (eval() != Player::kPlayerNone || ((black_board | white_board).all()));
+    if (actions_.size() >= 2 &&
+        isPassAction(actions_.back()) &&
+        isPassAction(actions_[actions_.size() - 2])) { return true; }
+    return false;
 }
 
 float OthelloEnv::getEvalScore(bool is_resign /*= false*/) const
@@ -309,40 +342,40 @@ Player OthelloEnv::eval() const //bit count 比大小
 }
 std::vector<float> OthelloEnv::getFeatures(utils::Rotation rotation) const
 {
-    std::vector<OthelloBitboard> feature_bitboard_list;
-    feature_bitboard_list.clear();
-    // if (turn_ == Player::kPlayer1) {
-    //     feature_bitboard_list.push_back(black_board);
-    //     feature_bitboard_list.push_back(white_board);
-    // } else {
-    //     feature_bitboard_list.push_back(white_board);
-    //     feature_bitboard_list.push_back(black_board);
-    // }
-    feature_bitboard_list.push_back(black_board);
-    feature_bitboard_list.push_back(white_board);
-    if (turn_ == Player::kPlayer1) {
-        feature_bitboard_list.push_back(one_board);
-        feature_bitboard_list.push_back(~one_board);
-    } else {
-        feature_bitboard_list.push_back(~one_board);
-        feature_bitboard_list.push_back(one_board);
-    }
-    std::vector<float> cat_string;
-    cat_string.clear();
-    for (long unsigned int j = 0; j < feature_bitboard_list.size(); j++) {
-        std::string moves_to_string = feature_bitboard_list[j].to_string('0', '1');
-        for (long unsigned int i = 0; i < moves_to_string.length(); i++) {
-            float tmp = float(float(moves_to_string[i]) - '0');
-            cat_string.push_back(tmp);
+   std::vector<float> vFeatures;
+    for (int channel = 0; channel < 4; ++channel) {
+        for (int pos = 0; pos < board_size_ * board_size_; ++pos) {
+            int rotation_pos = getPositionByRotating(utils::reversed_rotation[static_cast<int>(rotation)], pos, board_size_);
+            if (channel == 0) {
+                // OthelloPair<OthelloBitboard> xx;
+                // vFeatures.push_back() xx.get(turn_)[roxx] == 1? 1.0f: 0.0f)
+                if (turn_ == Player::kPlayer1) {
+                    vFeatures.push_back((black_board[rotation_pos] == 1 ? 1.0f : 0.0f));
+                }
+                else {
+                    vFeatures.push_back((white_board[rotation_pos] == 1 ? 1.0f : 0.0f));
+                }
+            } else if (channel == 1) {
+                if (turn_ == Player::kPlayer1) {
+                    vFeatures.push_back((white_board[rotation_pos] == 1 ? 1.0f : 0.0f));
+                }
+                else {
+                    vFeatures.push_back((black_board[rotation_pos] == 1 ? 1.0f : 0.0f));
+                }
+            } else if (channel == 2) {
+                vFeatures.push_back((turn_ == Player::kPlayer1 ? 1.0f : 0.0f));
+            } else if (channel == 3) {
+                vFeatures.push_back((turn_ == Player::kPlayer2 ? 1.0f : 0.0f));
+            }
         }
     }
-    return cat_string;
+    return vFeatures;
 }
 std::vector<float> OthelloEnv::getActionFeatures(const OthelloAction& action, utils::Rotation rotation /*= utils::Rotation::kRotationNone*/) const
 {
-    std::vector<float> action_features(kOthelloBoardSize * kOthelloBoardSize, 0.0f);
+    std::vector<float> action_features(board_size_ * board_size_, 0.0f);
     if (!isPassAction(action)) {
-        action_features[getPositionByRotating(rotation, action.getActionID(), kOthelloBoardSize)] = 1.0f;
+        action_features[getPositionByRotating(rotation, action.getActionID(), board_size_)] = 1.0f;
     }
     return action_features;
 }
