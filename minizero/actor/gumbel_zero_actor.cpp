@@ -104,8 +104,11 @@ std::string GumbelZeroActor::getActionComment() const
     // return normalized completed Q-values
     std::ostringstream oss;
     for (auto& logit : new_logits) {
+        logit.second = logit.second - max_logit;
+        if (logit.second < -38)
+            continue;
         oss << (oss.str().empty() ? "" : ",")
-            << logit.first << ":" << logit.second - max_logit;
+            << logit.first << ":" << exp(logit.second);
     }
     return oss.str();
 }
