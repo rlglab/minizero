@@ -31,21 +31,24 @@ def getWinRate(file, game0_white):
         p1_white_win = 0
         draw = 0
         dup_game = 0
+        
         if game0_white:
             white_games = 0
+            resign_win='W+'
         else:
             white_games = 1
+            resign_win='B+'
         for line in lines:
             game_info = line.split('\t')
             # 0 GAME, 1	RES_B, 2 RES_W, 3 RES_R, 4 ALT, 5 DUP
             if game_info[5] != '-':
                 dup_game += 1
             if int(game_info[4]) == white_games:
-                if (game_info[1] == '-1.000000' or 'W+' in game_info[1]):
+                if (game_info[1] == '-1.000000' or resign_win in game_info[1]):
                     p1_white_win += 1
                 elif game_info[1] == '0.000000' or game_info[1] == '0':
                     draw += 1
-            elif (game_info[1] == '1.000000' or 'B+' in game_info[1]):
+            elif (game_info[1] == '1.000000' or resign_win in game_info[1]):
                 p1_black_win += 1
             elif game_info[1] == '0.000000' or game_info[1] == '0':
                 draw += 1
@@ -69,7 +72,7 @@ def plot_elo_curve(fig_name, *args):
     ax.set_ylabel('elo rating')
     for i, (its, elos) in enumerate(args):
         player_name = input(f'player{i+1} name: ')
-        ax.plot([0]+its, [0]+elos, label=player_name, markersize=10, marker='.')
+        ax.plot([0]+its, [0]+elos, label=player_name)
     ax.legend()
     plt.savefig(fig_name)
 
