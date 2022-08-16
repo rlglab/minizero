@@ -15,8 +15,8 @@ namespace minizero::env::go {
 
 extern GoHashKey turn_hash_key;
 extern std::vector<GoHashKey> empty_hash_key;
-extern std::vector<GoPair<GoHashKey>> grids_hash_key;
-extern std::vector<std::vector<GoPair<GoHashKey>>> sequence_hash_key;
+extern std::vector<GamePair<GoHashKey>> grids_hash_key;
+extern std::vector<std::vector<GamePair<GoHashKey>>> sequence_hash_key;
 
 void initialize();
 GoHashKey getGoTurnHashKey();
@@ -67,8 +67,8 @@ public:
     inline const GoBitboard& getBoardMaskBitboard() const { return board_mask_bitboard_; }
     inline const GoBitboard& getFreeAreaIDBitBoard() const { return free_area_id_bitboard_; }
     inline const GoBitboard& getFreeBlockIDBitBoard() const { return free_block_id_bitboard_; }
-    inline const GoPair<GoBitboard>& getStoneBitboard() const { return stone_bitboard_; }
-    inline const GoPair<GoBitboard>& getBensonBitboard() const { return benson_bitboard_; }
+    inline const GamePair<GoBitboard>& getStoneBitboard() const { return stone_bitboard_; }
+    inline const GamePair<GoBitboard>& getBensonBitboard() const { return benson_bitboard_; }
     inline const GoGrid& getGrid(int id) const { return grids_[id]; }
     inline const GoArea& getArea(int id) const { return areas_[id]; }
     inline const GoBlock& getBlock(int id) const { return blocks_[id]; }
@@ -89,7 +89,7 @@ protected:
     GoBitboard findBensonBitboard(GoBitboard block_bitboard) const;
     std::string getCoordinateString() const;
     GoBitboard floodFillBitBoard(int start_position, const GoBitboard& boundary_bitboard) const;
-    GoPair<float> calculateTrompTaylorTerritory() const;
+    GamePair<float> calculateTrompTaylorTerritory() const;
 
     // check data structure (for debugging)
     bool checkDataStructure() const;
@@ -106,13 +106,13 @@ protected:
     GoBitboard board_right_boundary_bitboard_;
     GoBitboard free_area_id_bitboard_;
     GoBitboard free_block_id_bitboard_;
-    GoPair<GoBitboard> stone_bitboard_;
-    GoPair<GoBitboard> benson_bitboard_;
+    GamePair<GoBitboard> stone_bitboard_;
+    GamePair<GoBitboard> benson_bitboard_;
 
     std::vector<GoGrid> grids_;
     std::vector<GoArea> areas_;
     std::vector<GoBlock> blocks_;
-    std::vector<GoPair<GoBitboard>> stone_bitboard_history_;
+    std::vector<GamePair<GoBitboard>> stone_bitboard_history_;
     std::unordered_set<GoHashKey> hash_table_;
 };
 

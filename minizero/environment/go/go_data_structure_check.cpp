@@ -14,7 +14,7 @@ bool GoEnv::checkDataStructure() const
 
 bool GoEnv::checkGridDataStructure() const
 {
-    GoPair<GoBitboard> stone_bitboard;
+    GamePair<GoBitboard> stone_bitboard;
     GoHashKey hash_key = (actions_.size() % 2 == 0 ? 0 : getGoTurnHashKey());
     for (int pos = 0; pos < board_size_ * board_size_; ++pos) {
         const GoGrid& grid = grids_[pos];
@@ -42,7 +42,7 @@ bool GoEnv::checkGridDataStructure() const
 
 bool GoEnv::checkBlockDataStructure() const
 {
-    GoPair<GoBitboard> stone_bitboard;
+    GamePair<GoBitboard> stone_bitboard;
     GoHashKey hash_key = actions_.size() % 2 == 0 ? 0 : getGoTurnHashKey();
     GoBitboard block_id_bitboard = ~free_block_id_bitboard_ & board_mask_bitboard_;
     while (!block_id_bitboard.none()) {
@@ -95,7 +95,7 @@ bool GoEnv::checkBlockDataStructure() const
 
 bool GoEnv::checkAreaDataStructure() const
 {
-    GoPair<GoBitboard> area_bitboard_pair;
+    GamePair<GoBitboard> area_bitboard_pair;
     GoBitboard area_id_bitboard = ~free_area_id_bitboard_ & board_mask_bitboard_;
     while (!area_id_bitboard.none()) {
         int id = area_id_bitboard._Find_first();

@@ -42,6 +42,26 @@ protected:
     Player player_;
 };
 
+template <class T>
+class GamePair {
+public:
+    GamePair() { reset(); }
+    GamePair(T black, T white) : black_(black), white_(white) {}
+
+    inline void reset() { black_ = white_ = T(); }
+    inline T& get(Player p) { return (p == Player::kPlayer1 ? black_ : white_); }
+    inline const T& get(Player p) const { return (p == Player::kPlayer1 ? black_ : white_); }
+    inline void set(Player p, const T& value) { (p == Player::kPlayer1 ? black_ : white_) = value; }
+    inline void set(const T& black, const T& white)
+    {
+        black_ = black;
+        white_ = white;
+    }
+private:
+    T black_;
+    T white_;
+};
+
 template <class Action>
 class BaseEnv {
 public:

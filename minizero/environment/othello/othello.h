@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base_env.h"
+#include "configuration.h"
 #include "sgf_loader.h"
 #include "configuration.h"
 #include <algorithm>
@@ -11,7 +12,6 @@ namespace minizero::env::othello {
 using namespace minizero::utils;
 const std::string kOthelloName = "othello";
 const int kOthelloNumPlayer = 2;
-const int kOthelloBoardSize = 8;
 const int kMaxOthelloBoardSize = 16;
 typedef std::bitset<kMaxOthelloBoardSize * kMaxOthelloBoardSize> OthelloBitboard;
 
@@ -33,7 +33,6 @@ public:
         assert(board_size_ > 0 && board_size_ <= kMaxOthelloBoardSize);
         reset();
     }
-    OthelloEnv(const OthelloEnv& env);  // check
 
     void reset() override;
     bool act(const OthelloAction& action) override;
@@ -51,15 +50,7 @@ public:
     inline int getBoardSize() const { return board_size_; }
 
 private:
-    int board_size_;
     Player eval() const;
-    std::vector<Player> board_;
-    OthelloBitboard black_board;
-    OthelloBitboard white_board;
-    OthelloBitboard one_board;
-    OthelloBitboard black_legal_board; //black 可以落子的點
-    OthelloBitboard white_legal_board; //white 可以落子的點
-    OthelloBitboard mask[8];           //8 directions
     OthelloBitboard getCanPutPoint(
         int direction,
         OthelloBitboard mask,
@@ -67,7 +58,6 @@ private:
         OthelloBitboard empty_board,
         OthelloBitboard opponent_board,
         OthelloBitboard player_board);
-
     OthelloBitboard getFlipPoint(
         int direction,
         OthelloBitboard mask,
@@ -77,11 +67,14 @@ private:
         OthelloBitboard player_board);
     OthelloBitboard getCandidateAlongDirectionBoard(int direction, OthelloBitboard candidate);
     std::string getCoordinateString() const;
-    bool black_legal_pass;
-    bool white_legal_pass;
-    // GamePair<bool> legal_pass;
-    // GamePair<OthelloBitboard> legal_board_;
-    
+
+    int board_size_;
+    int dir_step_[8]; //8 directions
+    OthelloBitboard one_board_;
+    OthelloBitboard mask_[8];               //8 directions
+    GamePair<bool> legal_pass_;             //store black/white legal pass
+    GamePair<OthelloBitboard> legal_board_; //store black/white legal board
+    GamePair<OthelloBitboard> board_;       //store black/white board
 };
 
 class OthelloEnvLoader : public BaseEnvLoader<OthelloAction, OthelloEnv> {
@@ -89,7 +82,6 @@ public:
     void loadFromEnvironment(const OthelloEnv& env, const std::vector<std::string> action_distributions = {})
     {
         BaseEnvLoader<OthelloAction, OthelloEnv>::loadFromEnvironment(env, action_distributions);
-        // addTag("KM", std::to_string(env.getKomi()));
         addTag("SZ", std::to_string(env.getBoardSize()));
     }
     inline int getBoardSize() const { return std::stoi(getTag("SZ")); }

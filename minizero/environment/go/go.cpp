@@ -10,8 +10,8 @@ using namespace minizero::utils;
 
 GoHashKey turn_hash_key;
 std::vector<GoHashKey> empty_hash_key;
-std::vector<GoPair<GoHashKey>> grids_hash_key;
-std::vector<std::vector<GoPair<GoHashKey>>> sequence_hash_key;
+std::vector<GamePair<GoHashKey>> grids_hash_key;
+std::vector<std::vector<GamePair<GoHashKey>>> sequence_hash_key;
 
 void initialize()
 {
@@ -262,7 +262,7 @@ float GoEnv::getEvalScore(bool is_resign /*= false*/) const
     if (is_resign) {
         eval = getNextPlayer(turn_, kGoNumPlayer);
     } else {
-        GoPair<float> territory = calculateTrompTaylorTerritory();
+        GamePair<float> territory = calculateTrompTaylorTerritory();
         eval = (territory.get(Player::kPlayer1) > territory.get(Player::kPlayer2))
                    ? Player::kPlayer1
                    : ((territory.get(Player::kPlayer1) < territory.get(Player::kPlayer2))
@@ -293,7 +293,7 @@ std::vector<float> GoEnv::getFeatures(utils::Rotation rotation /*= utils::Rotati
                 if (last_n_turn < 0) {
                     vFeatures.push_back(0.0f);
                 } else {
-                    const GoPair<GoBitboard>& last_n_trun_stone_bitboard = stone_bitboard_history_[last_n_turn];
+                    const GamePair<GoBitboard>& last_n_trun_stone_bitboard = stone_bitboard_history_[last_n_turn];
                     Player player = (channel % 2 == 0 ? turn_ : getNextPlayer(turn_, kGoNumPlayer));
                     vFeatures.push_back(last_n_trun_stone_bitboard.get(player).test(rotation_pos) ? 1.0f : 0.0f);
                 }
@@ -700,9 +700,9 @@ GoBitboard GoEnv::floodFillBitBoard(int start_position, const GoBitboard& bounda
     return flood_fill_bitboard;
 }
 
-GoPair<float> GoEnv::calculateTrompTaylorTerritory() const
+GamePair<float> GoEnv::calculateTrompTaylorTerritory() const
 {
-    GoPair<float> territory(stone_bitboard_.get(Player::kPlayer1).count(), stone_bitboard_.get(Player::kPlayer2).count() + komi_);
+    GamePair<float> territory(stone_bitboard_.get(Player::kPlayer1).count(), stone_bitboard_.get(Player::kPlayer2).count() + komi_);
     GoBitboard empty_stone_bitboard = ~(stone_bitboard_.get(Player::kPlayer1) | stone_bitboard_.get(Player::kPlayer2)) & board_mask_bitboard_;
     while (!empty_stone_bitboard.none()) {
         int pos = empty_stone_bitboard._Find_first();
