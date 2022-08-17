@@ -1,7 +1,5 @@
 #include "base_actor.h"
 #include "configuration.h"
-#include "gumbel_zero_actor.h"
-#include "zero_actor.h"
 
 namespace minizero::actor {
 
@@ -46,24 +44,6 @@ std::string BaseActor::getRecord() const
     // if the game is not ended, then treat the game as a resign game, where the next player is the lose side
     if (!isEnvTerminal()) { env_loader.addTag("RE", std::to_string(env_.getEvalScore(true))); }
     return "SelfPlay " + std::to_string(env_loader.getActionPairs().size()) + " " + env_loader.toString();
-}
-
-std::shared_ptr<BaseActor> createActor(long long tree_node_size, const std::shared_ptr<network::Network>& network)
-{
-    if (config::actor_use_gumbel) {
-        auto actor = std::make_shared<GumbelZeroActor>(tree_node_size);
-        actor->setNetwork(network);
-        actor->reset();
-        return actor;
-    } else {
-        auto actor = std::make_shared<ZeroActor>(tree_node_size);
-        actor->setNetwork(network);
-        actor->reset();
-        return actor;
-    }
-
-    assert(false);
-    return nullptr;
 }
 
 } // namespace minizero::actor

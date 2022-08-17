@@ -40,6 +40,4 @@ protected:
     std::vector<std::string> action_comments_;
 };
 
-std::shared_ptr<BaseActor> createActor(long long tree_node_size, const std::shared_ptr<network::Network>& network);
-
 } // namespace minizero::actor
