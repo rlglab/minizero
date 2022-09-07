@@ -54,14 +54,12 @@ private:
     OthelloBitboard getCanPutPoint(
         int direction,
         OthelloBitboard mask,
-        OthelloBitboard moves,
         OthelloBitboard empty_board,
         OthelloBitboard opponent_board,
         OthelloBitboard player_board);
     OthelloBitboard getFlipPoint(
         int direction,
         OthelloBitboard mask,
-        OthelloBitboard moves,
         OthelloBitboard placed_pos,
         OthelloBitboard opponent_board,
         OthelloBitboard player_board);

@@ -26,7 +26,7 @@ void OthelloEnv::reset()
     legal_board_.reset();
     one_board_.set(); // set to 1
     // initial pieces for othello
-    int init_place = board_size_ * (board_size_ / 2 - 1) + (board_size_ / 2 - 1); // initial black position ex:27 when board_size_=8
+    int init_place = board_size_ * (board_size_ / 2 - (1 - board_size_ % 2)) + (board_size_ / 2 - 1); // initial black position ex:27 when board_size_=8
     board_.get(getNextPlayer(turn_, kOthelloNumPlayer)).set(init_place + 1, 1);
     board_.get(getNextPlayer(turn_, kOthelloNumPlayer)).set(init_place + board_size_, 1);
     board_.get(turn_).set(init_place, 1);
@@ -72,10 +72,12 @@ OthelloBitboard OthelloEnv::getCandidateAlongDirectionBoard(int direction, Othel
 
 // return the pieces that should be flip after the action
 OthelloBitboard OthelloEnv::getFlipPoint(
-    int direction, OthelloBitboard mask, OthelloBitboard moves, OthelloBitboard placed_pos, OthelloBitboard opponent_board, OthelloBitboard player_board)
+    int direction, OthelloBitboard mask, OthelloBitboard placed_pos, OthelloBitboard opponent_board, OthelloBitboard player_board)
 {
     OthelloBitboard candidate;
     OthelloBitboard tmp_flip;
+    OthelloBitboard moves;
+    moves.reset();
     tmp_flip.reset();
     candidate = opponent_board & (getCandidateAlongDirectionBoard(direction, placed_pos)) & mask;
     while (candidate != 0) {
@@ -85,19 +87,17 @@ OthelloBitboard OthelloEnv::getFlipPoint(
         candidate = opponent_board & (candidate)&mask;
     }
     // if move is not empty, the direction reach player's pieces which is legal to flip
-    if (!moves.none()) {
-        return tmp_flip;
-    } else {
-        tmp_flip.reset();
-        return tmp_flip;
-    }
+    if (moves.none()) { tmp_flip.reset(); }
+    return tmp_flip;
 }
 
 // return the candidate that can put the piece
 OthelloBitboard OthelloEnv::getCanPutPoint(
-    int direction, OthelloBitboard mask, OthelloBitboard moves, OthelloBitboard empty_board, OthelloBitboard opponent_board, OthelloBitboard player_board)
+    int direction, OthelloBitboard mask, OthelloBitboard empty_board, OthelloBitboard opponent_board, OthelloBitboard player_board)
 {
     OthelloBitboard candidate;
+    OthelloBitboard moves;
+    moves.reset();
     candidate = opponent_board & getCandidateAlongDirectionBoard(direction, player_board) & mask;
     while (candidate != 0) {
         moves |= empty_board & (getCandidateAlongDirectionBoard(direction, candidate));
@@ -111,8 +111,6 @@ bool OthelloEnv::act(const OthelloAction& action)
 {
     OthelloBitboard empty_board;
     OthelloBitboard placed_pos; // the position that action placed
-    OthelloBitboard moves;      // legal moves for player1
-    OthelloBitboard moves_2;    // legal moves for player2
     OthelloBitboard flip;       // pieces ready to flip
 
     if (!isLegalAction(action)) { return false; }
@@ -126,37 +124,25 @@ bool OthelloEnv::act(const OthelloAction& action)
     placed_pos.reset();
     placed_pos.set(ID, 1); // the position that action placed
     flip.reset();
-    moves.reset();
-    for (int i = 0; i < 8; i++) {
-        flip |= getFlipPoint(dir_step_[i], mask_[i], moves, placed_pos, board_.get(getNextPlayer(player, kOthelloNumPlayer)), board_.get(player));
-    } // find the pieces that can be flipped
 
-    while (flip._Find_first() != flip.size()) {
-        board_.get(player).set(flip._Find_first(), 1);
-        board_.get(getNextPlayer(player, kOthelloNumPlayer)).reset(flip._Find_first());
-        flip.set(flip._Find_first(), 0);
+    // find the pieces that can be flipped
+    for (int i = 0; i < 8; i++) {
+        flip |= getFlipPoint(dir_step_[i], mask_[i], placed_pos, board_.get(getNextPlayer(player, kOthelloNumPlayer)), board_.get(player));
     }
 
-    empty_board = (one_board_ ^ (board_.get(player) | board_.get(getNextPlayer(player, kOthelloNumPlayer)))); // places with no pieces
-    moves.reset();                                                                                            // store the candidate of the legal bitboard
-    moves_2.reset();                                                                                          // store the candidate of the legal bitboard
+    board_.get(player) |= flip;
+    board_.get(getNextPlayer(player, kOthelloNumPlayer)) &= ~flip;
+
+    // update legal action bitboard
+    empty_board = (one_board_ ^ (board_.get(Player::kPlayer1) | board_.get(Player::kPlayer2))); // places with no pieces
+    legal_board_.get(Player::kPlayer1).reset();                                                 // store the candidate of the legal bitboard
+    legal_board_.get(Player::kPlayer2).reset();                                                 // store the candidate of the legal bitboard
     for (int i = 0; i < 8; i++) {
-        moves |= getCanPutPoint(dir_step_[i], mask_[i], moves, empty_board, board_.get(getNextPlayer(player, kOthelloNumPlayer)), board_.get(player));
-        moves_2 |= getCanPutPoint(dir_step_[i], mask_[i], moves_2, empty_board, board_.get(player), board_.get(getNextPlayer(player, kOthelloNumPlayer)));
+        legal_board_.get(player) |= getCanPutPoint(dir_step_[i], mask_[i], empty_board, board_.get(getNextPlayer(player, kOthelloNumPlayer)), board_.get(player));
+        legal_board_.get(getNextPlayer(player, kOthelloNumPlayer)) |= getCanPutPoint(dir_step_[i], mask_[i], empty_board, board_.get(player), board_.get(getNextPlayer(player, kOthelloNumPlayer)));
     } // generate the legal bitboard
-
-    legal_board_.get(player) = moves; // reassign legal_board_
-    legal_board_.get(getNextPlayer(player, kOthelloNumPlayer)) = moves_2;
-    if (legal_board_.get(turn_).none()) { // reassign legal_pass_
-        legal_pass_.get(turn_) = true;
-    } else {
-        legal_pass_.get(turn_) = false;
-    }
-    if (legal_board_.get(getNextPlayer(turn_, kOthelloNumPlayer)).none()) {
-        legal_pass_.get(getNextPlayer(turn_, kOthelloNumPlayer)) = true;
-    } else {
-        legal_pass_.get(getNextPlayer(turn_, kOthelloNumPlayer)) = false;
-    }
+    legal_pass_.get(Player::kPlayer1) = legal_board_.get(Player::kPlayer1).none();
+    legal_pass_.get(Player::kPlayer2) = legal_board_.get(Player::kPlayer2).none();
     return true;
 }
 
@@ -168,17 +154,13 @@ bool OthelloEnv::act(const std::vector<std::string>& action_string_args)
 std::string OthelloEnv::toString() const
 {
     std::ostringstream oss;
-    std::string black_to_string = board_.get(Player::kPlayer1).to_string();
-    std::string white_to_string = board_.get(Player::kPlayer2).to_string();
-    std::reverse(black_to_string.begin(), black_to_string.end());
-    std::reverse(white_to_string.begin(), white_to_string.end());
     oss << " " << getCoordinateString() << std::endl;
     for (int row = board_size_ - 1; row >= 0; --row) {
         oss << (row >= 9 ? "" : " ") << row + 1 << " ";
         for (int col = 0; col < board_size_; ++col) {
-            if (black_to_string[row * board_size_ + col] == '1') {
+            if (board_.get(Player::kPlayer1)[row * board_size_ + col] == 1) {
                 oss << " O ";
-            } else if (white_to_string[row * board_size_ + col] == '1') {
+            } else if (board_.get(Player::kPlayer2)[row * board_size_ + col] == 1) {
                 oss << " X ";
             } else {
                 oss << " . ";
@@ -219,10 +201,10 @@ std::vector<OthelloAction> OthelloEnv::getLegalActions() const
 // if actionID is board_size_*board_size_, then it is pass
 bool OthelloEnv::isLegalAction(const OthelloAction& action) const
 {
-    if (action.getActionID() == board_size_ * board_size_) {
-        return legal_pass_.get(turn_);
+    if (isPassAction(action)) {
+        return legal_pass_.get(action.getPlayer());
     }
-    return legal_board_.get(turn_)[action.getActionID()];
+    return legal_board_.get(action.getPlayer())[action.getActionID()];
 }
 // both act pass then terminate
 bool OthelloEnv::isTerminal() const
@@ -245,11 +227,11 @@ float OthelloEnv::getEvalScore(bool is_resign /*= false*/) const
 
 Player OthelloEnv::eval() const
 {
-    int TotalPlayer1 = board_.get(Player::kPlayer1).count();
-    int TotalPlayer2 = board_.get(Player::kPlayer2).count();
-    if (legal_board_.get(turn_).none() && legal_board_.get(getNextPlayer(turn_, kOthelloNumPlayer)).none()) {
-        if (TotalPlayer1 > TotalPlayer2) { return Player::kPlayer1; } // player 1 win
-        else if (TotalPlayer1 < TotalPlayer2) {
+    int totalPlayer1 = board_.get(Player::kPlayer1).count();
+    int totalPlayer2 = board_.get(Player::kPlayer2).count();
+    if (legal_board_.get(Player::kPlayer1).none() && legal_board_.get(Player::kPlayer2).none()) {
+        if (totalPlayer1 > totalPlayer2) { return Player::kPlayer1; } // player 1 win
+        else if (totalPlayer1 < totalPlayer2) {
             return Player::kPlayer2;
         } else {
             return Player::kPlayerNone;
