@@ -58,9 +58,12 @@ protected:
     void cmdGenmove(const std::vector<std::string>& args);
     void cmdRegGenmove(const std::vector<std::string>& args);
     void cmdFinalScore(const std::vector<std::string>& args);
+    void cmdPV(const std::vector<std::string>& args);
+    void cmdLoadModel(const std::vector<std::string>& args);
     bool checkArgument(const std::vector<std::string>& args, int min_argc, int max_argc);
     void reply(ConsoleResponse response, const std::string& reply);
 
+    std::shared_ptr<minizero::network::Network> network_;
     std::shared_ptr<actor::BaseActor> actor_;
     std::map<std::string, std::shared_ptr<BaseFunction>> function_map_;
 };
