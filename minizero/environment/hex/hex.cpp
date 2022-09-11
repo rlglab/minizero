@@ -216,7 +216,7 @@ B 1  0-R-B-B-0-0-0 B
         rr.push_back(' ');
     }
     for (size_t ii = 0; ii < kHexBoardSize; ii++) {
-        rr.push_back(ii + 97 + (ii>7?1:0));
+        rr.push_back(ii + 97 + (ii > 7 ? 1 : 0));
         rr.push_back(' ');
     }
     rr.push_back('\n');
@@ -313,7 +313,7 @@ B 1   0 - R - B - B - 0 - 0 - 0 B
         rr.push_back(' ');
     }
     for (size_t ii = 0; ii < kHexBoardSize; ii++) {
-        rr.push_back(ii + 97 + (ii>7?1:0));
+        rr.push_back(ii + 97 + (ii > 7 ? 1 : 0));
         rr.push_back(' ');
         rr.push_back(' ');
         rr.push_back(' ');

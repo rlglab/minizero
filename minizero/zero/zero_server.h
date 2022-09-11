@@ -101,4 +101,4 @@ private:
     boost::asio::deadline_timer keep_alive_timer_;
 };
 
-} // namespace minizero::server
+} // namespace minizero::zero

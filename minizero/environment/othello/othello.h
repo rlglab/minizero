@@ -3,7 +3,6 @@
 #include "base_env.h"
 #include "configuration.h"
 #include "sgf_loader.h"
-#include "configuration.h"
 #include <algorithm>
 #include <bitset>
 #include <vector>

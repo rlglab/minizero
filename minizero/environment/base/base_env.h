@@ -57,6 +57,7 @@ public:
         black_ = black;
         white_ = white;
     }
+
 private:
     T black_;
     T white_;
