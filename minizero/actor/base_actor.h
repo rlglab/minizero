@@ -17,7 +17,7 @@ public:
     virtual void resetSearch();
     bool act(const Action& action, const std::string action_comment = "");
     bool act(const std::vector<std::string>& action_string_args, const std::string action_comment = "");
-    std::string getRecord() const;
+    virtual std::string getRecord() const;
 
     inline bool isEnvTerminal() const { return env_.isTerminal(); }
     inline const float getEvalScore() const { return env_.getEvalScore(); }
