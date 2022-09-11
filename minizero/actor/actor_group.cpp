@@ -29,7 +29,7 @@ void SlaveThread::initialize()
 
 void SlaveThread::runJob()
 {
-    if (shared_data_.do_cpu_job_) {
+    if (getSharedData()->do_cpu_job_) {
         while (doCPUJob()) {}
     } else {
         doGPUJob();
@@ -38,15 +38,15 @@ void SlaveThread::runJob()
 
 bool SlaveThread::doCPUJob()
 {
-    size_t actor_id = shared_data_.getAvailableActorIndex();
-    if (actor_id >= shared_data_.actors_.size()) { return false; }
+    size_t actor_id = getSharedData()->getAvailableActorIndex();
+    if (actor_id >= getSharedData()->actors_.size()) { return false; }
 
-    std::shared_ptr<BaseActor>& actor = shared_data_.actors_[actor_id];
-    int network_id = actor_id % shared_data_.networks_.size();
+    std::shared_ptr<BaseActor>& actor = getSharedData()->actors_[actor_id];
+    int network_id = actor_id % getSharedData()->networks_.size();
     int network_output_id = actor->getNNEvaluationBatchIndex();
     if (network_output_id >= 0) {
-        assert(network_output_id < static_cast<int>(shared_data_.network_outputs_[network_id].size()));
-        actor->afterNNEvaluation(shared_data_.network_outputs_[network_id][network_output_id]);
+        assert(network_output_id < static_cast<int>(getSharedData()->network_outputs_[network_id].size()));
+        actor->afterNNEvaluation(getSharedData()->network_outputs_[network_id][network_output_id]);
         if (actor->isSearchDone() && !actor->isResign()) { actor->act(actor->getSearchAction(), actor->getActionComment()); }
     }
     if (!actor->isSearchDone()) { actor->beforeNNEvaluation(); }
@@ -55,18 +55,18 @@ bool SlaveThread::doCPUJob()
 
 void SlaveThread::doGPUJob()
 {
-    if (id_ >= static_cast<int>(shared_data_.networks_.size())) { return; }
+    if (id_ >= static_cast<int>(getSharedData()->networks_.size())) { return; }
 
-    std::shared_ptr<Network>& network = shared_data_.networks_[id_];
+    std::shared_ptr<Network>& network = getSharedData()->networks_[id_];
     if (network->getNetworkTypeName() == "alphazero") {
         std::shared_ptr<AlphaZeroNetwork> az_network = std::static_pointer_cast<AlphaZeroNetwork>(network);
-        if (az_network->getBatchSize() > 0) { shared_data_.network_outputs_[id_] = az_network->forward(); }
+        if (az_network->getBatchSize() > 0) { getSharedData()->network_outputs_[id_] = az_network->forward(); }
     } else if (network->getNetworkTypeName() == "muzero" || network->getNetworkTypeName() == "muzero_reward") {
         std::shared_ptr<MuZeroNetwork> muzero_network = std::static_pointer_cast<MuZeroNetwork>(network);
         if (muzero_network->getInitialInputBatchSize() > 0) {
-            shared_data_.network_outputs_[id_] = std::static_pointer_cast<MuZeroNetwork>(network)->initialInference();
+            getSharedData()->network_outputs_[id_] = std::static_pointer_cast<MuZeroNetwork>(network)->initialInference();
         } else if (muzero_network->getRecurrentInputBatchSize() > 0) {
-            shared_data_.network_outputs_[id_] = std::static_pointer_cast<MuZeroNetwork>(network)->recurrentInference();
+            getSharedData()->network_outputs_[id_] = std::static_pointer_cast<MuZeroNetwork>(network)->recurrentInference();
         }
     }
 }
@@ -78,11 +78,11 @@ void ActorGroup::run()
         handleCommand();
 
         if (!running_) { continue; }
-        shared_data_.actor_index_ = 0;
+        getSharedData()->actor_index_ = 0;
         for (auto& t : slave_threads_) { t->start(); }
         for (auto& t : slave_threads_) { t->finish(); }
         handleFinishedGame();
-        shared_data_.do_cpu_job_ = !shared_data_.do_cpu_job_;
+        getSharedData()->do_cpu_job_ = !getSharedData()->do_cpu_job_;
     }
 }
 
@@ -93,7 +93,7 @@ void ActorGroup::initialize()
     createNeuralNetworks();
     createActors();
     running_ = false;
-    shared_data_.do_cpu_job_ = true;
+    getSharedData()->do_cpu_job_ = true;
 
     // create one thread to handle I/O
     commands_.clear();
@@ -108,20 +108,20 @@ void ActorGroup::createNeuralNetworks()
 {
     int num_networks = std::min(static_cast<int>(torch::cuda::device_count()), config::actor_num_parallel_games);
     assert(num_networks > 0);
-    shared_data_.networks_.resize(num_networks);
-    shared_data_.network_outputs_.resize(num_networks);
+    getSharedData()->networks_.resize(num_networks);
+    getSharedData()->network_outputs_.resize(num_networks);
     for (int gpu_id = 0; gpu_id < num_networks; ++gpu_id) {
-        shared_data_.networks_[gpu_id] = createNetwork(config::nn_file_name, gpu_id);
+        getSharedData()->networks_[gpu_id] = createNetwork(config::nn_file_name, gpu_id);
     }
 }
 
 void ActorGroup::createActors()
 {
-    assert(shared_data_.networks_.size() > 0);
-    std::shared_ptr<Network>& network = shared_data_.networks_[0];
+    assert(getSharedData()->networks_.size() > 0);
+    std::shared_ptr<Network>& network = getSharedData()->networks_[0];
     long long tree_node_size = static_cast<long long>(config::actor_num_simulation + 1) * network->getActionSize();
     for (int i = 0; i < config::actor_num_parallel_games; ++i) {
-        shared_data_.actors_.emplace_back(createActor(tree_node_size, shared_data_.networks_[i % shared_data_.networks_.size()]));
+        getSharedData()->actors_.emplace_back(createActor(tree_node_size, getSharedData()->networks_[i % getSharedData()->networks_.size()]));
     }
 }
 
@@ -131,15 +131,15 @@ void ActorGroup::handleIO()
     const int buffer_size = 10000000;
     command.reserve(buffer_size);
     while (getline(std::cin, command)) {
-        std::lock_guard<std::mutex> lock(shared_data_.mutex_);
+        std::lock_guard<std::mutex> lock(getSharedData()->mutex_);
         commands_.push_back(command);
     }
 }
 
 void ActorGroup::handleFinishedGame()
 {
-    for (size_t actor_id = 0; actor_id < shared_data_.actors_.size(); ++actor_id) {
-        std::shared_ptr<BaseActor>& actor = shared_data_.actors_[actor_id];
+    for (size_t actor_id = 0; actor_id < getSharedData()->actors_.size(); ++actor_id) {
+        std::shared_ptr<BaseActor>& actor = getSharedData()->actors_[actor_id];
         if (!actor->isSearchDone()) { continue; }
         bool is_endgame = (actor->isResign() || actor->isEnvTerminal());
         bool display_game = (actor_id == 0 && (config::actor_num_simulation >= 100 || (config::actor_num_simulation < 100 && is_endgame)));
@@ -157,7 +157,7 @@ void ActorGroup::handleCommand()
 {
     if (commands_.empty()) { return; }
 
-    std::lock_guard<std::mutex> lock(shared_data_.mutex_);
+    std::lock_guard<std::mutex> lock(getSharedData()->mutex_);
     while (!commands_.empty()) {
         const std::string command = commands_.front();
         commands_.pop_front();
@@ -172,14 +172,14 @@ void ActorGroup::handleCommand()
         // do command
         if (command_prefix == "reset_actors") {
             std::cerr << "[command] " << command << std::endl;
-            for (auto& actor : shared_data_.actors_) { actor->reset(); }
-            shared_data_.do_cpu_job_ = true;
+            for (auto& actor : getSharedData()->actors_) { actor->reset(); }
+            getSharedData()->do_cpu_job_ = true;
         } else if (command_prefix == "load_model") {
             std::cerr << "[command] " << command << std::endl;
             std::vector<std::string> args = utils::stringToVector(command);
             assert(args.size() == 2);
             config::nn_file_name = args[1];
-            for (auto& network : shared_data_.networks_) { network->loadModel(config::nn_file_name, network->getGPUID()); }
+            for (auto& network : getSharedData()->networks_) { network->loadModel(config::nn_file_name, network->getGPUID()); }
         } else if (command_prefix == "start") {
             std::cerr << "[command] " << command << std::endl;
             running_ = true;

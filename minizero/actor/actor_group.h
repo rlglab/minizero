@@ -10,7 +10,7 @@
 
 namespace minizero::actor {
 
-class ThreadSharedData {
+class ThreadSharedData : public utils::BaseSharedData {
 public:
     int getAvailableActorIndex();
 
@@ -22,9 +22,9 @@ public:
     std::vector<std::vector<std::shared_ptr<network::NetworkOutput>>> network_outputs_;
 };
 
-class SlaveThread : public utils::BaseSlaveThread<ThreadSharedData> {
+class SlaveThread : public utils::BaseSlaveThread {
 public:
-    SlaveThread(int id, ThreadSharedData& shared_data)
+    SlaveThread(int id, std::shared_ptr<utils::BaseSharedData> shared_data)
         : BaseSlaveThread(id, shared_data) {}
 
     void initialize() override;
@@ -34,13 +34,14 @@ public:
 private:
     bool doCPUJob();
     void doGPUJob();
+    inline std::shared_ptr<ThreadSharedData> getSharedData() { return std::static_pointer_cast<ThreadSharedData>(shared_data_); }
 };
 
-class ActorGroup : public utils::BaseParalleler<class ThreadSharedData, class SlaveThread> {
+class ActorGroup : public utils::BaseParalleler {
 public:
     ActorGroup() {}
 
-    void run() override;
+    void run();
     void initialize() override;
     void summarize() override {}
 
@@ -50,6 +51,10 @@ protected:
     void handleIO();
     void handleFinishedGame();
     void handleCommand();
+
+    virtual void createSharedData() override { shared_data_ = std::make_shared<ThreadSharedData>(); }
+    virtual std::shared_ptr<utils::BaseSlaveThread> newSlaveThread(int id) override { return std::make_shared<SlaveThread>(id, shared_data_); }
+    inline std::shared_ptr<ThreadSharedData> getSharedData() { return std::static_pointer_cast<ThreadSharedData>(shared_data_); }
 
     bool running_;
     std::deque<std::string> commands_;
