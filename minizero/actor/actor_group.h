@@ -27,13 +27,13 @@ public:
     SlaveThread(int id, std::shared_ptr<utils::BaseSharedData> shared_data)
         : BaseSlaveThread(id, shared_data) {}
 
-    void initialize() override;
-    void runJob() override;
-    inline bool isDone() override { return false; }
+    virtual void initialize() override;
+    virtual void runJob() override;
+    virtual bool isDone() override { return false; }
 
-private:
-    bool doCPUJob();
-    void doGPUJob();
+protected:
+    virtual bool doCPUJob();
+    virtual void doGPUJob();
     inline std::shared_ptr<ThreadSharedData> getSharedData() { return std::static_pointer_cast<ThreadSharedData>(shared_data_); }
 };
 
@@ -42,15 +42,15 @@ public:
     ActorGroup() {}
 
     void run();
-    void initialize() override;
-    void summarize() override {}
+    virtual void initialize() override;
+    virtual void summarize() override {}
 
 protected:
-    void createNeuralNetworks();
-    void createActors();
-    void handleIO();
-    void handleFinishedGame();
-    void handleCommand();
+    virtual void createNeuralNetworks();
+    virtual void createActors();
+    virtual void handleIO();
+    virtual void handleFinishedGame();
+    virtual void handleCommand();
 
     virtual void createSharedData() override { shared_data_ = std::make_shared<ThreadSharedData>(); }
     virtual std::shared_ptr<utils::BaseSlaveThread> newSlaveThread(int id) override { return std::make_shared<SlaveThread>(id, shared_data_); }
