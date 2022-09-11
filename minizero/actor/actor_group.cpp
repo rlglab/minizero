@@ -18,12 +18,12 @@ using namespace utils;
 int ThreadSharedData::getAvailableActorIndex()
 {
     std::lock_guard<std::mutex> lock(mutex_);
-    return actor_index_++;
+    return (actor_index_ < static_cast<int>(actors_.size()) ? actor_index_++ : actors_.size());
 }
 
 void SlaveThread::initialize()
 {
-    int seed = config::program_auto_seed ? std::random_device()() : config::program_seed;
+    int seed = config::program_auto_seed ? std::random_device()() : config::program_seed + id_;
     Random::seed(seed);
 }
 
