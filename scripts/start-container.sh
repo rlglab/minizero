@@ -30,7 +30,7 @@ while :; do
 		;;
 		"") break
 		;;
-		*) echo "Unknown argument: $1"; exit 1
+		*) echo "Unknown argument: $1"; usage
 		;;
 	esac
 	shift
