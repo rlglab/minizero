@@ -14,3 +14,6 @@ Debug
 
 # configuration file
 *.cfg
+
+# others
+.vscode
