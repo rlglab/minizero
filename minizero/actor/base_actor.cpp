@@ -37,7 +37,7 @@ bool BaseActor::act(const std::vector<std::string>& action_string_args, const st
     return can_act;
 }
 
-std::string BaseActor::getRecord() const
+std::string BaseActor::getRecord(std::unordered_map<std::string, std::string> tags /* = {} */) const
 {
     EnvironmentLoader env_loader;
     env_loader.loadFromEnvironment(env_, action_comments_);
@@ -45,6 +45,7 @@ std::string BaseActor::getRecord() const
 
     // if the game is not ended, then treat the game as a resign game, where the next player is the lose side
     if (!isEnvTerminal()) { env_loader.addTag("RE", std::to_string(env_.getEvalScore(true))); }
+    for (auto tag : tags) { env_loader.addTag(tag.first, tag.second); }
     return "SelfPlay " + std::to_string(env_loader.getActionPairs().size()) + " " + env_loader.toString();
 }
 

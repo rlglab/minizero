@@ -3,6 +3,7 @@
 #include "environment.h"
 #include "network.h"
 #include "search.h"
+#include <unordered_map>
 #include <vector>
 
 namespace minizero::actor {
@@ -18,7 +19,7 @@ public:
     virtual void resetSearch();
     bool act(const Action& action, const std::string action_comment = "");
     bool act(const std::vector<std::string>& action_string_args, const std::string action_comment = "");
-    virtual std::string getRecord() const;
+    virtual std::string getRecord(std::unordered_map<std::string, std::string> tags = {}) const;
 
     inline bool isEnvTerminal() const { return env_.isTerminal(); }
     inline const float getEvalScore() const { return env_.getEvalScore(); }
