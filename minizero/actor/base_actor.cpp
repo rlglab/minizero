@@ -13,6 +13,8 @@ void BaseActor::reset()
 void BaseActor::resetSearch()
 {
     nn_evaluation_batch_id_ = -1;
+    if (!search_) { search_ = createSearch(); }
+    search_->reset();
 }
 
 bool BaseActor::act(const Action& action, const std::string action_comment /*= ""*/)

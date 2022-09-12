@@ -2,6 +2,7 @@
 
 #include "environment.h"
 #include "network.h"
+#include "search.h"
 #include <vector>
 
 namespace minizero::actor {
@@ -33,10 +34,12 @@ public:
     virtual std::string getSearchInfo() const = 0;
     virtual std::string getActionComment() const = 0;
     virtual void setNetwork(const std::shared_ptr<network::Network>& network) = 0;
+    virtual std::shared_ptr<Search> createSearch() = 0;
 
 protected:
     int nn_evaluation_batch_id_;
     Environment env_;
+    std::shared_ptr<Search> search_;
     std::vector<std::string> action_comments_;
 };
 

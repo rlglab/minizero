@@ -9,15 +9,15 @@ using namespace network;
 void GumbelZeroActor::beforeNNEvaluation()
 {
     // get selection path
-    if (mcts_.getNumSimulation() == 0) {
-        mcts_search_data_.node_path_ = mcts_.select();
+    if (getMCTS()->getNumSimulation() == 0) {
+        mcts_search_data_.node_path_ = getMCTS()->select();
     } else {
         assert(candidates_.size() > 0);
         sort(candidates_.begin(), candidates_.end(), [](const MCTSNode* lhs, const MCTSNode* rhs) {
             return (lhs->getCount() < rhs->getCount() || (lhs->getCount() == rhs->getCount() && lhs->getPolicyLogit() > rhs->getPolicyLogit()));
         });
-        mcts_search_data_.node_path_ = mcts_.selectFromNode(candidates_[0]);
-        mcts_search_data_.node_path_.insert(mcts_search_data_.node_path_.begin(), mcts_.getRootNode());
+        mcts_search_data_.node_path_ = getMCTS()->selectFromNode(candidates_[0]);
+        mcts_search_data_.node_path_.insert(mcts_search_data_.node_path_.begin(), getMCTS()->getRootNode());
     }
 
     // before nn evaluation
@@ -26,13 +26,13 @@ void GumbelZeroActor::beforeNNEvaluation()
         Environment env_transition = getEnvironmentTransition(node_path);
         nn_evaluation_batch_id_ = alphazero_network_->pushBack(env_transition.getFeatures());
     } else if (muzero_network_) {
-        if (mcts_.getNumSimulation() == 0) { // initial inference for root node
+        if (getMCTS()->getNumSimulation() == 0) { // initial inference for root node
             nn_evaluation_batch_id_ = muzero_network_->pushBackInitialData(env_.getFeatures());
         } else { // for non-root nodes
             MCTSNode* leaf_node = node_path.back();
             MCTSNode* parent_node = node_path[node_path.size() - 2];
             assert(node_path.size() >= 2 && parent_node && parent_node->getExtraDataIndex() != -1);
-            const std::vector<float>& hidden_state = mcts_.getTreeExtraData().getExtraData(parent_node->getExtraDataIndex()).hidden_state_;
+            const std::vector<float>& hidden_state = getMCTS()->getTreeExtraData().getExtraData(parent_node->getExtraDataIndex()).hidden_state_;
             nn_evaluation_batch_id_ = muzero_network_->pushBackRecurrentData(hidden_state, env_.getActionFeatures(leaf_node->getAction()));
         }
     } else {
@@ -45,11 +45,11 @@ void GumbelZeroActor::afterNNEvaluation(const std::shared_ptr<network::NetworkOu
     ZeroActor::afterNNEvaluation(network_output);
 
     // sequential halving
-    if (mcts_.getNumSimulation() == 1) {
+    if (getMCTS()->getNumSimulation() == 1) {
         // collect candidates
         candidates_.clear();
-        MCTSNode* child = mcts_.getRootNode()->getFirstChild();
-        for (int i = 0; i < mcts_.getRootNode()->getNumChildren(); ++i, ++child) { candidates_.push_back(child); }
+        MCTSNode* child = getMCTS()->getRootNode()->getFirstChild();
+        for (int i = 0; i < getMCTS()->getRootNode()->getNumChildren(); ++i, ++child) { candidates_.push_back(child); }
         sort(candidates_.begin(), candidates_.end(), [](const MCTSNode* lhs, const MCTSNode* rhs) { return lhs->getPolicyLogit() > rhs->getPolicyLogit(); });
         if (static_cast<int>(candidates_.size()) > config::actor_gumbel_sample_size) { candidates_.resize(config::actor_gumbel_sample_size); }
         sample_size_ = config::actor_gumbel_sample_size;
@@ -79,21 +79,21 @@ std::string GumbelZeroActor::getActionComment() const
 {
     // calculate value for non-visisted nodes
     float pi_sum = 0.0f, q_sum = 0.0f;
-    MCTSNode* child = mcts_.getRootNode()->getFirstChild();
-    for (int i = 0; i < mcts_.getRootNode()->getNumChildren(); ++i, ++child) {
+    MCTSNode* child = getMCTS()->getRootNode()->getFirstChild();
+    for (int i = 0; i < getMCTS()->getRootNode()->getNumChildren(); ++i, ++child) {
         if (child->getCount() == 0) { continue; }
         float value = (child->getAction().getPlayer() == env::Player::kPlayer1 ? child->getValue() : -child->getValue());
         pi_sum += child->getPolicy();
         q_sum += child->getPolicy() * value;
     }
-    float value_pi = (mcts_.getRootNode()->getFirstChild()->getAction().getPlayer() == env::Player::kPlayer1 ? mcts_.getRootNode()->getValue() : -mcts_.getRootNode()->getValue());
+    float value_pi = (getMCTS()->getRootNode()->getFirstChild()->getAction().getPlayer() == env::Player::kPlayer1 ? getMCTS()->getRootNode()->getValue() : -getMCTS()->getRootNode()->getValue());
     float non_visited_node_value = 1.0 / (1 + config::actor_num_simulation) * (value_pi + (config::actor_num_simulation / pi_sum) * q_sum);
 
     // calculate completed Q-values
     std::unordered_map<int, float> new_logits;
     float max_logit = -std::numeric_limits<float>::max();
-    child = mcts_.getRootNode()->getFirstChild();
-    for (int i = 0; i < mcts_.getRootNode()->getNumChildren(); ++i, ++child) {
+    child = getMCTS()->getRootNode()->getFirstChild();
+    for (int i = 0; i < getMCTS()->getRootNode()->getNumChildren(); ++i, ++child) {
         float value = (child->getCount() == 0 ? non_visited_node_value : (child->getAction().getPlayer() == env::Player::kPlayer1 ? child->getValue() : -child->getValue()));
         float logit_without_noise = child->getPolicyLogit() - child->getPolicyNoise();
         float score = logit_without_noise + (config::actor_gumbel_sigma_visit_c + 1) * config::actor_gumbel_sigma_scale_c * value;
@@ -120,7 +120,7 @@ MCTSNode* GumbelZeroActor::decideActionNode()
         sortCandidatesByScore();
         return candidates_[0];
     } else if (config::actor_select_action_by_softmax_count) {
-        return mcts_.selectChildBySoftmaxCount(mcts_.getRootNode(), config::actor_select_action_softmax_temperature);
+        return getMCTS()->selectChildBySoftmaxCount(getMCTS()->getRootNode(), config::actor_select_action_softmax_temperature);
     }
 
     assert(false);

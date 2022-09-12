@@ -3,6 +3,7 @@
 #include "configuration.h"
 #include "environment.h"
 #include "random.h"
+#include "search.h"
 #include "tree.h"
 #include <cmath>
 #include <map>
@@ -128,7 +129,7 @@ public:
 };
 
 template <class Node, class Tree, class TreeExtraData>
-class BaseMCTS {
+class BaseMCTS : public Search {
 public:
     class ActionCandidate {
     public:
@@ -142,7 +143,7 @@ public:
     BaseMCTS(long long tree_node_size)
         : tree_(tree_node_size) {}
 
-    virtual void reset()
+    virtual void reset() override
     {
         tree_.reset();
         tree_extra_data_.reset();
