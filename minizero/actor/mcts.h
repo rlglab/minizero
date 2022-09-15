@@ -11,14 +11,14 @@
 
 namespace minizero::actor {
 
-class MCTSNode : public BaseTreeNode {
+class MCTSNode : public TreeNode {
 public:
     MCTSNode() { reset(); }
 
     void reset() override
     {
         num_children_ = 0;
-        extra_data_index_ = -1;
+        hidden_state_data_index_ = -1;
         mean_ = 0.0f;
         count_ = 0.0f;
         policy_ = 0.0f;
@@ -89,7 +89,7 @@ public:
     bool displayInTreeLog() const override { return count_ > 0; }
 
     // setter
-    inline void setExtraDataIndex(int extra_data_index) { extra_data_index_ = extra_data_index; }
+    inline void setHiddenStateDataIndex(int hidden_state_data_index) { hidden_state_data_index_ = hidden_state_data_index; }
     inline void setMean(float mean) { mean_ = mean; }
     inline void setCount(float count) { count_ = count; }
     inline void setPolicy(float policy) { policy_ = policy; }
@@ -97,10 +97,10 @@ public:
     inline void setPolicyNoise(float policy_noise) { policy_noise_ = policy_noise; }
     inline void setValue(float value) { value_ = value; }
     inline void setReward(float reward) { reward_ = reward; }
-    inline void setFirstChild(MCTSNode* first_child) { BaseTreeNode::setFirstChild(first_child); }
+    inline void setFirstChild(MCTSNode* first_child) { TreeNode::setFirstChild(first_child); }
 
     // getter
-    inline int getExtraDataIndex() const { return extra_data_index_; }
+    inline int getHiddenStateDataIndex() const { return hidden_state_data_index_; }
     inline float getMean() const { return mean_; }
     inline float getCount() const { return count_; }
     inline float getPolicy() const { return policy_; }
@@ -108,10 +108,10 @@ public:
     inline float getPolicyNoise() const { return policy_noise_; }
     inline float getValue() const { return value_; }
     inline float getReward() const { return reward_; }
-    inline MCTSNode* getFirstChild() const { return static_cast<MCTSNode*>(BaseTreeNode::getFirstChild()); }
+    inline MCTSNode* getFirstChild() const { return static_cast<MCTSNode*>(TreeNode::getFirstChild()); }
 
 protected:
-    int extra_data_index_;
+    int hidden_state_data_index_;
     float mean_;
     float count_;
     float policy_;
@@ -121,15 +121,15 @@ protected:
     float reward_;
 };
 
-class MCTSNodeExtraData {
+class HiddenStateData {
 public:
-    MCTSNodeExtraData(const std::vector<float>& hidden_state)
+    HiddenStateData(const std::vector<float>& hidden_state)
         : hidden_state_(hidden_state) {}
     std::vector<float> hidden_state_;
 };
+typedef TreeData<HiddenStateData> TreeHiddenStateData;
 
-template <class Node, class Tree, class TreeExtraData>
-class BaseMCTS : public Search {
+class MCTS : public Tree, public Search {
 public:
     class ActionCandidate {
     public:
@@ -140,30 +140,30 @@ public:
             : action_(action), policy_(policy), policy_logit_(policy_logit) {}
     };
 
-    BaseMCTS(long long tree_node_size)
-        : tree_(tree_node_size) {}
+    MCTS(long long tree_node_size)
+        : Tree(tree_node_size) {}
 
     virtual void reset() override
     {
-        tree_.reset();
-        tree_extra_data_.reset();
+        Tree::reset();
+        tree_hidden_state_data_.reset();
         tree_value_map_.clear();
     }
 
-    virtual bool isResign(const Node* selected_node) const
+    virtual bool isResign(const MCTSNode* selected_node) const
     {
         const Action& action = selected_node->getAction();
-        float root_win_rate = (selected_node->getAction().getPlayer() == env::Player::kPlayer1 ? tree_.getRootNode()->getMean() : -tree_.getRootNode()->getMean());
+        float root_win_rate = (selected_node->getAction().getPlayer() == env::Player::kPlayer1 ? getRootNode()->getMean() : -getRootNode()->getMean());
         float action_win_rate = selected_node->getNormalizedMean(tree_value_map_);
         return (root_win_rate < config::actor_resign_threshold && action_win_rate < config::actor_resign_threshold);
     }
 
-    virtual Node* selectChildByMaxCount(const Node* node) const
+    virtual MCTSNode* selectChildByMaxCount(const MCTSNode* node) const
     {
         assert(node && !node->isLeaf());
         float max_count = 0.0f;
-        Node* selected = nullptr;
-        Node* child = node->getFirstChild();
+        MCTSNode* selected = nullptr;
+        MCTSNode* child = node->getFirstChild();
         for (int i = 0; i < node->getNumChildren(); ++i, ++child) {
             if (child->getCount() <= max_count) { continue; }
             max_count = child->getCount();
@@ -173,12 +173,12 @@ public:
         return selected;
     }
 
-    virtual Node* selectChildBySoftmaxCount(const Node* node, float temperature = 1.0f, float value_threshold = 0.1f) const
+    virtual MCTSNode* selectChildBySoftmaxCount(const MCTSNode* node, float temperature = 1.0f, float value_threshold = 0.1f) const
     {
         assert(node && !node->isLeaf());
-        Node* selected = nullptr;
-        Node* child = node->getFirstChild();
-        Node* best_child = selectChildByMaxCount(node);
+        MCTSNode* selected = nullptr;
+        MCTSNode* child = node->getFirstChild();
+        MCTSNode* best_child = selectChildByMaxCount(node);
         float best_mean = best_child->getNormalizedMean(tree_value_map_);
         float sum = 0.0f;
         for (int i = 0; i < node->getNumChildren(); ++i, ++child) {
@@ -195,8 +195,8 @@ public:
 
     virtual std::string getSearchDistributionString() const
     {
-        const Node* root = getRootNode();
-        Node* child = root->getFirstChild();
+        const MCTSNode* root = getRootNode();
+        MCTSNode* child = root->getFirstChild();
         std::ostringstream oss;
         for (int i = 0; i < root->getNumChildren(); ++i, ++child) {
             if (child->getCount() == 0) { continue; }
@@ -206,13 +206,13 @@ public:
         return oss.str();
     }
 
-    virtual std::vector<Node*> select() { return selectFromNode(getRootNode()); }
+    virtual std::vector<MCTSNode*> select() { return selectFromNode(getRootNode()); }
 
-    virtual std::vector<Node*> selectFromNode(Node* start_node)
+    virtual std::vector<MCTSNode*> selectFromNode(MCTSNode* start_node)
     {
         assert(start_node);
-        Node* node = start_node;
-        std::vector<Node*> node_path{node};
+        MCTSNode* node = start_node;
+        std::vector<MCTSNode*> node_path{node};
         while (!node->isLeaf()) {
             node = selectChildByPUCTScore(node);
             node_path.push_back(node);
@@ -220,10 +220,10 @@ public:
         return node_path;
     }
 
-    virtual void expand(Node* leaf_node, const std::vector<ActionCandidate>& action_candidates)
+    virtual void expand(MCTSNode* leaf_node, const std::vector<ActionCandidate>& action_candidates)
     {
         assert(leaf_node && action_candidates.size() > 0);
-        Node* child = tree_.allocateNodes(action_candidates.size());
+        MCTSNode* child = allocateNodes(action_candidates.size());
         leaf_node->setFirstChild(child);
         leaf_node->setNumChildren(action_candidates.size());
         for (const auto& candidate : action_candidates) {
@@ -235,14 +235,14 @@ public:
         }
     }
 
-    virtual void backup(const std::vector<Node*>& node_path, const float value, const float reward = 0.0f)
+    virtual void backup(const std::vector<MCTSNode*>& node_path, const float value, const float reward = 0.0f)
     {
         assert(node_path.size() > 0);
         float updated_value = value;
         node_path.back()->setValue(value);
         node_path.back()->setReward(reward);
         for (int i = static_cast<int>(node_path.size() - 1); i >= 0; --i) {
-            Node* node = node_path[i];
+            MCTSNode* node = node_path[i];
             float old_mean = node->getMean();
             node->add(updated_value);
             updateTreeValueMap(old_mean, node->getMean());
@@ -250,23 +250,25 @@ public:
         }
     }
 
-    inline int getNumSimulation() const { return tree_.getRootNode()->getCount(); }
+    inline MCTSNode* allocateNodes(int size) { return static_cast<MCTSNode*>(Tree::allocateNodes(size)); }
+    inline int getNumSimulation() const { return getRootNode()->getCount(); }
     inline bool reachMaximumSimulation() const { return (getNumSimulation() == config::actor_num_simulation + 1); }
-    inline Tree& getTree() { return tree_; }
-    inline const Tree& getTree() const { return tree_; }
-    inline Node* getRootNode() { return tree_.getRootNode(); }
-    inline const Node* getRootNode() const { return tree_.getRootNode(); }
-    inline TreeExtraData& getTreeExtraData() { return tree_extra_data_; }
-    inline const TreeExtraData& getTreeExtraData() const { return tree_extra_data_; }
+    inline MCTSNode* getRootNode() { return static_cast<MCTSNode*>(Tree::getRootNode()); }
+    inline const MCTSNode* getRootNode() const { return static_cast<const MCTSNode*>(Tree::getRootNode()); }
+    inline TreeHiddenStateData& getTreeHiddenStateData() { return tree_hidden_state_data_; }
+    inline const TreeHiddenStateData& getTreeHiddenStateData() const { return tree_hidden_state_data_; }
     inline std::map<float, int>& getTreeValueMap() { return tree_value_map_; }
     inline const std::map<float, int>& getTreeValueMap() const { return tree_value_map_; }
 
 protected:
-    virtual Node* selectChildByPUCTScore(const Node* node) const
+    virtual TreeNode* createTreeNodes(long long tree_node_size) override { return new MCTSNode[tree_node_size]; }
+    virtual TreeNode* getNodeIndex(int index) override { return getRootNode() + index; }
+
+    virtual MCTSNode* selectChildByPUCTScore(const MCTSNode* node) const
     {
         assert(node && !node->isLeaf());
-        Node* selected = nullptr;
-        Node* child = node->getFirstChild();
+        MCTSNode* selected = nullptr;
+        MCTSNode* child = node->getFirstChild();
         int total_simulation = node->getCount();
         float init_q_value = calculateInitQValue(node);
         float best_score = -std::numeric_limits<float>::max();
@@ -280,12 +282,12 @@ protected:
         return selected;
     }
 
-    virtual float calculateInitQValue(const Node* node) const
+    virtual float calculateInitQValue(const MCTSNode* node) const
     {
         // init Q value = avg Q value of all visited children + one loss
         assert(node && !node->isLeaf());
         float sum_of_win = 0.0f, sum = 0.0f;
-        Node* child = node->getFirstChild();
+        MCTSNode* child = node->getFirstChild();
         for (int i = 0; i < node->getNumChildren(); ++i, ++child) {
             if (child->getCount() == 0) { continue; }
             sum_of_win += child->getNormalizedMean(tree_value_map_);
@@ -305,13 +307,8 @@ protected:
         ++tree_value_map_[new_value];
     }
 
-    Tree tree_;
-    TreeExtraData tree_extra_data_;
+    TreeHiddenStateData tree_hidden_state_data_;
     std::map<float, int> tree_value_map_;
 };
-
-typedef Tree<MCTSNode> MCTSTree;
-typedef TreeExtraData<MCTSNodeExtraData> MCTSTreeExtraData;
-typedef BaseMCTS<MCTSNode, MCTSTree, MCTSTreeExtraData> MCTS;
 
 } // namespace minizero::actor

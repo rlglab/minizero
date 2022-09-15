@@ -6,33 +6,33 @@
 
 namespace minizero::actor {
 
-template <class ExtraData>
-class TreeExtraData {
+template <class Data>
+class TreeData {
 public:
-    TreeExtraData() { reset(); }
+    TreeData() { reset(); }
 
-    inline void reset() { extra_data_.clear(); }
-    inline int store(const ExtraData& data)
+    inline void reset() { data_.clear(); }
+    inline int store(const Data& data)
     {
-        int index = extra_data_.size();
-        extra_data_.push_back(data);
+        int index = data_.size();
+        data_.push_back(data);
         return index;
     }
-    inline const ExtraData& getExtraData(int index) const
+    inline const Data& getData(int index) const
     {
         assert(index >= 0 && index < size());
-        return extra_data_[index];
+        return data_[index];
     }
-    inline int size() const { return extra_data_.size(); }
+    inline int size() const { return data_.size(); }
 
 private:
-    std::vector<ExtraData> extra_data_;
+    std::vector<Data> data_;
 };
 
-class BaseTreeNode {
+class TreeNode {
 public:
-    BaseTreeNode() {}
-    virtual ~BaseTreeNode() = default;
+    TreeNode() {}
+    virtual ~TreeNode() = default;
 
     virtual void reset() = 0;
     virtual std::string toString() const = 0;
@@ -41,36 +41,42 @@ public:
     inline bool isLeaf() const { return (num_children_ == 0); }
     inline void setAction(Action action) { action_ = action; }
     inline void setNumChildren(int num_children) { num_children_ = num_children; }
-    inline void setFirstChild(BaseTreeNode* first_child) { first_child_ = first_child; }
+    inline void setFirstChild(TreeNode* first_child) { first_child_ = first_child; }
     inline Action getAction() const { return action_; }
     inline int getNumChildren() const { return num_children_; }
-    inline BaseTreeNode* getFirstChild() const { return first_child_; }
+    inline TreeNode* getFirstChild() const { return first_child_; }
 
 protected:
     Action action_;
     int num_children_;
-    BaseTreeNode* first_child_;
+    TreeNode* first_child_;
 };
 
-template <class TreeNode>
 class Tree {
 public:
-    Tree(long long node_size)
+    Tree(long long tree_node_size)
+        : tree_node_size_(tree_node_size),
+          nodes_(nullptr)
     {
-        assert(node_size >= 0);
-        nodes_.resize(1 + node_size);
+        assert(tree_node_size >= 0);
+    }
+
+    ~Tree()
+    {
+        if (nodes_) { delete[] nodes_; }
     }
 
     inline void reset()
     {
+        if (!nodes_) { nodes_ = createTreeNodes(1 + tree_node_size_); }
         current_node_size_ = 1;
         getRootNode()->reset();
     }
 
     inline TreeNode* allocateNodes(int size)
     {
-        assert(current_node_size_ + size <= static_cast<int>(nodes_.size()));
-        TreeNode* node = &nodes_[current_node_size_];
+        assert(current_node_size_ + size <= tree_node_size_);
+        TreeNode* node = getNodeIndex(current_node_size_);
         current_node_size_ += size;
         return node;
     }
@@ -92,7 +98,7 @@ public:
         int numChildren = 0;
         TreeNode* pChild = pNode->getFirstChild();
         for (int i = 0; i < pNode->getNumChildren(); ++i, ++pChild) {
-            if (pChild->getCount() == 0) { continue; }
+            if (pChild->isLeaf()) { continue; }
             ++numChildren;
         }
 
@@ -112,8 +118,12 @@ public:
     inline const TreeNode* getRootNode() const { return &nodes_[0]; }
 
 protected:
+    virtual TreeNode* createTreeNodes(long long tree_node_size) = 0;
+    virtual TreeNode* getNodeIndex(int index) = 0;
+
+    long long tree_node_size_;
     long long current_node_size_;
-    std::vector<TreeNode> nodes_;
+    TreeNode* nodes_;
 };
 
 } // namespace minizero::actor

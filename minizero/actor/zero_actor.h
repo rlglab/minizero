@@ -24,27 +24,26 @@ public:
         muzero_network_ = nullptr;
     }
 
-    void reset() override;
-    void resetSearch() override;
-    Action think(bool with_play = false, bool display_board = false) override;
-    void beforeNNEvaluation() override;
-    void afterNNEvaluation(const std::shared_ptr<network::NetworkOutput>& network_output) override;
-    bool isSearchDone() const override { return getMCTS()->reachMaximumSimulation(); }
-    Action getSearchAction() const override { return mcts_search_data_.selected_node_->getAction(); }
-    bool isResign() const override { return enable_resign_ && getMCTS()->isResign(mcts_search_data_.selected_node_); }
-    std::string getSearchInfo() const override { return mcts_search_data_.search_info_; }
+    virtual void reset() override;
+    virtual void resetSearch() override;
+    virtual Action think(bool with_play = false, bool display_board = false) override;
+    virtual void beforeNNEvaluation() override;
+    virtual void afterNNEvaluation(const std::shared_ptr<network::NetworkOutput>& network_output) override;
+    virtual bool isSearchDone() const override { return getMCTS()->reachMaximumSimulation(); }
+    virtual Action getSearchAction() const override { return mcts_search_data_.selected_node_->getAction(); }
+    virtual bool isResign() const override { return enable_resign_ && getMCTS()->isResign(mcts_search_data_.selected_node_); }
+    virtual std::string getSearchInfo() const override { return mcts_search_data_.search_info_; }
     virtual std::string getActionComment() const override { return getMCTS()->getSearchDistributionString(); }
-    void setNetwork(const std::shared_ptr<network::Network>& network) override;
+    virtual void setNetwork(const std::shared_ptr<network::Network>& network) override;
     virtual std::shared_ptr<Search> createSearch() override { return std::make_shared<MCTS>(tree_node_size_); }
-
-    virtual std::shared_ptr<MCTS> getMCTS() { return std::static_pointer_cast<MCTS>(search_); }
-    virtual const std::shared_ptr<MCTS> getMCTS() const { return std::static_pointer_cast<MCTS>(search_); }
+    std::shared_ptr<MCTS> getMCTS() { return std::static_pointer_cast<MCTS>(search_); }
+    const std::shared_ptr<MCTS> getMCTS() const { return std::static_pointer_cast<MCTS>(search_); }
 
 protected:
-    void step();
-    void handleSearchDone();
+    virtual void step();
+    virtual void handleSearchDone();
     virtual MCTSNode* decideActionNode();
-    void addNoiseToNodeChildren(MCTSNode* node);
+    virtual void addNoiseToNodeChildren(MCTSNode* node);
 
     std::vector<MCTS::ActionCandidate> calculateAlphaZeroActionPolicy(const Environment& env_transition, const std::shared_ptr<network::AlphaZeroNetworkOutput>& alphazero_output);
     std::vector<MCTS::ActionCandidate> calculateMuZeroActionPolicy(MCTSNode* leaf_node, const std::shared_ptr<network::MuZeroNetworkOutput>& muzero_output);

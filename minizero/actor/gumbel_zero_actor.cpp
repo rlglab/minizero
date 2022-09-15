@@ -32,7 +32,7 @@ void GumbelZeroActor::beforeNNEvaluation()
             MCTSNode* leaf_node = node_path.back();
             MCTSNode* parent_node = node_path[node_path.size() - 2];
             assert(node_path.size() >= 2 && parent_node && parent_node->getExtraDataIndex() != -1);
-            const std::vector<float>& hidden_state = getMCTS()->getTreeExtraData().getExtraData(parent_node->getExtraDataIndex()).hidden_state_;
+            const std::vector<float>& hidden_state = getMCTS()->getTreeHiddenStateData().getData(parent_node->getHiddenStateDataIndex()).hidden_state_;
             nn_evaluation_batch_id_ = muzero_network_->pushBackRecurrentData(hidden_state, env_.getActionFeatures(leaf_node->getAction()));
         }
     } else {

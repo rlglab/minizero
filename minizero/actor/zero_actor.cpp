@@ -49,7 +49,7 @@ void ZeroActor::beforeNNEvaluation()
             MCTSNode* leaf_node = node_path.back();
             MCTSNode* parent_node = node_path[node_path.size() - 2];
             assert(parent_node && parent_node->getExtraDataIndex() != -1);
-            const std::vector<float>& hidden_state = getMCTS()->getTreeExtraData().getExtraData(parent_node->getExtraDataIndex()).hidden_state_;
+            const std::vector<float>& hidden_state = getMCTS()->getTreeHiddenStateData().getData(parent_node->getHiddenStateDataIndex()).hidden_state_;
             nn_evaluation_batch_id_ = muzero_network_->pushBackRecurrentData(hidden_state, env_.getActionFeatures(leaf_node->getAction()));
         }
     } else {
@@ -74,7 +74,7 @@ void ZeroActor::afterNNEvaluation(const std::shared_ptr<NetworkOutput>& network_
         std::shared_ptr<MuZeroNetworkOutput> muzero_output = std::static_pointer_cast<MuZeroNetworkOutput>(network_output);
         getMCTS()->expand(leaf_node, calculateMuZeroActionPolicy(leaf_node, muzero_output));
         getMCTS()->backup(node_path, muzero_output->value_, muzero_output->reward_);
-        leaf_node->setExtraDataIndex(getMCTS()->getTreeExtraData().store(MCTSNodeExtraData(muzero_output->hidden_state_)));
+        leaf_node->setHiddenStateDataIndex(getMCTS()->getTreeHiddenStateData().store(HiddenStateData(muzero_output->hidden_state_)));
     } else {
         assert(false);
     }
