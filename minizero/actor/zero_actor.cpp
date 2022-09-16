@@ -48,7 +48,7 @@ void ZeroActor::beforeNNEvaluation()
             const std::vector<MCTSNode*>& node_path = mcts_search_data_.node_path_;
             MCTSNode* leaf_node = node_path.back();
             MCTSNode* parent_node = node_path[node_path.size() - 2];
-            assert(parent_node && parent_node->getExtraDataIndex() != -1);
+            assert(parent_node && parent_node->getHiddenStateDataIndex() != -1);
             const std::vector<float>& hidden_state = getMCTS()->getTreeHiddenStateData().getData(parent_node->getHiddenStateDataIndex()).hidden_state_;
             nn_evaluation_batch_id_ = muzero_network_->pushBackRecurrentData(hidden_state, env_.getActionFeatures(leaf_node->getAction()));
         }
