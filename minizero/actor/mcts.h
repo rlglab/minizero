@@ -21,6 +21,7 @@ public:
         hidden_state_data_index_ = -1;
         mean_ = 0.0f;
         count_ = 0.0f;
+        virtual_loss_ = 0.0f;
         policy_ = 0.0f;
         policy_logit_ = 0.0f;
         policy_noise_ = 0.0f;
@@ -59,16 +60,16 @@ public:
             value = (mean_ - value_lower_bound) / (value_upper_bound - value_lower_bound);
             value = fmin(1, fmax(-1, 2 * value - 1)); // normalize to [-1, 1]
         }
-        // flip value according to player
-        value = (action_.getPlayer() == env::Player::kPlayer1 ? value : -value);
+        value = (action_.getPlayer() == env::Player::kPlayer1 ? value : -value); // flip value according to player
+        value = (value * count_ - virtual_loss_) / getCountWithVirtualLoss();    // value with virtual loss
         return value;
     }
 
     virtual float getNormalizedPUCTScore(int total_simulation, const std::map<float, int>& tree_value_map, float init_q_value = -1.0f) const
     {
         float puct_bias = config::actor_mcts_puct_init + log((1 + total_simulation + config::actor_mcts_puct_base) / config::actor_mcts_puct_base);
-        float value_u = (puct_bias * getPolicy() * sqrt(total_simulation)) / (1 + count_);
-        float value_q = (count_ == 0 ? init_q_value : getNormalizedMean(tree_value_map));
+        float value_u = (puct_bias * getPolicy() * sqrt(total_simulation)) / (1 + getCountWithVirtualLoss());
+        float value_q = (getCountWithVirtualLoss() == 0 ? init_q_value : getNormalizedMean(tree_value_map));
         return value_u + value_q;
     }
 
@@ -92,6 +93,8 @@ public:
     inline void setHiddenStateDataIndex(int hidden_state_data_index) { hidden_state_data_index_ = hidden_state_data_index; }
     inline void setMean(float mean) { mean_ = mean; }
     inline void setCount(float count) { count_ = count; }
+    inline void addVirtualLoss(float num = 1.0f) { virtual_loss_ += num; }
+    inline void removeVirtualLoss(float num = 1.0f) { virtual_loss_ -= num; }
     inline void setPolicy(float policy) { policy_ = policy; }
     inline void setPolicyLogit(float policy_logit) { policy_logit_ = policy_logit; }
     inline void setPolicyNoise(float policy_noise) { policy_noise_ = policy_noise; }
@@ -103,6 +106,8 @@ public:
     inline int getHiddenStateDataIndex() const { return hidden_state_data_index_; }
     inline float getMean() const { return mean_; }
     inline float getCount() const { return count_; }
+    inline float getCountWithVirtualLoss() const { return count_ + virtual_loss_; }
+    inline float getVirtualLoss() const { return virtual_loss_; }
     inline float getPolicy() const { return policy_; }
     inline float getPolicyLogit() const { return policy_logit_; }
     inline float getPolicyNoise() const { return policy_noise_; }
@@ -114,6 +119,7 @@ protected:
     int hidden_state_data_index_;
     float mean_;
     float count_;
+    float virtual_loss_;
     float policy_;
     float policy_logit_;
     float policy_noise_;
@@ -268,7 +274,7 @@ protected:
     {
         assert(node && !node->isLeaf());
         MCTSNode* selected = nullptr;
-        int total_simulation = node->getCount();
+        int total_simulation = node->getCountWithVirtualLoss();
         float init_q_value = calculateInitQValue(node);
         float best_score = -std::numeric_limits<float>::max();
         for (int i = 0; i < node->getNumChildren(); ++i) {
@@ -289,7 +295,7 @@ protected:
         float sum_of_win = 0.0f, sum = 0.0f;
         for (int i = 0; i < node->getNumChildren(); ++i) {
             MCTSNode* child = node->getChild(i);
-            if (child->getCount() == 0) { continue; }
+            if (child->getCountWithVirtualLoss() == 0) { continue; }
             sum_of_win += child->getNormalizedMean(tree_value_map_);
             sum += 1;
         }
