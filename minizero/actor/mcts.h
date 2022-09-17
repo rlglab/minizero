@@ -108,7 +108,7 @@ public:
     inline float getPolicyNoise() const { return policy_noise_; }
     inline float getValue() const { return value_; }
     inline float getReward() const { return reward_; }
-    inline MCTSNode* getFirstChild() const { return static_cast<MCTSNode*>(TreeNode::getFirstChild()); }
+    inline virtual MCTSNode* getChild(int index) const override { return (index < num_children_ ? static_cast<MCTSNode*>(first_child_) + index : nullptr); }
 
 protected:
     int hidden_state_data_index_;
@@ -163,8 +163,8 @@ public:
         assert(node && !node->isLeaf());
         float max_count = 0.0f;
         MCTSNode* selected = nullptr;
-        MCTSNode* child = node->getFirstChild();
-        for (int i = 0; i < node->getNumChildren(); ++i, ++child) {
+        for (int i = 0; i < node->getNumChildren(); ++i) {
+            MCTSNode* child = node->getChild(i);
             if (child->getCount() <= max_count) { continue; }
             max_count = child->getCount();
             selected = child;
@@ -177,11 +177,11 @@ public:
     {
         assert(node && !node->isLeaf());
         MCTSNode* selected = nullptr;
-        MCTSNode* child = node->getFirstChild();
         MCTSNode* best_child = selectChildByMaxCount(node);
         float best_mean = best_child->getNormalizedMean(tree_value_map_);
         float sum = 0.0f;
-        for (int i = 0; i < node->getNumChildren(); ++i, ++child) {
+        for (int i = 0; i < node->getNumChildren(); ++i) {
+            MCTSNode* child = node->getChild(i);
             float count = std::pow(child->getCount(), 1 / temperature);
             float mean = child->getNormalizedMean(tree_value_map_);
             if (count == 0 || (mean < best_mean - value_threshold)) { continue; }
@@ -196,9 +196,9 @@ public:
     virtual std::string getSearchDistributionString() const
     {
         const MCTSNode* root = getRootNode();
-        MCTSNode* child = root->getFirstChild();
         std::ostringstream oss;
-        for (int i = 0; i < root->getNumChildren(); ++i, ++child) {
+        for (int i = 0; i < root->getNumChildren(); ++i) {
+            MCTSNode* child = root->getChild(i);
             if (child->getCount() == 0) { continue; }
             oss << (oss.str().empty() ? "" : ",")
                 << child->getAction().getActionID() << ":" << child->getCount();
@@ -223,15 +223,15 @@ public:
     virtual void expand(MCTSNode* leaf_node, const std::vector<ActionCandidate>& action_candidates)
     {
         assert(leaf_node && action_candidates.size() > 0);
-        MCTSNode* child = allocateNodes(action_candidates.size());
-        leaf_node->setFirstChild(child);
+        leaf_node->setFirstChild(allocateNodes(action_candidates.size()));
         leaf_node->setNumChildren(action_candidates.size());
-        for (const auto& candidate : action_candidates) {
+        for (size_t i = 0; i < action_candidates.size(); ++i) {
+            const auto& candidate = action_candidates[i];
+            MCTSNode* child = leaf_node->getChild(i);
             child->reset();
             child->setAction(candidate.action_);
             child->setPolicy(candidate.policy_);
             child->setPolicyLogit(candidate.policy_logit_);
-            ++child;
         }
     }
 
@@ -268,11 +268,11 @@ protected:
     {
         assert(node && !node->isLeaf());
         MCTSNode* selected = nullptr;
-        MCTSNode* child = node->getFirstChild();
         int total_simulation = node->getCount();
         float init_q_value = calculateInitQValue(node);
         float best_score = -std::numeric_limits<float>::max();
-        for (int i = 0; i < node->getNumChildren(); ++i, ++child) {
+        for (int i = 0; i < node->getNumChildren(); ++i) {
+            MCTSNode* child = node->getChild(i);
             float score = child->getNormalizedPUCTScore(total_simulation, tree_value_map_, init_q_value);
             if (score <= best_score) { continue; }
             best_score = score;
@@ -287,8 +287,8 @@ protected:
         // init Q value = avg Q value of all visited children + one loss
         assert(node && !node->isLeaf());
         float sum_of_win = 0.0f, sum = 0.0f;
-        MCTSNode* child = node->getFirstChild();
-        for (int i = 0; i < node->getNumChildren(); ++i, ++child) {
+        for (int i = 0; i < node->getNumChildren(); ++i) {
+            MCTSNode* child = node->getChild(i);
             if (child->getCount() == 0) { continue; }
             sum_of_win += child->getNormalizedMean(tree_value_map_);
             sum += 1;

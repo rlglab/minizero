@@ -44,7 +44,7 @@ public:
     inline void setFirstChild(TreeNode* first_child) { first_child_ = first_child; }
     inline Action getAction() const { return action_; }
     inline int getNumChildren() const { return num_children_; }
-    inline TreeNode* getFirstChild() const { return first_child_; }
+    inline virtual TreeNode* getChild(int index) const { return (index < num_children_ ? first_child_ + index : nullptr); }
 
 protected:
     Action action_;
@@ -91,24 +91,24 @@ public:
         return oss.str();
     }
 
-    std::string getTreeInfo_r(const TreeNode* pNode) const
+    std::string getTreeInfo_r(const TreeNode* node) const
     {
         std::ostringstream oss;
 
         int numChildren = 0;
-        TreeNode* pChild = pNode->getFirstChild();
-        for (int i = 0; i < pNode->getNumChildren(); ++i, ++pChild) {
-            if (pChild->isLeaf()) { continue; }
+        for (int i = 0; i < node->getNumChildren(); ++i) {
+            TreeNode* child = node->getChild(i);
+            if (child->isLeaf()) { continue; }
             ++numChildren;
         }
 
-        pChild = pNode->getFirstChild();
-        for (int i = 0; i < pNode->getNumChildren(); ++i, ++pChild) {
-            if (!pChild->displayInTreeLog()) { continue; }
+        for (int i = 0; i < node->getNumChildren(); ++i) {
+            TreeNode* child = node->getChild(i);
+            if (!child->displayInTreeLog()) { continue; }
             if (numChildren > 1) { oss << "("; }
-            oss << playerToChar(pChild->getAction().getPlayer())
-                << "[" << pChild->getAction().getActionID() << "]"
-                << "C[" << pChild->toString() << "]" << getTreeInfo_r(pChild);
+            oss << playerToChar(child->getAction().getPlayer())
+                << "[" << child->getAction().getActionID() << "]"
+                << "C[" << child->toString() << "]" << getTreeInfo_r(child);
             if (numChildren > 1) { oss << ")"; }
         }
         return oss.str();

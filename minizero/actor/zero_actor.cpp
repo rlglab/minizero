@@ -147,15 +147,15 @@ void ZeroActor::addNoiseToNodeChildren(MCTSNode* node)
     if (config::actor_use_dirichlet_noise) {
         const float epsilon = config::actor_dirichlet_noise_epsilon;
         std::vector<float> dirichlet_noise = utils::Random::randDirichlet(config::actor_dirichlet_noise_alpha, node->getNumChildren());
-        MCTSNode* child = node->getFirstChild();
-        for (int i = 0; i < node->getNumChildren(); ++i, ++child) {
+        for (int i = 0; i < node->getNumChildren(); ++i) {
+            MCTSNode* child = node->getChild(i);
             child->setPolicyNoise(dirichlet_noise[i]);
             child->setPolicy((1 - epsilon) * child->getPolicy() + epsilon * dirichlet_noise[i]);
         }
     } else if (config::actor_use_gumbel_noise) {
         std::vector<float> gumbel_noise = utils::Random::randGumbel(node->getNumChildren());
-        MCTSNode* child = node->getFirstChild();
-        for (int i = 0; i < node->getNumChildren(); ++i, ++child) {
+        for (int i = 0; i < node->getNumChildren(); ++i) {
+            MCTSNode* child = node->getChild(i);
             child->setPolicyNoise(gumbel_noise[i]);
             child->setPolicyLogit(child->getPolicyLogit() + gumbel_noise[i]);
         }

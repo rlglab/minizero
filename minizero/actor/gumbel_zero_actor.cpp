@@ -48,8 +48,7 @@ void GumbelZeroActor::afterNNEvaluation(const std::shared_ptr<network::NetworkOu
     if (getMCTS()->getNumSimulation() == 1) {
         // collect candidates
         candidates_.clear();
-        MCTSNode* child = getMCTS()->getRootNode()->getFirstChild();
-        for (int i = 0; i < getMCTS()->getRootNode()->getNumChildren(); ++i, ++child) { candidates_.push_back(child); }
+        for (int i = 0; i < getMCTS()->getRootNode()->getNumChildren(); ++i) { candidates_.push_back(getMCTS()->getRootNode()->getChild(i)); }
         sort(candidates_.begin(), candidates_.end(), [](const MCTSNode* lhs, const MCTSNode* rhs) { return lhs->getPolicyLogit() > rhs->getPolicyLogit(); });
         if (static_cast<int>(candidates_.size()) > config::actor_gumbel_sample_size) { candidates_.resize(config::actor_gumbel_sample_size); }
         sample_size_ = config::actor_gumbel_sample_size;
@@ -79,21 +78,21 @@ std::string GumbelZeroActor::getActionComment() const
 {
     // calculate value for non-visisted nodes
     float pi_sum = 0.0f, q_sum = 0.0f;
-    MCTSNode* child = getMCTS()->getRootNode()->getFirstChild();
-    for (int i = 0; i < getMCTS()->getRootNode()->getNumChildren(); ++i, ++child) {
+    for (int i = 0; i < getMCTS()->getRootNode()->getNumChildren(); ++i) {
+        MCTSNode* child = getMCTS()->getRootNode()->getChild(i);
         if (child->getCount() == 0) { continue; }
         float value = (child->getAction().getPlayer() == env::Player::kPlayer1 ? child->getValue() : -child->getValue());
         pi_sum += child->getPolicy();
         q_sum += child->getPolicy() * value;
     }
-    float value_pi = (getMCTS()->getRootNode()->getFirstChild()->getAction().getPlayer() == env::Player::kPlayer1 ? getMCTS()->getRootNode()->getValue() : -getMCTS()->getRootNode()->getValue());
+    float value_pi = (getMCTS()->getRootNode()->getChild(0)->getAction().getPlayer() == env::Player::kPlayer1 ? getMCTS()->getRootNode()->getValue() : -getMCTS()->getRootNode()->getValue());
     float non_visited_node_value = 1.0 / (1 + config::actor_num_simulation) * (value_pi + (config::actor_num_simulation / pi_sum) * q_sum);
 
     // calculate completed Q-values
     std::unordered_map<int, float> new_logits;
     float max_logit = -std::numeric_limits<float>::max();
-    child = getMCTS()->getRootNode()->getFirstChild();
-    for (int i = 0; i < getMCTS()->getRootNode()->getNumChildren(); ++i, ++child) {
+    for (int i = 0; i < getMCTS()->getRootNode()->getNumChildren(); ++i) {
+        MCTSNode* child = getMCTS()->getRootNode()->getChild(i);
         float value = (child->getCount() == 0 ? non_visited_node_value : (child->getAction().getPlayer() == env::Player::kPlayer1 ? child->getValue() : -child->getValue()));
         float logit_without_noise = child->getPolicyLogit() - child->getPolicyNoise();
         float score = logit_without_noise + (config::actor_gumbel_sigma_visit_c + 1) * config::actor_gumbel_sigma_scale_c * value;
