@@ -24,6 +24,7 @@ void ZeroActor::resetSearch()
 {
     BaseActor::resetSearch();
     mcts_search_data_.node_path_.clear();
+    getMCTS()->getRootNode()->setAction(Action(-1, env::getPreviousPlayer(env_.getTurn(), env_.getNumPlayer())));
 }
 
 Action ZeroActor::think(bool with_play /*= false*/, bool display_board /*= false*/)
@@ -181,7 +182,7 @@ std::vector<MCTS::ActionCandidate> ZeroActor::calculateMuZeroActionPolicy(MCTSNo
 {
     assert(muzero_network_);
     std::vector<MCTS::ActionCandidate> action_candidates;
-    env::Player turn = (leaf_node == getMCTS()->getRootNode() ? env_.getTurn() : leaf_node->getAction().nextPlayer());
+    env::Player turn = leaf_node->getAction().nextPlayer();
     for (size_t action_id = 0; action_id < muzero_output->policy_.size(); ++action_id) {
         const Action action(action_id, turn);
         if (leaf_node == getMCTS()->getRootNode() && !env_.isLegalAction(action)) { continue; }

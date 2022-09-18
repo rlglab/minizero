@@ -24,6 +24,7 @@ enum class Player {
 char playerToChar(Player p);
 Player charToPlayer(char c);
 Player getNextPlayer(Player player, int num_player);
+Player getPreviousPlayer(Player player, int num_player);
 
 class BaseAction {
 public:

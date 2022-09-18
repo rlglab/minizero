@@ -159,9 +159,9 @@ public:
     virtual bool isResign(const MCTSNode* selected_node) const
     {
         const Action& action = selected_node->getAction();
-        float root_win_rate = (selected_node->getAction().getPlayer() == env::Player::kPlayer1 ? getRootNode()->getMean() : -getRootNode()->getMean());
+        float root_win_rate = getRootNode()->getNormalizedMean(tree_value_map_);
         float action_win_rate = selected_node->getNormalizedMean(tree_value_map_);
-        return (root_win_rate < config::actor_resign_threshold && action_win_rate < config::actor_resign_threshold);
+        return (-root_win_rate < config::actor_resign_threshold && action_win_rate < config::actor_resign_threshold);
     }
 
     virtual MCTSNode* selectChildByMaxCount(const MCTSNode* node) const
