@@ -44,6 +44,7 @@ protected:
     virtual void handleSearchDone();
     virtual MCTSNode* decideActionNode();
     virtual void addNoiseToNodeChildren(MCTSNode* node);
+    virtual std::vector<MCTSNode*> selection() { return getMCTS()->select(); }
 
     std::vector<MCTS::ActionCandidate> calculateAlphaZeroActionPolicy(const Environment& env_transition, const std::shared_ptr<network::AlphaZeroNetworkOutput>& alphazero_output);
     std::vector<MCTS::ActionCandidate> calculateMuZeroActionPolicy(MCTSNode* leaf_node, const std::shared_ptr<network::MuZeroNetworkOutput>& muzero_output);

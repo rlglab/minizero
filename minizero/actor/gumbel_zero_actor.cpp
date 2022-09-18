@@ -6,72 +6,10 @@ namespace minizero::actor {
 using namespace minizero;
 using namespace network;
 
-void GumbelZeroActor::beforeNNEvaluation()
-{
-    // get selection path
-    if (getMCTS()->getNumSimulation() == 0) {
-        mcts_search_data_.node_path_ = getMCTS()->select();
-    } else {
-        assert(candidates_.size() > 0);
-        sort(candidates_.begin(), candidates_.end(), [](const MCTSNode* lhs, const MCTSNode* rhs) {
-            return (lhs->getCount() < rhs->getCount() || (lhs->getCount() == rhs->getCount() && lhs->getPolicyLogit() > rhs->getPolicyLogit()));
-        });
-        mcts_search_data_.node_path_ = getMCTS()->selectFromNode(candidates_[0]);
-        mcts_search_data_.node_path_.insert(mcts_search_data_.node_path_.begin(), getMCTS()->getRootNode());
-    }
-
-    // before nn evaluation
-    const std::vector<MCTSNode*>& node_path = mcts_search_data_.node_path_;
-    if (alphazero_network_) {
-        Environment env_transition = getEnvironmentTransition(node_path);
-        nn_evaluation_batch_id_ = alphazero_network_->pushBack(env_transition.getFeatures());
-    } else if (muzero_network_) {
-        if (getMCTS()->getNumSimulation() == 0) { // initial inference for root node
-            nn_evaluation_batch_id_ = muzero_network_->pushBackInitialData(env_.getFeatures());
-        } else { // for non-root nodes
-            MCTSNode* leaf_node = node_path.back();
-            MCTSNode* parent_node = node_path[node_path.size() - 2];
-            assert(node_path.size() >= 2 && parent_node && parent_node->getHiddenStateDataIndex() != -1);
-            const std::vector<float>& hidden_state = getMCTS()->getTreeHiddenStateData().getData(parent_node->getHiddenStateDataIndex()).hidden_state_;
-            nn_evaluation_batch_id_ = muzero_network_->pushBackRecurrentData(hidden_state, env_.getActionFeatures(leaf_node->getAction()));
-        }
-    } else {
-        assert(false);
-    }
-}
-
 void GumbelZeroActor::afterNNEvaluation(const std::shared_ptr<network::NetworkOutput>& network_output)
 {
     ZeroActor::afterNNEvaluation(network_output);
-
-    // sequential halving
-    if (getMCTS()->getNumSimulation() == 1) {
-        // collect candidates
-        candidates_.clear();
-        for (int i = 0; i < getMCTS()->getRootNode()->getNumChildren(); ++i) { candidates_.push_back(getMCTS()->getRootNode()->getChild(i)); }
-        sort(candidates_.begin(), candidates_.end(), [](const MCTSNode* lhs, const MCTSNode* rhs) { return lhs->getPolicyLogit() > rhs->getPolicyLogit(); });
-        if (static_cast<int>(candidates_.size()) > config::actor_gumbel_sample_size) { candidates_.resize(config::actor_gumbel_sample_size); }
-        sample_size_ = config::actor_gumbel_sample_size;
-        simulation_budget_ = std::max(1.0, std::floor(config::actor_num_simulation / (std::log2(config::actor_gumbel_sample_size) * sample_size_)));
-    } else {
-        bool all_candidates_reach_budget = true;
-        for (auto node : candidates_) {
-            if (node->getCount() >= simulation_budget_) { continue; }
-            all_candidates_reach_budget = false;
-            break;
-        }
-
-        if (all_candidates_reach_budget) {
-            int next_budget = std::floor(config::actor_num_simulation / (std::log2(config::actor_gumbel_sample_size) * sample_size_ / 2));
-            if (next_budget > 0 && sample_size_ > 2) {
-                sample_size_ /= 2;
-                assert(sample_size_ > 0);
-                sortCandidatesByScore();
-                if (static_cast<int>(candidates_.size()) > sample_size_) { candidates_.resize(sample_size_); }
-                simulation_budget_ = candidates_[0]->getCount() + next_budget;
-            }
-        }
-    }
+    sequentialHalving();
 }
 
 std::string GumbelZeroActor::getActionComment() const
@@ -124,6 +62,53 @@ MCTSNode* GumbelZeroActor::decideActionNode()
 
     assert(false);
     return nullptr;
+}
+
+std::vector<MCTSNode*> GumbelZeroActor::selection()
+{
+    std::vector<MCTSNode*> node_path;
+    if (getMCTS()->getNumSimulation() == 0) {
+        node_path = getMCTS()->select();
+    } else {
+        assert(candidates_.size() > 0);
+        sort(candidates_.begin(), candidates_.end(), [](const MCTSNode* lhs, const MCTSNode* rhs) {
+            return (lhs->getCount() < rhs->getCount() || (lhs->getCount() == rhs->getCount() && lhs->getPolicyLogit() > rhs->getPolicyLogit()));
+        });
+        node_path = getMCTS()->selectFromNode(candidates_[0]);
+        node_path.insert(node_path.begin(), getMCTS()->getRootNode());
+    }
+    return node_path;
+}
+
+void GumbelZeroActor::sequentialHalving()
+{
+    if (getMCTS()->getNumSimulation() == 1) {
+        // collect candidates
+        candidates_.clear();
+        for (int i = 0; i < getMCTS()->getRootNode()->getNumChildren(); ++i) { candidates_.push_back(getMCTS()->getRootNode()->getChild(i)); }
+        sort(candidates_.begin(), candidates_.end(), [](const MCTSNode* lhs, const MCTSNode* rhs) { return lhs->getPolicyLogit() > rhs->getPolicyLogit(); });
+        if (static_cast<int>(candidates_.size()) > config::actor_gumbel_sample_size) { candidates_.resize(config::actor_gumbel_sample_size); }
+        sample_size_ = config::actor_gumbel_sample_size;
+        simulation_budget_ = std::max(1.0, std::floor(config::actor_num_simulation / (std::log2(config::actor_gumbel_sample_size) * sample_size_)));
+    } else {
+        bool all_candidates_reach_budget = true;
+        for (auto node : candidates_) {
+            if (node->getCount() >= simulation_budget_) { continue; }
+            all_candidates_reach_budget = false;
+            break;
+        }
+
+        if (all_candidates_reach_budget) {
+            int next_budget = std::floor(config::actor_num_simulation / (std::log2(config::actor_gumbel_sample_size) * sample_size_ / 2));
+            if (next_budget > 0 && sample_size_ > 2) {
+                sample_size_ /= 2;
+                assert(sample_size_ > 0);
+                sortCandidatesByScore();
+                if (static_cast<int>(candidates_.size()) > sample_size_) { candidates_.resize(sample_size_); }
+                simulation_budget_ = candidates_[0]->getCount() + next_budget;
+            }
+        }
+    }
 }
 
 void GumbelZeroActor::sortCandidatesByScore()

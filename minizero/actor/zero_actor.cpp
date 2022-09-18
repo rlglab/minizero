@@ -37,7 +37,7 @@ Action ZeroActor::think(bool with_play /*= false*/, bool display_board /*= false
 
 void ZeroActor::beforeNNEvaluation()
 {
-    mcts_search_data_.node_path_ = getMCTS()->select();
+    mcts_search_data_.node_path_ = selection();
     if (alphazero_network_) {
         Environment env_transition = getEnvironmentTransition(mcts_search_data_.node_path_);
         nn_evaluation_batch_id_ = alphazero_network_->pushBack(env_transition.getFeatures());

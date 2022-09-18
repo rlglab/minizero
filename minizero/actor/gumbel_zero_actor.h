@@ -12,13 +12,14 @@ public:
     {
     }
 
-    void beforeNNEvaluation() override;
-    void afterNNEvaluation(const std::shared_ptr<network::NetworkOutput>& network_output) override;
+    virtual void afterNNEvaluation(const std::shared_ptr<network::NetworkOutput>& network_output) override;
+    virtual std::string getActionComment() const override;
 
 private:
-    std::string getActionComment() const override;
-    MCTSNode* decideActionNode() override;
-    void sortCandidatesByScore();
+    virtual MCTSNode* decideActionNode() override;
+    virtual std::vector<MCTSNode*> selection() override;
+    virtual void sequentialHalving();
+    virtual void sortCandidatesByScore();
 
     int sample_size_;
     int simulation_budget_;
