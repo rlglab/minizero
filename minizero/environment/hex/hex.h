@@ -55,6 +55,7 @@ public:
     std::string toString() const override;
     std::string toStringDebug() const;
     inline std::string name() const override { return kHexName; }
+    inline int getNumPlayer() const override { return kHexNumPlayer; }
 
 private:
     Player updateWinner(int actionID);

@@ -45,6 +45,7 @@ public:
     std::vector<float> getActionFeatures(const OthelloAction& action, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::string toString() const override;
     inline std::string name() const override { return kOthelloName; }
+    inline int getNumPlayer() const override { return kOthelloNumPlayer; }
     inline bool isPassAction(const OthelloAction& action) const { return (action.getActionID() == board_size_ * board_size_); }
     inline int getBoardSize() const { return board_size_; }
 
@@ -66,12 +67,12 @@ private:
     std::string getCoordinateString() const;
 
     int board_size_;
-    int dir_step_[8]; //8 directions
+    int dir_step_[8]; // 8 directions
     OthelloBitboard one_board_;
-    OthelloBitboard mask_[8];               //8 directions
-    GamePair<bool> legal_pass_;             //store black/white legal pass
-    GamePair<OthelloBitboard> legal_board_; //store black/white legal board
-    GamePair<OthelloBitboard> board_;       //store black/white board
+    OthelloBitboard mask_[8];               // 8 directions
+    GamePair<bool> legal_pass_;             // store black/white legal pass
+    GamePair<OthelloBitboard> legal_board_; // store black/white legal board
+    GamePair<OthelloBitboard> board_;       // store black/white board
 };
 
 class OthelloEnvLoader : public BaseEnvLoader<OthelloAction, OthelloEnv> {

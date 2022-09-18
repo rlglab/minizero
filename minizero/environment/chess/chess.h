@@ -199,6 +199,7 @@ public:
     }
     std::string toString() const override;
     inline std::string name() const override { return kChessName; }
+    inline int getNumPlayer() const override { return kChessNumPlayer; }
 
 private:
     int ply1_remain_[5];

@@ -61,6 +61,7 @@ public:
     GoBitboard dilateBitboard(const GoBitboard& bitboard) const;
 
     inline std::string name() const override { return kGoName; }
+    inline int getNumPlayer() const override { return kGoNumPlayer; }
     inline int getBoardSize() const { return board_size_; }
     inline float getKomi() const { return komi_; }
     inline GoHashKey getHashKey() const { return hash_key_; }
