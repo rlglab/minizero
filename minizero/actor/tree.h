@@ -61,11 +61,6 @@ public:
         assert(tree_node_size >= 0);
     }
 
-    ~Tree()
-    {
-        if (nodes_) { delete[] nodes_; }
-    }
-
     inline void reset()
     {
         if (!nodes_) { nodes_ = createTreeNodes(1 + tree_node_size_); }
