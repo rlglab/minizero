@@ -44,6 +44,11 @@ typedef minizero::env::tictactoe::TicTacToeEnvLoader EnvironmentLoader;
 
 namespace minizero::env {
 
-void setUpEnv();
+inline void setUpEnv()
+{
+#if GO or KILLALLGO
+    go::initialize();
+#endif
+}
 
 } // namespace minizero::env

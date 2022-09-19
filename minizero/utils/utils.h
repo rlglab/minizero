@@ -6,7 +6,7 @@
 
 namespace minizero::utils {
 
-std::vector<std::string> stringToVector(const std::string& s)
+inline std::vector<std::string> stringToVector(const std::string& s)
 {
     std::string tmp;
     std::stringstream parser(s);
