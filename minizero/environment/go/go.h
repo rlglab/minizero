@@ -45,7 +45,8 @@ public:
         initialize();
         reset();
     }
-    GoEnv(const GoEnv& env);
+    GoEnv(const GoEnv& env) { *this = env; }
+    GoEnv& operator=(const GoEnv& env);
 
     void reset() override;
     bool act(const GoAction& action) override;

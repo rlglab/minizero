@@ -74,7 +74,7 @@ GoAction::GoAction(const std::vector<std::string>& action_string_args, int board
     action_id_ = SGFLoader::boardCoordinateStringToActionID(action_string_args[1], board_size);
 }
 
-GoEnv::GoEnv(const GoEnv& env)
+GoEnv& GoEnv::operator=(const GoEnv& env)
 {
     board_size_ = env.board_size_;
     komi_ = env.komi_;
@@ -100,6 +100,7 @@ GoEnv::GoEnv(const GoEnv& env)
         if (grid.getArea(Player::kPlayer1)) { grid.setArea(Player::kPlayer1, &areas_[grid.getArea(Player::kPlayer1)->getID()]); }
         if (grid.getArea(Player::kPlayer2)) { grid.setArea(Player::kPlayer2, &areas_[grid.getArea(Player::kPlayer2)->getID()]); }
     }
+    return *this;
 }
 
 void GoEnv::reset()
