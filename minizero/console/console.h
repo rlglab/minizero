@@ -21,7 +21,7 @@ public:
     Console();
     virtual ~Console() = default;
 
-    void executeCommand(std::string command);
+    virtual void executeCommand(std::string command);
 
 protected:
     class BaseFunction {
@@ -43,10 +43,10 @@ protected:
     template <class I, class F>
     void RegisterFunction(const std::string& name, I* instance, F function)
     {
-        function_map_.insert(std::make_pair(name, std::make_shared<Function<I, F>>(instance, function)));
+        function_map_[name] = std::make_shared<Function<I, F>>(instance, function);
     }
 
-    void initialize();
+    virtual void initialize();
     void cmdListCommands(const std::vector<std::string>& args);
     void cmdName(const std::vector<std::string>& args);
     void cmdVersion(const std::vector<std::string>& args);
