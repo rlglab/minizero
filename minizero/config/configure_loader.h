@@ -73,13 +73,12 @@ class ConfigureLoader {
 public:
     ConfigureLoader() {}
 
-    ~ConfigureLoader()
+    virtual ~ConfigureLoader()
     {
         for (auto& group_name : group_name_order_) {
             for (auto parameter : parameter_groups_[group_name]) { delete parameter; }
             parameter_groups_[group_name].clear();
         }
-        // for (size_t i = 0; i < parameters_.size(); ++i) { delete parameters_[i]; }
     }
 
     template <class T, class Setter, class Getter>
