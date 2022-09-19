@@ -13,6 +13,8 @@ namespace minizero::console {
 using namespace network;
 
 Console::Console()
+    : network_(nullptr),
+      actor_(nullptr)
 {
     RegisterFunction("list_commands", this, &Console::cmdListCommands);
     RegisterFunction("name", this, &Console::cmdName);
@@ -27,11 +29,11 @@ Console::Console()
     RegisterFunction("final_score", this, &Console::cmdFinalScore);
     RegisterFunction("pv", this, &Console::cmdPV);
     RegisterFunction("loadmodel", this, &Console::cmdLoadModel);
-    initialize();
 }
 
 void Console::executeCommand(std::string command)
 {
+    if (!network_ || !actor_) { initialize(); }
     if (command.back() == '\r') { command.pop_back(); }
     if (command.empty()) { return; }
 
