@@ -83,6 +83,7 @@ public:
     virtual std::string toString() const = 0;
     virtual std::string name() const = 0;
     virtual int getNumPlayer() const = 0;
+    virtual void setTurn(Player p) { turn_ = p; }
 
     inline Player getTurn() const { return turn_; }
     inline const std::vector<Action>& getActionHistory() const { return actions_; }

@@ -172,6 +172,7 @@ void Console::cmdGenmove(const std::vector<std::string>& args)
         reply(ConsoleResponse::kSuccess, "PASS");
         return;
     }
+    actor_->getEnvironment().setTurn(minizero::env::charToPlayer(args[1].c_str()[0]));
     const Action action = actor_->think((args[0] == "genmove" ? true : false), true);
     if (actor_->isResign()) {
         reply(ConsoleResponse::kSuccess, "Resign");
