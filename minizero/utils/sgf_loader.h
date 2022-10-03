@@ -8,8 +8,8 @@ namespace minizero::utils {
 
 class SGFLoader {
 public:
-    bool loadFromFile(const std::string& file_name);
-    bool loadFromString(const std::string& sgf_content);
+    virtual bool loadFromFile(const std::string& file_name);
+    virtual bool loadFromString(const std::string& sgf_content);
 
     inline const std::string& getFileName() const { return file_name_; }
     inline const std::string& getSGFContent() const { return sgf_content_; }
@@ -21,8 +21,8 @@ public:
     static int sgfStringToActionID(const std::string& sgf_string, int board_size);
     static std::string actionIDToSGFString(int action_id, int board_size);
 
-private:
-    void reset();
+protected:
+    virtual void reset();
     std::string trimSpace(const std::string& s) const;
     size_t calculateKeyValuePair(const std::string& s, size_t start_pos, std::pair<std::string, std::string>& key_value);
 
