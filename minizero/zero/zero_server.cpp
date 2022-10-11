@@ -122,12 +122,6 @@ void ZeroServer::run()
     close();
 }
 
-boost::shared_ptr<ZeroWorkerHandler> ZeroServer::handleAcceptNewConnection()
-{
-    boost::shared_ptr<ZeroWorkerHandler> worker = boost::make_shared<ZeroWorkerHandler>(io_service_, shared_data_);
-    return worker;
-}
-
 void ZeroServer::initialize()
 {
     int seed = config::program_auto_seed ? static_cast<int>(time(NULL)) : config::program_seed;
