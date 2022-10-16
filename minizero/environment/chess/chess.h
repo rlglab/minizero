@@ -42,14 +42,23 @@ static const std::pair<int, int> kRookDirections[] = {
     {1, 0}, {0, 1}, {-1, 0}, {0, -1}};
 static const std::pair<int, int> kBishopDirections[] = {
     {1, 1}, {-1, 1}, {-1, -1}, {1, -1}};
+static const std::pair<int, int> kActionIdDirections64[] = {
+    {0, 1}, {1, 1}, {1, 0}, {1, -1}, {0, -1}, {-1, -1}, {-1, 0}, {-1, 1}, {0, 2}, {2, 2}, {2, 0}, {2, -2}, {0, -2}, {-2, -2}, {-2, 0}, {-2, 2}, {0, 3}, {3, 3}, {3, 0}, {3, -3}, {0, -3}, {-3, -3}, {-3, 0}, {-3, 3}, {0, 4}, {4, 4}, {4, 0}, {4, -4}, {0, -4}, {-4, -4}, {-4, 0}, {-4, 4}, {0, 5}, {5, 5}, {5, 0}, {5, -5}, {0, -5}, {-5, -5}, {-5, 0}, {-5, 5}, {0, 6}, {6, 6}, {6, 0}, {6, -6}, {0, -6}, {-6, -6}, {-6, 0}, {-6, 6}, {0, 7}, {7, 7}, {7, 0}, {7, -7}, {0, -7}, {-7, -7}, {-7, 0}, {-7, 7}, {1, 2}, {2, 1}, {2, -1}, {1, -2}, {-1, -2}, {-2, -1}, {-2, 1}, {-1, 2}};
+
+static const std::pair<int, Pieces> kActionIdDirections73[] = {
+    {-1, Pieces::rook}, {-1, Pieces::bishop}, {-1, Pieces::knight}, {0, Pieces::rook}, {0, Pieces::bishop}, {0, Pieces::knight}, {1, Pieces::rook}, {1, Pieces::bishop}, {1, Pieces::knight}};
 
 class ChessAction : public BaseAction {
 public:
     ChessAction() : BaseAction() {}
-    ChessAction(int action_id, Player player) : BaseAction(action_id, player) {}
+    ChessAction(int action_id, Player player) : BaseAction(action_id, player) { pawnmove_ = false;}
     ChessAction(const std::vector<std::string>& action_string_args);
+    std::string getActionString() const;
+    void isPawnMove() {pawnmove_ = true;}
     inline Player nextPlayer() const override { return getNextPlayer(player_, kChessNumPlayer); }
-    inline std::string toConsoleString() const override { return ""; };
+    inline std::string toConsoleString() const override { return getActionString(); };
+private:
+    bool pawnmove_;
 };
 
 #define NUM_OF_PIECES 12
@@ -63,11 +72,6 @@ public:
 #define ID00 11
 #define ID000 15
 
-static const std::pair<int, int> kActionIdDirections64[] = {
-    {0, 1}, {1, 1}, {1, 0}, {1, -1}, {0, -1}, {-1, -1}, {-1, 0}, {-1, 1}, {0, 2}, {2, 2}, {2, 0}, {2, -2}, {0, -2}, {-2, -2}, {-2, 0}, {-2, 2}, {0, 3}, {3, 3}, {3, 0}, {3, -3}, {0, -3}, {-3, -3}, {-3, 0}, {-3, 3}, {0, 4}, {4, 4}, {4, 0}, {4, -4}, {0, -4}, {-4, -4}, {-4, 0}, {-4, 4}, {0, 5}, {5, 5}, {5, 0}, {5, -5}, {0, -5}, {-5, -5}, {-5, 0}, {-5, 5}, {0, 6}, {6, 6}, {6, 0}, {6, -6}, {0, -6}, {-6, -6}, {-6, 0}, {-6, 6}, {0, 7}, {7, 7}, {7, 0}, {7, -7}, {0, -7}, {-7, -7}, {-7, 0}, {-7, 7}, {1, 2}, {2, 1}, {2, -1}, {1, -2}, {-1, -2}, {-2, -1}, {-2, 1}, {-1, 2}};
-
-static const std::pair<int, Pieces> kActionIdDirections73[] = {
-    {-1, Pieces::rook}, {-1, Pieces::bishop}, {-1, Pieces::knight}, {0, Pieces::rook}, {0, Pieces::bishop}, {0, Pieces::knight}, {1, Pieces::rook}, {1, Pieces::bishop}, {1, Pieces::knight}};
 
 class ChessEnv : public BaseEnv<ChessAction> {
 public:
@@ -102,7 +106,7 @@ public:
     void update50Steps(Pieces take, Pieces move);
     void setEnPassantFlag(int from, int to);
     bool canPlayer00(Player player, int next_square1, int next_square2);
-    bool canPlayer000(Player player, int next_square1, int next_square2);
+    bool canPlayer000(Player player, int next_square1, int next_square2, int next_square3);
     bool whiteInsuffi();
     bool blackInsuffi();
     void handle00(bool is00, int from);
@@ -125,6 +129,7 @@ public:
     void fakeAct(int from, int to, Pieces move, Pieces take, Pieces promote, bool is00, bool is000, bool isenpassant);
     bool act(const ChessAction& action) override;
     bool act(const std::vector<std::string>& action_string_args) override;
+    bool isntCheckMove(const ChessAction& action) const;
     bool isLegalAction(const ChessAction& action) const override;
     std::vector<ChessAction> getLegalActions() const override;
     bool noMoreLegalAction() const;

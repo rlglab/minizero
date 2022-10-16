@@ -14,6 +14,27 @@ ChessAction::ChessAction(const std::vector<std::string>& action_string_args)
 {
     // TODO: implement chess action constructor
 }
+std::string ChessAction::getActionString () const
+{
+    std::ostringstream oss;
+    int from = action_id_ / 73;
+    int move_dir = action_id_ % 73;
+    int new_row = 0, new_col = 0;
+    if (move_dir <= 64) {
+        new_row = from / 8 + kActionIdDirections64[move_dir].second;
+        new_col = from % 8 + kActionIdDirections64[move_dir].first;
+        oss << char('a' + from % 8) << 1 + from / 8 << char('a' + new_col) << 1 + new_row;
+        if (pawnmove_){
+            if ((player_ == Player::kPlayer1 && new_row == 7) || (player_ == Player::kPlayer2 && new_row == 0)) oss << "q";
+        }
+    } else {
+        new_row = (player_ == Player::kPlayer1) ? 7 : 0;
+        new_col = from % 8 + kActionIdDirections73[move_dir - 64].first;
+        char promote[3] = {'n', 'r', 'b'};
+        oss << char('a' + from % 8) << 1 + from / 8 << char('a' + new_col) << 1 + new_row << promote[move_dir % 3];
+    }
+    return oss.str();
+}
 std::string ChessEnv::toString() const
 {
     // TODO
@@ -557,12 +578,6 @@ bool ChessEnv::isTerminal() const
         }
 
         if (fifty_steps >= 50 || repetitions_ >= 3 || (insuffi_.get(Player::kPlayer1) && insuffi_.get(Player::kPlayer2))) {
-            /* std::cout << "no progress count: " << fifty_steps << std::endl;
-            std::cout << "repetitions: " << repetitions_ << std::endl;
-            if(insuffi_.get(Player::kPlayer1) && insuffi_.get(Player::kPlayer2))
-                std::cout << "insuffi. materials: True\n";
-            else
-                std::cout << "insuffi. materials: False\n";*/
             return true;
         } else {
             return noMoreLegalAction();
@@ -768,10 +783,10 @@ bool ChessEnv::canPlayer00(Player player, int next_square1, int next_square2)
              board_[next_square1].second != Pieces::empty || board_[next_square2].second != Pieces::empty ||
              squareIsAttacked(player, next_square1, true) || squareIsAttacked(player, next_square2, true));
 }
-bool ChessEnv::canPlayer000(Player player, int next_square1, int next_square2)
+bool ChessEnv::canPlayer000(Player player, int next_square1, int next_square2, int next_square3)
 {
-    return !(ischecked_.get(player) || king_moved_.get(player) || qrook_moved_.get(player) ||
-             board_[next_square1].second != Pieces::empty || board_[next_square2].second != Pieces::empty ||
+    return !(ischecked_.get(player) || king_moved_.get(player) || qrook_moved_.get(player) || 
+             board_[next_square1].second != Pieces::empty || board_[next_square2].second != Pieces::empty || board_[next_square3].second != Pieces::empty ||
              squareIsAttacked(player, next_square1, true) || squareIsAttacked(player, next_square2, true));
 }
 bool ChessEnv::whiteInsuffi()
@@ -923,13 +938,13 @@ void ChessEnv::generateLegalActions()
     while (!pseudo_legal_actions.none()) {
         int id = pseudo_legal_actions._Find_first();
         ChessAction action(id, turn_);
-        if (!isLegalAction(action)) {
+        if (!isntCheckMove(action)) {
             legal_actions_.reset(id);
         }
         pseudo_legal_actions.reset(id);
     }
 }
-bool ChessEnv::isLegalAction(const ChessAction& action) const
+bool ChessEnv::isntCheckMove(const ChessAction& action) const
 {
     int action_id = action.getActionID();
     int id = action_id % 73; // 0-72
@@ -964,20 +979,23 @@ bool ChessEnv::isLegalAction(const ChessAction& action) const
     AfterAction.fakeAct(from, to, move, take, promote, is_00, is_000, isenpassant);
     return !AfterAction.plyIsCheck(this->turn_);
 }
+bool ChessEnv::isLegalAction(const ChessAction& action) const
+{
+    int action_id = action.getActionID();
+    return legal_actions_.test(action_id);
+}
 std::vector<ChessAction> ChessEnv::getLegalActions() const
 {
     // TODO
-    // std::cout << "Legal Actions: ";
     std::vector<ChessAction> actions;
     std::bitset<4672> legal_actions = legal_actions_;
     while (!legal_actions.none()) {
         int id = legal_actions._Find_first();
-        // std::cout << "[" << id << "] ";
         ChessAction action(id, turn_);
+        if (board_[id/73].second == Pieces::pawn) action.isPawnMove();
         actions.push_back(action);
         legal_actions.reset(id);
     }
-    // std::cout << std::endl;
     return actions;
 }
 bool ChessEnv::act(const std::vector<std::string>& action_string_args)
@@ -985,17 +1003,11 @@ bool ChessEnv::act(const std::vector<std::string>& action_string_args)
     // TODO
     assert(action_string_args.size() == 2);
     assert(action_string_args[0].size() == 1 && (charToPlayer(action_string_args[0][0]) == Player::kPlayer1 || charToPlayer(action_string_args[0][0]) == Player::kPlayer2));
-    turn_ = charToPlayer(action_string_args[0][0]);
-    std::string move_str = action_string_args[1];
-    int i;
-    for (i = 0; i < 1858; i++) {
-        if (move_str == kAllMoves[i])
-            break;
+    if(turn_ != charToPlayer(action_string_args[0][0])) {
+        turn_ = charToPlayer(action_string_args[0][0]);
+        generateLegalActions();
     }
-    if (i == 1858)
-        return false;
-    Pieces move, taken;
-    // promote: q n b r
+    std::string move_str = action_string_args[1];
     int from_col = move_str[0] - 'a';
     int from_row = move_str[1] - '1';
     int to_col = move_str[2] - 'a';
@@ -1003,200 +1015,80 @@ bool ChessEnv::act(const std::vector<std::string>& action_string_args)
     int dir_row = to_row - from_row;
     int dir_col = to_col - from_col;
     int from = rowColToPosition(from_row, from_col);
-    int to = rowColToPosition(to_row, to_col);
-    int id = 0;
-    move = board_[from].second;
-    taken = board_[to].second;
-
+    int id = -1;
     if (move_str.size() == 5) {
+        if (turn_ == Player::kPlayer1) {
+            if (from_row != 6 || to_row != 7) return false;
+        } else {
+            if (from_row != 1 || to_row != 0) return false;
+        }
         if (move_str[4] == 'q') {
-            if (dir_col != 0 && (taken == Pieces::empty || board_[to].first == turn_)) return false;
             if (turn_ == Player::kPlayer1) {
-                if (from_row != 6 || dir_row != 1) return false;
-                if (dir_col == -1) {
-                    id = from * 73 + 8;
-                } else if (dir_col == 0) {
-                    if (taken != Pieces::empty) return false;
-                    id = from * 73 + 1;
-                } else if (dir_col == 1) {
-                    id = from * 73 + 2;
-                }
+                if (dir_col == -1)  id = from * 73 + 7;
+                else if (dir_col == 0)  id = from * 73 + 0;
+                else if (dir_col == 1)  id = from * 73 + 1;
             } else {
-                if (from_row != 1 || dir_row != -1) return false;
-                if (dir_col == -1) {
-                    id = from * 73 + 6;
-                } else if (dir_col == 0) {
-                    if (taken != Pieces::empty) return false;
-                    id = from * 73 + 5;
-                } else if (dir_col == 1) {
-                    id = from * 73 + 4;
-                } else {
-                    return false;
-                }
+                if (dir_col == -1) id = from * 73 + 5;
+                else if (dir_col == 0) id = from * 73 + 4;
+                else if (dir_col == 1) id = from * 73 + 3;
             }
         } else if (move_str[4] == 'r') {
-            if (dir_col == -1) {
-                id = from * 73 + 65;
-            } else if (dir_col == 0) {
-                id = from * 73 + 68;
-            } else if (dir_col == 1) {
-                id = from * 73 + 71;
-            } else {
-                return false;
-            }
+            if (dir_col == -1) id = from * 73 + 64;
+            else if (dir_col == 0) id = from * 73 + 67;
+            else if (dir_col == 1) id = from * 73 + 70;
         } else if (move_str[4] == 'b') {
-            if (dir_col == -1) {
-                id = from * 73 + 66;
-            } else if (dir_col == 0) {
-                id = from * 73 + 69;
-            } else if (dir_col == 1) {
-                id = from * 73 + 72;
-            } else {
-                return false;
-            }
+            if (dir_col == -1) id = from * 73 + 65;
+            else if (dir_col == 0) id = from * 73 + 68;
+            else if (dir_col == 1) id = from * 73 + 71;
         } else if (move_str[4] == 'n') {
-            if (dir_col == -1) {
-                id = from * 73 + 67;
-            } else if (dir_col == 0) {
-                id = from * 73 + 70;
-            } else if (dir_col == 1) {
-                id = from * 73 + 73;
-            } else {
-                return false;
-            }
+            if (dir_col == -1) id = from * 73 + 66;
+            else if (dir_col == 0) id = from * 73 + 69;
+            else if (dir_col == 1) id = from * 73 + 72;
         }
-        ChessAction action(id - 1, turn_);
+        if (id == -1) return false;
+        ChessAction action(id, turn_);
+        action.isPawnMove();
         if (!isLegalAction(action)) return false;
         return act(action);
     }
 
-    if (move == Pieces::king) {
-        if ((turn_ == Player::kPlayer1 && move_str == "e1g1") || (turn_ == Player::kPlayer2 && move_str == "e8g8")) {
-            id = from * 73 + 11;
-        } else if ((turn_ == Player::kPlayer1 && move_str == "e1c1") || (turn_ == Player::kPlayer2 && move_str == "e8c8")) {
-            id = from * 73 + 15;
-        } else {
-            if (dir_col == 0) {
-                if (dir_row == 1)
-                    id = from * 73 + 1;
-                else if (dir_row == -1)
-                    id = from * 73 + 5;
-            } else if (dir_col == 1) {
-                if (dir_row == 1)
-                    id = from * 73 + 2;
-                else if (dir_row == 0)
-                    id = from * 73 + 3;
-                else if (dir_row == -1)
-                    id = from * 73 + 4;
-            } else if (dir_col == -1) {
-                if (dir_row == 1)
-                    id = from * 73 + 7;
-                else if (dir_row == 0)
-                    id = from * 73 + 6;
-                else if (dir_row == -1)
-                    id = from * 73 + 5;
-            } else {
-                return false;
-            }
-        }
-    } else if (move == Pieces::pawn) {
-        if (turn_ == Player::kPlayer1) {
-            if (dir_row <= 0)
-                return false;
-            if (dir_col != 0 && taken == Pieces::empty) {
-                if (!(from_row == 4 && board_[rowColToPosition(from_row, to_col)].first == Player::kPlayer2 && board_[rowColToPosition(from_row, to_col)].second == Pieces::pawn)) {
-                    return false;
-                }
-            }
-            if (dir_row == 2) {
-                if (dir_col != 0) return false;
-                id = from * 73 + 9;
-            } else if (dir_row == 1) {
-                if (dir_col == -1)
-                    id = from * 73 + 8;
-                else if (dir_col == 0)
-                    id = from * 73 + 1;
-                else if (dir_col == 1)
-                    id = from * 73 + 2;
-                else
-                    return false;
-            }
-        } else {
-            if (dir_row >= 0)
-                return false;
-            if (dir_col != 0 && taken == Pieces::empty) {
-                if (!(from_row == 3 && board_[rowColToPosition(from_row, to_col)].first == Player::kPlayer1 && board_[rowColToPosition(from_row, to_col)].second == Pieces::pawn)) {
-                    return false;
-                }
-            }
-            if (dir_row == -2) {
-                if (dir_col != 0) return false;
-                id = from * 73 + 13;
-            } else if (dir_row == -1) {
-                if (dir_col == -1)
-                    id = from * 73 + 6;
-                else if (dir_col == 0)
-                    id = from * 73 + 5;
-                else if (dir_col == 1)
-                    id = from * 73 + 4;
-                else
-                    return false;
-            }
-        }
-    } else if (move == Pieces::knight) {
-        if (dir_col == -1) {
-            if (dir_row == 2)
-                id = from * 73 + 64;
-            else if (dir_row == -2)
-                id = from * 73 + 61;
-        } else if (dir_col == 1) {
-            if (dir_row == 2)
-                id = from * 73 + 57;
-            else if (dir_row == -2)
-                id = from * 73 + 60;
-        } else if (dir_col == -2) {
-            if (dir_row == 1)
-                id = from * 73 + 63;
-            else if (dir_row == -1)
-                id = from * 73 + 62;
+    if (dir_col * dir_row == 2 || dir_col * dir_row == -2) {
+        // knight direction 56-63
+        if (dir_col == 1) {
+            if (dir_row == 2) id = from * 73 + 56;
+            else id = from * 73 + 59;
         } else if (dir_col == 2) {
-            if (dir_row == 1)
-                id = from * 73 + 58;
-            else if (dir_row == -1)
-                id = from * 73 + 59;
-        } else {
-            return false;
+            if (dir_row == 1) id = from * 73 + 57;
+            else id = from * 73 + 58;
+        } else if (dir_col == -1) {
+            if (dir_row == 2) id = from * 73 + 63;
+            else id = from * 73 + 60;
+        } else if (dir_col == -2) {
+            if (dir_row == 1) id = from * 73 + 62;
+            else id = from * 73 + 61;
         }
-    } else {
-        if (dir_col == 0) {
-            if (dir_row > 0)
-                id = from * 73 + (dir_row - 1) * 8 + 1;
-            else
-                id = from * 73 + (-1 * dir_row - 1) * 8 + 5;
-        } else if (dir_row == 0) {
-            if (dir_col > 0)
-                id = from * 73 + (dir_col - 1) * 8 + 3;
-            else
-                id = from * 73 + (-1 * dir_col - 1) * 8 + 7;
+    } else if (dir_row * dir_col == 0) {    // rook direction 0-55
+        int square = dir_row == 0 ? dir_col : dir_row;
+        square = square < 0 ? -1 * square : square;
+        if (dir_row == 0) {
+            if (dir_col > 0) id = from * 73 + (square - 1) * 8 + 2;
+            else id = from * 73 + (square - 1) * 8 + 6;
         } else {
-            if (dir_col > 0 && dir_row > 0) {
-                if (dir_col != dir_row) return false;
-                id = from * 73 + (dir_col - 1) * 8 + 2;
-            } else if ((dir_col > 0 && dir_row < 0)) {
-                if (dir_col != -1 * dir_row) return false;
-                id = from * 73 + (dir_col - 1) * 8 + 4;
-            } else if ((dir_col < 0 && dir_row < 0)) {
-                if (dir_col != dir_row) return false;
-                id = from * 73 + (-1 * dir_col - 1) * 8 + 6;
-            } else { //left-up
-                if (dir_col != -1 * dir_row) return false;
-                id = from * 73 + (dir_row - 1) * 8 + 8;
-            }
+            if (dir_row > 0) id = from * 73 + (square - 1) * 8 + 0;
+            else id = from * 73 + (square - 1) * 8 + 4;
+        }    
+    } else if (dir_row / dir_col == 1 ||dir_row / dir_col == -1) {   // bishop direction 0-55
+        int square = (dir_row > 0) ? dir_row : -1 * dir_row;
+        if (dir_row > 0) {
+            if (dir_col > 0) id = from * 73 + (square - 1) * 8 + 1;
+            else id = from * 73 + (square - 1) * 8 + 7;
+        } else {
+            if (dir_col > 0) id = from * 73 + (square - 1) * 8 + 3;
+            else id = from * 73 + (square - 1) * 8 + 5;
         }
     }
-    if (id == 0) { return false; }
-    ChessAction action(id - 1, turn_);
-    // ChessAction action(action_string_args);
+    if (id == -1) { return false; }
+    ChessAction action(id, turn_);
     if (!isLegalAction(action)) { return false; }
     return act(action);
 }
@@ -1205,7 +1097,6 @@ bool ChessEnv::act(const ChessAction& action)
     int action_id = action.getActionID(); // pos * 73 + dir 1-4672 pos=0, 73 -> 73
     int from = action_id / 73, move_dir = action_id % 73 + 1;
     int to = getToFromID(move_dir, from);
-    // std::cout << "from:" << from << "->to:" << to << ' ';
     Pieces move = board_[from].second, take = board_[to].second;
     Pieces promote = getPromoteFromID(move_dir, to, move);
     updateBoard(from, to, promote);
@@ -1223,7 +1114,6 @@ bool ChessEnv::act(const ChessAction& action)
         if (take == Pieces::pawn)
             bitboard_.pawns_.reset(toBitBoardSquare(to));
     }
-    // showMoveInfo(from, to, move, take, promote);
     update50Steps(take, move);
     bitboard_.pieces_.get(turn_).reset(toBitBoardSquare(from)); // to 0
     bitboard_.pieces_.get(turn_).set(toBitBoardSquare(to));     // to 1 (K)
@@ -1288,24 +1178,11 @@ bool ChessEnv::act(const ChessAction& action)
         handleQueenMove(from, to);
     }
     insuffi_.set(whiteInsuffi(), blackInsuffi());
-    assert(take != Pieces::king);
-
-    if (plyIsCheck(turn_) == true) {
-        std::cout << toString();
-        if (turn_ == Player::kPlayer1)
-            std::cout << "White ";
-        else
-            std::cout << "Black ";
-        std::cout << "king: " << king_pos_.get(turn_) << " is check !!!\n";
-        std::cout << "Move Dir: " << move_dir << std::endl;
-        showMoveInfo(from, to, move, take, promote);
-        assert(!plyIsCheck(turn_));
-    }
-    assert(checkBitboard());
+    assert(take != Pieces::king && !plyIsCheck(turn_) && checkBitboard());
     ischecked_.set(turn_, false);
     ischecked_.set(getNextPlayer(turn_, kChessNumPlayer), plyIsCheck(getNextPlayer(turn_, kChessNumPlayer)));
     can00_.set(canPlayer00(Player::kPlayer1, 5, 6), canPlayer00(Player::kPlayer2, 61, 62));
-    can000_.set(canPlayer000(Player::kPlayer1, 2, 3), canPlayer000(Player::kPlayer2, 58, 59));
+    can000_.set(canPlayer000(Player::kPlayer1, 2, 3, 1), canPlayer000(Player::kPlayer2, 58, 59, 57));
     int repeat = storeHashTable(updateHashValue(turn_, from, to, move, take, promote, is00, is000, is_enpassant));
     repetitions_ = (repetitions_ < repeat) ? repeat : repetitions_;
     history_.update(bitboard_, king_pos_);
@@ -1375,14 +1252,12 @@ Player ChessEnv::eval() const
     if (turn_ == Player::kPlayer1 && ischecked_.get(Player::kPlayer1)) {
         std::vector<ChessAction> actions = getLegalActions();
         if (actions.size() == 0) {
-            // std::cout << "result: 0-1\n";
             return Player::kPlayer2;
         }
     }
     if (turn_ == Player::kPlayer2 && ischecked_.get(Player::kPlayer2)) {
         std::vector<ChessAction> actions = getLegalActions();
         if (actions.size() == 0) {
-            // std::cout << "result: 1-0\n";
             return Player::kPlayer1;
         }
     }
