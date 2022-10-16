@@ -46,7 +46,7 @@ AlphaZeroData DataLoader::getAlphaZeroTrainingData()
     AlphaZeroData data;
     Rotation rotation = static_cast<Rotation>(Random::randInt() % static_cast<int>(Rotation::kRotateSize));
     data.features_ = env_.getFeatures(rotation);
-    data.policy_ = (config::actor_use_gumbel ? getGumbelPolicyDistribution(env_loader, pos, rotation) : getPolicyDistribution(env_loader, pos, rotation));
+    data.policy_ = getPolicyDistribution(env_loader, pos, rotation);
     data.value_ = env_loader.getReturn();
 
     return data;
@@ -75,7 +75,7 @@ MuZeroData DataLoader::getMuZeroTrainingData(int unrolling_step)
     for (int step = 0; step <= unrolling_step; ++step) {
         const Action& action = env_loader.getActionPairs()[pos + step].first;
         std::vector<float> action_features = env_.getActionFeatures(action, rotation);
-        std::vector<float> policy = (config::actor_use_gumbel ? getGumbelPolicyDistribution(env_loader, pos + step, rotation) : getPolicyDistribution(env_loader, pos + step, rotation));
+        std::vector<float> policy = getPolicyDistribution(env_loader, pos + step, rotation);
         if (step < unrolling_step) { data.action_features_.insert(data.action_features_.end(), action_features.begin(), action_features.end()); }
         data.policy_.insert(data.policy_.end(), policy.begin(), policy.end());
         env_.act(action);
@@ -117,28 +117,6 @@ std::vector<float> DataLoader::getPolicyDistribution(const EnvironmentLoader& en
             float count = std::stof(tmp.substr(tmp.find(":") + 1));
             policy[position] = count;
             sum += count;
-        }
-        for (auto& p : policy) { p /= sum; }
-    }
-    return policy;
-}
-
-std::vector<float> DataLoader::getGumbelPolicyDistribution(const EnvironmentLoader& env_loader, int pos, utils::Rotation rotation /*= utils::Rotation::kRotationNone*/)
-{
-    std::vector<float> policy(env_loader.getPolicySize(), 0.0f);
-    const std::string& distribution = env_loader.getActionPairs()[pos].second;
-    if (distribution.empty()) {
-        const Action& action = env_loader.getActionPairs()[pos].first;
-        policy[env_loader.getRotatePosition(action.getActionID(), rotation)] = 1.0f;
-    } else {
-        float sum = 0.0f;
-        std::string tmp;
-        std::istringstream iss(distribution);
-        while (std::getline(iss, tmp, ',')) {
-            int position = env_loader.getRotatePosition(std::stoi(tmp.substr(0, tmp.find(":"))), rotation);
-            float count = std::stof(tmp.substr(tmp.find(":") + 1));
-            policy[position] = exp(count);
-            sum += policy[position];
         }
         for (auto& p : policy) { p /= sum; }
     }

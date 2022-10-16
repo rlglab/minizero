@@ -21,7 +21,7 @@ public:
     Console();
     virtual ~Console() = default;
 
-    void executeCommand(std::string command);
+    virtual void executeCommand(std::string command);
 
 protected:
     class BaseFunction {
@@ -43,10 +43,10 @@ protected:
     template <class I, class F>
     void RegisterFunction(const std::string& name, I* instance, F function)
     {
-        function_map_.insert(std::make_pair(name, std::make_shared<Function<I, F>>(instance, function)));
+        function_map_[name] = std::make_shared<Function<I, F>>(instance, function);
     }
 
-    void initialize();
+    virtual void initialize();
     void cmdListCommands(const std::vector<std::string>& args);
     void cmdName(const std::vector<std::string>& args);
     void cmdVersion(const std::vector<std::string>& args);
@@ -58,9 +58,12 @@ protected:
     void cmdGenmove(const std::vector<std::string>& args);
     void cmdRegGenmove(const std::vector<std::string>& args);
     void cmdFinalScore(const std::vector<std::string>& args);
+    void cmdPV(const std::vector<std::string>& args);
+    void cmdLoadModel(const std::vector<std::string>& args);
     bool checkArgument(const std::vector<std::string>& args, int min_argc, int max_argc);
     void reply(ConsoleResponse response, const std::string& reply);
 
+    std::shared_ptr<minizero::network::Network> network_;
     std::shared_ptr<actor::BaseActor> actor_;
     std::map<std::string, std::shared_ptr<BaseFunction>> function_map_;
 };

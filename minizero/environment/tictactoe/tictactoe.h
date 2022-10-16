@@ -35,6 +35,7 @@ public:
     std::vector<float> getActionFeatures(const TicTacToeAction& action, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::string toString() const override;
     inline std::string name() const override { return kTicTacToeName; }
+    inline int getNumPlayer() const override { return kTicTacToeNumPlayer; }
 
 private:
     Player eval() const;

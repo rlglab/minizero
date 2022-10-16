@@ -119,7 +119,7 @@ public:
         }
     }
 
-    ~BaseServer() { thread_pool_.join_all(); }
+    virtual ~BaseServer() { thread_pool_.join_all(); }
 
     void startAccept()
     {

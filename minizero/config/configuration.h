@@ -38,6 +38,8 @@ extern int zero_start_iteration;
 extern int zero_end_iteration;
 extern int zero_replay_buffer;
 extern float zero_disable_resign_ratio;
+extern std::string zero_actor_ignored_command;
+extern bool zero_server_accept_different_model_games;
 
 // learner parameters
 extern int learner_training_step;
@@ -69,6 +71,7 @@ extern std::string env_atari_name;
 extern int env_go_board_size;
 extern float env_go_komi;
 extern std::string env_go_ko_rule;
+extern int env_othello_board_size;
 
 void setConfiguration(ConfigureLoader& cl);
 

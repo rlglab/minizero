@@ -5,11 +5,12 @@
 #include "paralleler.h"
 #include <deque>
 #include <mutex>
+#include <unordered_set>
 #include <vector>
 
 namespace minizero::actor {
 
-class ThreadSharedData {
+class ThreadSharedData : public utils::BaseSharedData {
 public:
     int getAvailableActorIndex();
 
@@ -21,37 +22,43 @@ public:
     std::vector<std::vector<std::shared_ptr<network::NetworkOutput>>> network_outputs_;
 };
 
-class SlaveThread : public utils::BaseSlaveThread<ThreadSharedData> {
+class SlaveThread : public utils::BaseSlaveThread {
 public:
-    SlaveThread(int id, ThreadSharedData& shared_data)
+    SlaveThread(int id, std::shared_ptr<utils::BaseSharedData> shared_data)
         : BaseSlaveThread(id, shared_data) {}
 
-    void initialize() override;
-    void runJob() override;
-    inline bool isDone() override { return false; }
+    virtual void initialize() override;
+    virtual void runJob() override;
+    virtual bool isDone() override { return false; }
 
-private:
-    bool doCPUJob();
-    void doGPUJob();
+protected:
+    virtual bool doCPUJob();
+    virtual void doGPUJob();
+    inline std::shared_ptr<ThreadSharedData> getSharedData() { return std::static_pointer_cast<ThreadSharedData>(shared_data_); }
 };
 
-class ActorGroup : public utils::BaseParalleler<class ThreadSharedData, class SlaveThread> {
+class ActorGroup : public utils::BaseParalleler {
 public:
     ActorGroup() {}
 
-    void run() override;
-    void initialize() override;
-    void summarize() override {}
+    void run();
+    virtual void initialize() override;
+    virtual void summarize() override {}
 
 protected:
-    void createNeuralNetworks();
-    void createActors();
-    void handleIO();
-    void handleFinishedGame();
-    void handleCommand();
+    virtual void createNeuralNetworks();
+    virtual void createActors();
+    virtual void handleIO();
+    virtual void handleFinishedGame();
+    virtual void handleCommand();
+
+    virtual void createSharedData() override { shared_data_ = std::make_shared<ThreadSharedData>(); }
+    virtual std::shared_ptr<utils::BaseSlaveThread> newSlaveThread(int id) override { return std::make_shared<SlaveThread>(id, shared_data_); }
+    inline std::shared_ptr<ThreadSharedData> getSharedData() { return std::static_pointer_cast<ThreadSharedData>(shared_data_); }
 
     bool running_;
     std::deque<std::string> commands_;
+    std::unordered_set<std::string> ignored_commands_;
 };
 
 } // namespace minizero::actor

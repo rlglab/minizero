@@ -31,4 +31,4 @@ inline std::string getColorText(std::string text, TextType text_type, TextColor 
            "m" + text + "\33[0m";
 }
 
-} // namespace minizero::env
+} // namespace minizero::utils

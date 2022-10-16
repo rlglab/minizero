@@ -16,8 +16,8 @@ HexAction::HexAction(const std::vector<std::string>& action_string_args)
             "Number of actions must be exactly two."} +
             " Length of argument was " + std::to_string(action_string_args.size());
     }
-    size_t actionSize{action_string_args[1].size()};
-    if ((actionSize != 2) && (actionSize != 3)) {
+    size_t action_size{action_string_args[1].size()};
+    if ((action_size < 2) || (action_size > 4)) {
         throw std::string{
             "Number of letters in action must be exactly 2. For example \"d5\"."} +
             " Length of argument was " + std::to_string(action_string_args[1].size());
@@ -164,7 +164,7 @@ B 1  0-R-B-B-0-0-0 B
             rr.push_back(' ');
         }
         rr.push_back(' ');
-        std::string rowNum{std::to_string(kHexBoardSize - ii - 1)};
+        std::string rowNum{std::to_string(kHexBoardSize - ii)};
         if (rowNum.size() == 1) {
             rr.push_back(' ');
             rr.push_back(rowNum.at(0));
@@ -216,7 +216,7 @@ B 1  0-R-B-B-0-0-0 B
         rr.push_back(' ');
     }
     for (size_t ii = 0; ii < kHexBoardSize; ii++) {
-        rr.push_back(ii + 97);
+        rr.push_back(ii + 97 + (ii > 7 ? 1 : 0));
         rr.push_back(' ');
     }
     rr.push_back('\n');
@@ -256,7 +256,7 @@ B 1   0 - R - B - B - 0 - 0 - 0 B
             rr.push_back(' ');
         }
         rr.push_back(' ');
-        std::string rowNum{std::to_string(kHexBoardSize - ii - 1)};
+        std::string rowNum{std::to_string(kHexBoardSize - ii)};
         if (rowNum.size() == 1) {
             rr.push_back(' ');
             rr.push_back(rowNum.at(0));
@@ -313,7 +313,7 @@ B 1   0 - R - B - B - 0 - 0 - 0 B
         rr.push_back(' ');
     }
     for (size_t ii = 0; ii < kHexBoardSize; ii++) {
-        rr.push_back(ii + 97);
+        rr.push_back(ii + 97 + (ii > 7 ? 1 : 0));
         rr.push_back(' ');
         rr.push_back(' ');
         rr.push_back(' ');

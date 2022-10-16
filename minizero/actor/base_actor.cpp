@@ -1,7 +1,5 @@
 #include "base_actor.h"
 #include "configuration.h"
-#include "gumbel_zero_actor.h"
-#include "zero_actor.h"
 
 namespace minizero::actor {
 
@@ -15,6 +13,8 @@ void BaseActor::reset()
 void BaseActor::resetSearch()
 {
     nn_evaluation_batch_id_ = -1;
+    if (!search_) { search_ = createSearch(); }
+    search_->reset();
 }
 
 bool BaseActor::act(const Action& action, const std::string action_comment /*= ""*/)
@@ -37,7 +37,7 @@ bool BaseActor::act(const std::vector<std::string>& action_string_args, const st
     return can_act;
 }
 
-std::string BaseActor::getRecord() const
+std::string BaseActor::getRecord(std::unordered_map<std::string, std::string> tags /* = {} */) const
 {
     EnvironmentLoader env_loader;
     env_loader.loadFromEnvironment(env_, action_comments_);
@@ -45,25 +45,8 @@ std::string BaseActor::getRecord() const
 
     // if the game is not ended, then treat the game as a resign game, where the next player is the lose side
     if (!isEnvTerminal()) { env_loader.addTag("RE", std::to_string(env_.getEvalScore(true))); }
+    for (auto tag : tags) { env_loader.addTag(tag.first, tag.second); }
     return "SelfPlay " + std::to_string(env_loader.getActionPairs().size()) + " " + env_loader.toString();
-}
-
-std::shared_ptr<BaseActor> createActor(long long tree_node_size, const std::shared_ptr<network::Network>& network)
-{
-    if (config::actor_use_gumbel) {
-        auto actor = std::make_shared<GumbelZeroActor>(tree_node_size);
-        actor->setNetwork(network);
-        actor->reset();
-        return actor;
-    } else {
-        auto actor = std::make_shared<ZeroActor>(tree_node_size);
-        actor->setNetwork(network);
-        actor->reset();
-        return actor;
-    }
-
-    assert(false);
-    return nullptr;
 }
 
 } // namespace minizero::actor

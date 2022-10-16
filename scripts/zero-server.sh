@@ -1,17 +1,45 @@
 #!/bin/bash
-
 set -e
 
+usage()
+{
+	echo "Usage: ./zero-server.sh configure_file train_dir end_iteration [OPTION...]"
+	echo ""
+	echo "  -h, --help                 Give this help list"
+	echo "    , --sp_executable_file   Assign the path for self-play executable file"
+	echo "    , --op_executable_file   Assign the path for optimization executable file"
+	exit 1
+}
+
 # check argument
-if [ $# -ne 3 ]; then
-	echo "./zero-server.sh configure train_dir end_iteration"
-	exit
+if [ $# -lt 3 ]; then
+	usage
+else
+	CONFIGURE_FILE=$1
+	TRAIN_DIR=$2
+	END_ITERATION=$3
+	shift
+	shift
+	shift
 fi
 
-CONFIGURE_FILE=$1
-TRAIN_DIR=$2
-END_ITERATION=$3
-CURRENT_PATH=`pwd`
+sp_executable_file=Release/minizero
+op_executable_file=minizero/learner/train.py
+while :; do
+	case $1 in
+		-h|--help) shift; usage
+		;;
+		--sp_executable_file) shift; sp_executable_file=$1
+		;;
+		--op_executable_file) shift; op_executable_file=$1
+		;;
+		"") break
+		;;
+		*) echo "Unknown argument: $1"; usage
+		;;
+	esac
+	shift
+done
 
 run_stage="R"
 if [ -d ${TRAIN_DIR} ]; then
@@ -34,7 +62,7 @@ if [[ ${run_stage} == "R" ]]; then
 	cp ${CONFIGURE_FILE} ${TRAIN_DIR}/${NEW_CONFIGURE_FILE}
 
 	# setup initial weight
-	PYTHONPATH=. python minizero/learner/train.py ${TRAIN_DIR} "" -1 -1 ${TRAIN_DIR}/${NEW_CONFIGURE_FILE}
+	PYTHONPATH=. python ${op_executable_file} ${TRAIN_DIR} "" -1 -1 ${TRAIN_DIR}/${NEW_CONFIGURE_FILE}
 elif [[ ${run_stage} == "C" ]]; then
     ZERO_START_ITERATION=$(ls -t ${TRAIN_DIR}/sgf/* | head -n1 | sed 's/.sgf//g' | awk -F "/" '{ print $NF+1; }')
     MODEL_FILE=$(ls -t ${TRAIN_DIR}/model/*.pt | head -n1 | sed 's/\// /g' | awk '{ print $NF; }')
@@ -53,5 +81,4 @@ fi
 
 # run zero server
 CONF_STR="zero_training_directory=${TRAIN_DIR}:zero_end_iteration=${END_ITERATION}:nn_file_name=${MODEL_FILE}:zero_start_iteration=${ZERO_START_ITERATION}"
-#gdb --ex=r --args Release/minizero -conf_file ${TRAIN_DIR}/${NEW_CONFIGURE_FILE} -conf_str ${CONF_STR} -mode zero_server
-Release/minizero -conf_file ${TRAIN_DIR}/${NEW_CONFIGURE_FILE} -conf_str ${CONF_STR} -mode zero_server
+${sp_executable_file} -conf_file ${TRAIN_DIR}/${NEW_CONFIGURE_FILE} -conf_str ${CONF_STR} -mode zero_server

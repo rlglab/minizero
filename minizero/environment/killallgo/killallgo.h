@@ -42,6 +42,7 @@ public:
     }
 
     inline std::string name() const override { return kKillAllGoName; }
+    inline int getNumPlayer() const override { return kKillAllGoNumPlayer; }
 };
 
 class KillAllGoEnvLoader : public go::GoEnvLoader {

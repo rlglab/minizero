@@ -36,6 +36,7 @@ public:
     std::vector<float> getActionFeatures(const GomokuAction& action, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::string toString() const override;
     inline std::string name() const override { return kGomokuName; }
+    inline int getNumPlayer() const override { return kGomokuNumPlayer; }
 
 private:
     Player updateWinner(const GomokuAction& action);

@@ -57,8 +57,8 @@ public:
     {
     }
 
-    void handleReceivedMessage(const std::string& message);
-    void close();
+    void handleReceivedMessage(const std::string& message) override;
+    void close() override;
 
     inline bool isIdle() const { return is_idle_; }
     inline std::string getName() const { return name_; }
@@ -83,8 +83,8 @@ public:
     }
 
     void run();
-    boost::shared_ptr<ZeroWorkerHandler> handleAcceptNewConnection();
-    void sendInitialMessage(boost::shared_ptr<ZeroWorkerHandler> connection) {}
+    boost::shared_ptr<ZeroWorkerHandler> handleAcceptNewConnection() override { return boost::make_shared<ZeroWorkerHandler>(io_service_, shared_data_); }
+    void sendInitialMessage(boost::shared_ptr<ZeroWorkerHandler> connection) override {}
 
 private:
     void initialize();
@@ -101,4 +101,4 @@ private:
     boost::asio::deadline_timer keep_alive_timer_;
 };
 
-} // namespace minizero::server
+} // namespace minizero::zero

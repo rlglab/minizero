@@ -101,6 +101,7 @@ public:
 
     std::string toString() const override { return ""; }
     inline std::string name() const override { return minizero::config::env_atari_name; }
+    inline int getNumPlayer() const override { return kAtariNumPlayer; }
 
 private:
     const int kFeatureHistorySize = 32;

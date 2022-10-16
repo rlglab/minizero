@@ -24,6 +24,7 @@ enum class Player {
 char playerToChar(Player p);
 Player charToPlayer(char c);
 Player getNextPlayer(Player player, int num_player);
+Player getPreviousPlayer(Player player, int num_player);
 
 class BaseAction {
 public:
@@ -40,6 +41,27 @@ public:
 protected:
     int action_id_;
     Player player_;
+};
+
+template <class T>
+class GamePair {
+public:
+    GamePair() { reset(); }
+    GamePair(T black, T white) : black_(black), white_(white) {}
+
+    inline void reset() { black_ = white_ = T(); }
+    inline T& get(Player p) { return (p == Player::kPlayer1 ? black_ : white_); }
+    inline const T& get(Player p) const { return (p == Player::kPlayer1 ? black_ : white_); }
+    inline void set(Player p, const T& value) { (p == Player::kPlayer1 ? black_ : white_) = value; }
+    inline void set(const T& black, const T& white)
+    {
+        black_ = black;
+        white_ = white;
+    }
+
+private:
+    T black_;
+    T white_;
 };
 
 template <class Action>
@@ -60,6 +82,8 @@ public:
     virtual std::vector<float> getActionFeatures(const Action& action, utils::Rotation rotation = utils::Rotation::kRotationNone) const = 0;
     virtual std::string toString() const = 0;
     virtual std::string name() const = 0;
+    virtual int getNumPlayer() const = 0;
+    virtual void setTurn(Player p) { turn_ = p; }
 
     inline Player getTurn() const { return turn_; }
     inline const std::vector<Action>& getActionHistory() const { return actions_; }

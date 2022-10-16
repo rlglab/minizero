@@ -35,4 +35,10 @@ Player getNextPlayer(Player player, int num_player)
     return Player::kPlayerNone;
 }
 
+Player getPreviousPlayer(Player player, int num_player)
+{
+    if (num_player <= 2) { return getNextPlayer(player, num_player); }
+    return Player::kPlayerNone;
+}
+
 } // namespace minizero::env
