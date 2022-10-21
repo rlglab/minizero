@@ -17,8 +17,8 @@ public:
     Network();
     virtual ~Network() = default;
 
-    void loadModel(const std::string& nn_file_name, const int gpu_id);
-    std::string toString() const;
+    virtual void loadModel(const std::string& nn_file_name, const int gpu_id);
+    virtual std::string toString() const;
 
     inline int getGPUID() const { return gpu_id_; }
     inline int getNumInputChannels() const { return num_input_channels_; }

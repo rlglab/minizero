@@ -38,7 +38,7 @@ public:
         recurrent_tensor_action_input_.reserve(kReserved_batch_size);
     }
 
-    void loadModel(const std::string& nn_file_name, const int gpu_id)
+    void loadModel(const std::string& nn_file_name, const int gpu_id) override
     {
         Network::loadModel(nn_file_name, gpu_id);
 
@@ -49,7 +49,7 @@ public:
         recurrent_input_batch_size_ = 0;
     }
 
-    std::string toString() const
+    std::string toString() const override
     {
         std::ostringstream oss;
         oss << Network::toString();

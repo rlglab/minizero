@@ -15,7 +15,7 @@ class MCTSNode : public TreeNode {
 public:
     MCTSNode() { reset(); }
 
-    void reset() override
+    virtual void reset() override
     {
         num_children_ = 0;
         hidden_state_data_index_ = -1;
@@ -30,7 +30,7 @@ public:
         first_child_ = nullptr;
     }
 
-    void add(float value, float weight = 1.0f)
+    virtual void add(float value, float weight = 1.0f)
     {
         if (count_ + weight <= 0) {
             reset();
@@ -40,7 +40,7 @@ public:
         }
     }
 
-    void remove(float value, float weight = 1.0f)
+    virtual void remove(float value, float weight = 1.0f)
     {
         if (count_ + weight <= 0) {
             reset();
@@ -73,7 +73,7 @@ public:
         return value_u + value_q;
     }
 
-    std::string toString() const override
+    virtual std::string toString() const override
     {
         std::ostringstream oss;
         oss.precision(4);
@@ -87,7 +87,7 @@ public:
         return oss.str();
     }
 
-    bool displayInTreeLog() const override { return count_ > 0; }
+    virtual bool displayInTreeLog() const override { return count_ > 0; }
 
     // setter
     inline void setHiddenStateDataIndex(int hidden_state_data_index) { hidden_state_data_index_ = hidden_state_data_index; }
