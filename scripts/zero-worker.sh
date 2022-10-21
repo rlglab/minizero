@@ -60,6 +60,7 @@ while :; do
 done
 
 # arguments
+CUDA_DEVICES=$(echo ${GPU_LIST} | awk '{ split($0, chars, ""); printf(chars[1]); for(i=2; i<=length(chars); ++i) { printf(","chars[i]); } }')
 MAX_NUM_CPU_THREAD=$((MAX_NUM_CPU_THREAD_PER_GPU*NUM_GPU))
 NUM_CPU_THREAD=$(lscpu -p=CORE | grep -v "#" | wc -l)
 if [ $NUM_CPU_THREAD -gt $MAX_NUM_CPU_THREAD ]; then
@@ -142,17 +143,15 @@ do
 					var=(${BASH_REMATCH[1]})
 					CONF_FILE=$(ls ${var[0]}/*.cfg)
 					CONF_STR="${var[1]}:actor_num_threads=${NUM_CPU_THREAD}:actor_num_parallel_games=$((${BATCH_SIZE}*${NUM_GPU}))${ADDITION_CONF_STR}"
-					CUDA_DEVICES=$(echo ${GPU_LIST} | awk '{ split($0, chars, ""); printf(chars[1]); for(i=2; i<=length(chars); ++i) { printf(","chars[i]); } }')
 					echo "CUDA_VISIBLE_DEVICES=${CUDA_DEVICES} ${sp_executable_file} -mode sp -conf_file ${CONF_FILE} -conf_str \"${CONF_STR}\""
 					CUDA_VISIBLE_DEVICES=${CUDA_DEVICES} ${sp_executable_file} -conf_file ${CONF_FILE} -conf_str "${CONF_STR}" -mode sp 0<&$broker_fd 1>&$broker_fd
 				elif [[ $line =~ ^Job_Optimization\ (.+) ]]
 				then
 					var=(${BASH_REMATCH[1]})
 					CONF_FILE=$(ls ${var[0]}/*.cfg)
-					# py/Train.py train_dir model sgf_start sgf_end conf_file
-					CUDA_DEVICES=$(echo ${GPU_LIST} | awk '{ split($0, chars, ""); printf(chars[1]); for(i=2; i<=length(chars); ++i) { printf(","chars[i]); } }')
-					echo "CUDA_VISIBLE_DEVICES=${CUDA_DEVICES} PYTHONPATH=. python ${op_executable_file} ${var[0]} ${var[1]} ${var[2]} ${var[3]} ${CONF_FILE} 2>>${var[0]}/op.log"
-					CUDA_VISIBLE_DEVICES=${CUDA_DEVICES} PYTHONPATH=. python ${op_executable_file} ${var[0]} ${var[1]} ${var[2]} ${var[3]} ${CONF_FILE} 1>&$broker_fd 2>>${var[0]}/op.log
+					# format: py/Train.py train_dir conf_file
+					echo "CUDA_VISIBLE_DEVICES=${CUDA_DEVICES} PYTHONPATH=. python ${op_executable_file} ${var[0]} ${CONF_FILE}"
+					CUDA_VISIBLE_DEVICES=${CUDA_DEVICES} PYTHONPATH=. python ${op_executable_file} ${var[0]} ${CONF_FILE} 0<&$broker_fd 1>&$broker_fd 2> >(tee -a ${var[0]}/op.log >&2)
 				else
 					echo "read format error"
 					echo "msg: $line"

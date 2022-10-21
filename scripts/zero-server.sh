@@ -62,7 +62,7 @@ if [[ ${run_stage} == "R" ]]; then
 	cp ${CONFIGURE_FILE} ${TRAIN_DIR}/${NEW_CONFIGURE_FILE}
 
 	# setup initial weight
-	PYTHONPATH=. python ${op_executable_file} ${TRAIN_DIR} "" -1 -1 ${TRAIN_DIR}/${NEW_CONFIGURE_FILE}
+	echo "\"\" -1 -1" | PYTHONPATH=. python ${op_executable_file} ${TRAIN_DIR} ${TRAIN_DIR}/${NEW_CONFIGURE_FILE} >/dev/null 2>&1
 elif [[ ${run_stage} == "C" ]]; then
     ZERO_START_ITERATION=$(ls -t ${TRAIN_DIR}/sgf/* | head -n1 | sed 's/.sgf//g' | awk -F "/" '{ print $NF+1; }')
     MODEL_FILE=$(ls -t ${TRAIN_DIR}/model/*.pt | head -n1 | sed 's/\// /g' | awk '{ print $NF; }')

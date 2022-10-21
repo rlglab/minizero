@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import os
 import sys
 import time
 import torch
@@ -17,7 +16,7 @@ muzero_unrolling_step = 5
 
 
 def eprint(*args, **kwargs):
-    print(*args, file=sys.stderr, **kwargs)
+    print(*args, file=sys.stderr, **kwargs, flush=True)
 
 
 class MinizeroDataset(IterableDataset):
@@ -122,24 +121,13 @@ def calculate_accuracy(output, label, batch_size):
     return (max_output == max_label).sum() / batch_size
 
 
-if __name__ == '__main__':
-    if len(sys.argv) == 6:
-        training_dir = sys.argv[1]
-        model_file = sys.argv[2]
-        start_iter = int(sys.argv[3])
-        end_iter = int(sys.argv[4])
-        conf_file_name = sys.argv[5]
-    else:
-        eprint("python train.py training_dir model_file start_iter end_iter conf_file")
-        exit(0)
-
-    conf = minizero_py.Conf(conf_file_name)
+def train(model_file, start_iter, end_iter):
     training_step, network, device, optimizer, scheduler = load_model(training_dir, model_file, conf)
     network = nn.DataParallel(network)
 
     if start_iter == -1:
         save_model(training_step, network, optimizer, scheduler, training_dir)
-        exit(0)
+        return
 
     # create dataset & dataloader
     dataset = MinizeroDataset(training_dir, start_iter, end_iter, conf, conf_file_name)
@@ -199,3 +187,25 @@ if __name__ == '__main__':
     save_model(training_step, network, optimizer, scheduler, training_dir)
     print("Optimization_Done", training_step)
     eprint("Optimization_Done", training_step)
+
+
+if __name__ == '__main__':
+    if len(sys.argv) == 3:
+        training_dir = sys.argv[1]
+        conf_file_name = sys.argv[2]
+    else:
+        eprint("python train.py training_dir conf_file")
+        exit(0)
+
+    conf = minizero_py.Conf(conf_file_name)
+
+    while True:
+        try:
+            command = input()
+            if command == "keep_alive":
+                continue
+            eprint(f"[command] {command}")
+            model_file, start_iter, end_iter = command.split()
+            train(model_file.replace('"', ''), int(start_iter), int(end_iter))
+        except (KeyboardInterrupt, EOFError) as e:
+            break

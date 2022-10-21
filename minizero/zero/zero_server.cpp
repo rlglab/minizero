@@ -62,8 +62,8 @@ void ZeroWorkerHandler::handleReceivedMessage(const std::string& message)
         type_ = args[2];
         boost::lock_guard<boost::mutex> lock(shared_data_.worker_mutex_);
         shared_data_.logger_.addWorkerLog("[Worker Connection] " + getName() + " " + getType());
-        std::string job_command = "";
         if (type_ == "sp") {
+            std::string job_command = "";
             job_command += "Job_SelfPlay ";
             job_command += config::zero_training_directory + " ";
             job_command += "nn_file_name=" + config::zero_training_directory + "/model/weight_iter_" + std::to_string(shared_data_.getModelIetration()) + ".pt";
@@ -71,6 +71,7 @@ void ZeroWorkerHandler::handleReceivedMessage(const std::string& message)
             job_command += ":program_quiet=true";
             write(job_command);
         } else if (type_ == "op") {
+            write("Job_Optimization " + config::zero_training_directory);
         } else {
             close();
         }
@@ -195,8 +196,7 @@ void ZeroServer::optimization()
 {
     shared_data_.logger_.addTrainingLog("[Optimization] Start.");
 
-    std::string job_command = "Job_Optimization ";
-    job_command += config::zero_training_directory + " ";
+    std::string job_command = "";
     job_command += "weight_iter_" + std::to_string(shared_data_.getModelIetration()) + ".pkl";
     job_command += " " + std::to_string(std::max(1, iteration_ - config::zero_replay_buffer + 1));
     job_command += " " + std::to_string(iteration_);
