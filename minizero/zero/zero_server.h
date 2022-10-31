@@ -86,7 +86,7 @@ public:
     boost::shared_ptr<ZeroWorkerHandler> handleAcceptNewConnection() override { return boost::make_shared<ZeroWorkerHandler>(io_service_, shared_data_); }
     void sendInitialMessage(boost::shared_ptr<ZeroWorkerHandler> connection) override {}
 
-private:
+protected:
     void initialize();
     void selfPlay();
     void broadCastSelfPlayJob();
