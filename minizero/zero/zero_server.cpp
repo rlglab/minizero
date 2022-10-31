@@ -26,7 +26,7 @@ void ZeroLogger::createLog()
 void ZeroLogger::addLog(const std::string& log_str, std::fstream& log_file)
 {
     log_file << TimeSystem::getTimeString("[Y/m/d_H:i:s.f] ") << log_str << std::endl;
-    std::cout << TimeSystem::getTimeString("[Y/m/d_H:i:s.f] ") << log_str << std::endl;
+    std::cerr << TimeSystem::getTimeString("[Y/m/d_H:i:s.f] ") << log_str << std::endl;
 }
 
 std::string ZeroWorkerSharedData::getSelfPlayGame()
@@ -113,7 +113,7 @@ void ZeroServer::run()
 {
     initialize();
     startAccept();
-    std::cout << TimeSystem::getTimeString("[Y/m/d_H:i:s.f] ") << "Server initialize over." << std::endl;
+    std::cerr << TimeSystem::getTimeString("[Y/m/d_H:i:s.f] ") << "Server initialize over." << std::endl;
 
     for (iteration_ = config::zero_start_iteration; iteration_ <= config::zero_end_iteration; ++iteration_) {
         selfPlay();
