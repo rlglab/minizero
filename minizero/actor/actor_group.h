@@ -51,6 +51,7 @@ protected:
     virtual void handleIO();
     virtual void handleFinishedGame();
     virtual void handleCommand();
+    virtual void handleCommand(const std::string& command_prefix, const std::string& command);
 
     virtual void createSharedData() override { shared_data_ = std::make_shared<ThreadSharedData>(); }
     virtual std::shared_ptr<utils::BaseSlaveThread> newSlaveThread(int id) override { return std::make_shared<SlaveThread>(id, shared_data_); }

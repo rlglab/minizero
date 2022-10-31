@@ -168,26 +168,31 @@ void ActorGroup::handleCommand()
         }
 
         // do command
-        if (command_prefix == "reset_actors") {
-            std::cerr << "[command] " << command << std::endl;
-            for (auto& actor : getSharedData()->actors_) { actor->reset(); }
-            getSharedData()->do_cpu_job_ = true;
-        } else if (command_prefix == "load_model") {
-            std::cerr << "[command] " << command << std::endl;
-            std::vector<std::string> args = utils::stringToVector(command);
-            assert(args.size() == 2);
-            config::nn_file_name = args[1];
-            for (auto& network : getSharedData()->networks_) { network->loadModel(config::nn_file_name, network->getGPUID()); }
-        } else if (command_prefix == "start") {
-            std::cerr << "[command] " << command << std::endl;
-            running_ = true;
-        } else if (command_prefix == "stop") {
-            std::cerr << "[command] " << command << std::endl;
-            running_ = false;
-        } else if (command_prefix == "quit") {
-            std::cerr << "[command] " << command << std::endl;
-            exit(0);
-        }
+        handleCommand(command_prefix, command);
+    }
+}
+
+void ActorGroup::handleCommand(const std::string& command_prefix, const std::string& command)
+{
+    if (command_prefix == "reset_actors") {
+        std::cerr << "[command] " << command << std::endl;
+        for (auto& actor : getSharedData()->actors_) { actor->reset(); }
+        getSharedData()->do_cpu_job_ = true;
+    } else if (command_prefix == "load_model") {
+        std::cerr << "[command] " << command << std::endl;
+        std::vector<std::string> args = utils::stringToVector(command);
+        assert(args.size() == 2);
+        config::nn_file_name = args[1];
+        for (auto& network : getSharedData()->networks_) { network->loadModel(config::nn_file_name, network->getGPUID()); }
+    } else if (command_prefix == "start") {
+        std::cerr << "[command] " << command << std::endl;
+        running_ = true;
+    } else if (command_prefix == "stop") {
+        std::cerr << "[command] " << command << std::endl;
+        running_ = false;
+    } else if (command_prefix == "quit") {
+        std::cerr << "[command] " << command << std::endl;
+        exit(0);
     }
 }
 
