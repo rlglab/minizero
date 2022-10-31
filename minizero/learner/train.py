@@ -205,6 +205,9 @@ if __name__ == '__main__':
             command = input()
             if command == "keep_alive":
                 continue
+            elif command == "quit":
+                eprint(f"[command] {command}")
+                exit(0)
             eprint(f"[command] {command}")
             model_file, start_iter, end_iter = command.split()
             train(training_dir, conf_file_name, conf, model_file.replace('"', ''), int(start_iter), int(end_iter))

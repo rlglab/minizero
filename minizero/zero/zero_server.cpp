@@ -228,9 +228,7 @@ void ZeroServer::stopJob(const std::string& job_type)
 void ZeroServer::close()
 {
     boost::lock_guard<boost::mutex> lock(worker_mutex_);
-    for (auto worker : connections_) {
-        if (worker->getType() == "sp") { worker->write("quit"); }
-    }
+    for (auto worker : connections_) { worker->write("quit"); }
     exit(0);
 }
 

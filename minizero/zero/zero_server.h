@@ -82,15 +82,15 @@ public:
         startKeepAlive();
     }
 
-    void run();
+    virtual void run();
     boost::shared_ptr<ZeroWorkerHandler> handleAcceptNewConnection() override { return boost::make_shared<ZeroWorkerHandler>(io_service_, shared_data_); }
     void sendInitialMessage(boost::shared_ptr<ZeroWorkerHandler> connection) override {}
 
 protected:
-    void initialize();
-    void selfPlay();
-    void broadCastSelfPlayJob();
-    void optimization();
+    virtual void initialize();
+    virtual void selfPlay();
+    virtual void broadCastSelfPlayJob();
+    virtual void optimization();
     void stopJob(const std::string& job_type);
     void close();
     void keepAlive();
