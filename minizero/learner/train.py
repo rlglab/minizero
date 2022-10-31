@@ -121,7 +121,7 @@ def calculate_accuracy(output, label, batch_size):
     return (max_output == max_label).sum() / batch_size
 
 
-def train(model_file, start_iter, end_iter):
+def train(training_dir, conf_file_name, conf, model_file, start_iter, end_iter):
     training_step, network, device, optimizer, scheduler = load_model(training_dir, model_file, conf)
     network = nn.DataParallel(network)
 
@@ -207,6 +207,6 @@ if __name__ == '__main__':
                 continue
             eprint(f"[command] {command}")
             model_file, start_iter, end_iter = command.split()
-            train(model_file.replace('"', ''), int(start_iter), int(end_iter))
+            train(training_dir, conf_file_name, conf, model_file.replace('"', ''), int(start_iter), int(end_iter))
         except (KeyboardInterrupt, EOFError) as e:
             break
