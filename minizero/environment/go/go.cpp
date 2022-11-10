@@ -92,6 +92,7 @@ GoEnv& GoEnv::operator=(const GoEnv& env)
     blocks_ = env.blocks_;
     actions_ = env.actions_;
     stone_bitboard_history_ = env.stone_bitboard_history_;
+    hashkey_history_ = env.hashkey_history_;
     hash_table_ = env.hash_table_;
 
     // reset grid's block and area pointer
@@ -129,6 +130,7 @@ void GoEnv::reset()
     }
     actions_.clear();
     stone_bitboard_history_.clear();
+    hashkey_history_.clear();
     hash_table_.clear();
 }
 
@@ -146,6 +148,7 @@ bool GoEnv::act(const GoAction& action)
 
     if (isPassAction(action)) {
         stone_bitboard_history_.push_back(stone_bitboard_);
+        hashkey_history_.push_back(hash_key_);
         hash_table_.insert(hash_key_);
         return true;
     }
@@ -180,6 +183,7 @@ bool GoEnv::act(const GoAction& action)
 
     stone_bitboard_.get(player) |= new_block->getGridBitboard();
     stone_bitboard_history_.push_back(stone_bitboard_);
+    hashkey_history_.push_back(hash_key_);
     hash_table_.insert(hash_key_);
 
     // update area & benson

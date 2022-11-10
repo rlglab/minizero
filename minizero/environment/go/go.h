@@ -75,6 +75,8 @@ public:
     inline const GoArea& getArea(int id) const { return areas_[id]; }
     inline const GoBlock& getBlock(int id) const { return blocks_[id]; }
     inline bool isPassAction(const GoAction& action) const { return (action.getActionID() == board_size_ * board_size_); }
+    inline const std::vector<GoHashKey>& getHashKeyHistory() const { return hashkey_history_; }
+    inline const std::unordered_set<GoHashKey>& getHashTable() const { return hash_table_; }
 
 protected:
     void initialize();
@@ -115,6 +117,7 @@ protected:
     std::vector<GoArea> areas_;
     std::vector<GoBlock> blocks_;
     std::vector<GamePair<GoBitboard>> stone_bitboard_history_;
+    std::vector<GoHashKey> hashkey_history_;
     std::unordered_set<GoHashKey> hash_table_;
 };
 
