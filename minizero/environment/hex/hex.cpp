@@ -8,7 +8,7 @@ namespace minizero::env::hex {
 
 using namespace minizero::utils;
 
-HexAction::HexAction(const std::vector<std::string>& action_string_args)
+HexAction::HexAction(const std::vector<std::string>& action_string_args, int board_size /* = minizero::config::env_hex_board_size */)
 {
     // play b d5 => {"b", "d5"}
     if (action_string_args.size() != 2) {
@@ -22,7 +22,7 @@ HexAction::HexAction(const std::vector<std::string>& action_string_args)
             "Number of letters in action must be exactly 2. For example \"d5\"."} +
             " Length of argument was " + std::to_string(action_string_args[1].size());
     }
-    action_id_ = SGFLoader::boardCoordinateStringToActionID(action_string_args[1], kHexBoardSize);
+    action_id_ = SGFLoader::boardCoordinateStringToActionID(action_string_args[1], board_size);
 
     // Player.
     assert((action_string_args[0].size() == 1) && "First argument must be of size 1.");
@@ -36,7 +36,7 @@ void HexEnv::reset()
     winner_ = Player::kPlayerNone;
     turn_ = Player::kPlayer1;
     actions_.clear();
-    board_.resize(kHexBoardSize * kHexBoardSize);
+    board_.resize(board_size_ * board_size_);
     fill(board_.begin(), board_.end(), Cell{Player::kPlayerNone, (Flag)0});
 }
 
@@ -49,15 +49,15 @@ bool HexEnv::act(const HexAction& action)
     Cell* cc{&board_[actionId]};
     cc->player = action.getPlayer();
     if (action.getPlayer() == Player::kPlayer1) {
-        if (actionId % kHexBoardSize == 0)
-            cc->flags = Flag::BLUE_LEFT;
-        if (actionId % kHexBoardSize == kHexBoardSize - 1)
-            cc->flags = Flag::BLUE_RIGHT;
+        if (actionId % board_size_ == 0)
+            cc->flags = Flag::BLACK_LEFT;
+        if (actionId % board_size_ == board_size_ - 1)
+            cc->flags = Flag::BLACK_RIGHT;
     } else {
-        if (actionId < kHexBoardSize)
-            cc->flags = Flag::RED_BOTTOM;
-        if (actionId >= kHexBoardSize * kHexBoardSize - kHexBoardSize)
-            cc->flags = Flag::RED_TOP;
+        if (actionId < board_size_)
+            cc->flags = Flag::WHITE_BOTTOM;
+        if (actionId >= board_size_ * board_size_ - board_size_)
+            cc->flags = Flag::WHITE_TOP;
     }
     winner_ = updateWinner(actionId);
 
@@ -74,7 +74,7 @@ bool HexEnv::act(const std::vector<std::string>& action_string_args)
 std::vector<HexAction> HexEnv::getLegalActions() const
 {
     std::vector<HexAction> actions;
-    for (int pos = 0; pos < kHexBoardSize * kHexBoardSize; ++pos) {
+    for (int pos = 0; pos < board_size_ * board_size_; ++pos) {
         HexAction action(pos, turn_);
         if (!isLegalAction(action)) { continue; }
         actions.push_back(action);
@@ -84,7 +84,7 @@ std::vector<HexAction> HexEnv::getLegalActions() const
 
 bool HexEnv::isLegalAction(const HexAction& action) const
 {
-    assert(action.getActionID() >= 0 && action.getActionID() < kHexBoardSize * kHexBoardSize);
+    assert(action.getActionID() >= 0 && action.getActionID() < board_size_ * board_size_);
     assert(action.getPlayer() == Player::kPlayer1 || action.getPlayer() == Player::kPlayer2);
     return action.getPlayer() == turn_ && board_[action.getActionID()].player == Player::kPlayerNone;
 }
@@ -115,12 +115,12 @@ std::vector<float> HexEnv::getFeatures(utils::Rotation rotation /* = utils::Rota
     */
     std::vector<float> vFeatures;
     for (int channel = 0; channel < 4; ++channel) {
-        for (int pos = 0; pos < kHexBoardSize * kHexBoardSize; ++pos) {
+        for (int pos = 0; pos < board_size_ * board_size_; ++pos) {
             int rotation_pos = pos;
             if (channel == 0) {
                 vFeatures.push_back((board_[rotation_pos].player == turn_ ? 1.0f : 0.0f));
             } else if (channel == 1) {
-                vFeatures.push_back((board_[rotation_pos].player == getNextPlayer(turn_, kHexBoardSize) ? 1.0f : 0.0f));
+                vFeatures.push_back((board_[rotation_pos].player == getNextPlayer(turn_, board_size_) ? 1.0f : 0.0f));
             } else if (channel == 2) {
                 vFeatures.push_back((turn_ == Player::kPlayer1 ? 1.0f : 0.0f));
             } else if (channel == 3) {
@@ -133,7 +133,7 @@ std::vector<float> HexEnv::getFeatures(utils::Rotation rotation /* = utils::Rota
 
 std::vector<float> HexEnv::getActionFeatures(const HexAction& action, utils::Rotation rotation /* = utils::Rotation::kRotationNone */) const
 {
-    std::vector<float> action_features(kHexBoardSize * kHexBoardSize, 0.0f);
+    std::vector<float> action_features(board_size_ * board_size_, 0.0f);
     action_features[action.getActionID()] = 1.0f;
     return action_features;
 }
@@ -152,19 +152,19 @@ B 1  0-R-B-B-0-0-0 B
     */
     std::vector<char> rr{};
 
-    for (size_t ii = 0; ii < kHexBoardSize - 1 + 5; ii++) {
+    for (size_t ii = 0; ii < (size_t)board_size_ - 1 + 5; ii++) {
         rr.push_back(' ');
     }
     rr.push_back('R');
     rr.push_back('\n');
-    for (size_t ii = 0; ii < kHexBoardSize; ii++) {
-        if (ii == kHexBoardSize / 2) {
+    for (size_t ii = 0; ii < (size_t)board_size_; ii++) {
+        if (ii == (size_t)board_size_ / 2) {
             rr.push_back('B');
         } else {
             rr.push_back(' ');
         }
         rr.push_back(' ');
-        std::string rowNum{std::to_string(kHexBoardSize - ii)};
+        std::string rowNum{std::to_string((size_t)board_size_ - ii)};
         if (rowNum.size() == 1) {
             rr.push_back(' ');
             rr.push_back(rowNum.at(0));
@@ -173,8 +173,8 @@ B 1  0-R-B-B-0-0-0 B
             rr.push_back(rowNum.at(1));
         }
         rr.push_back(' ');
-        for (size_t jj = 0; jj < kHexBoardSize; jj++) {
-            Cell cc{board_[jj + kHexBoardSize * (kHexBoardSize - ii - 1)]};
+        for (size_t jj = 0; jj < (size_t)board_size_; jj++) {
+            Cell cc{board_[jj + (size_t)board_size_ * ((size_t)board_size_ - ii - 1)]};
             if (cc.player == Player::kPlayer1) {
                 std::string colored{minizero::utils::getColorText(
                     "B", minizero::utils::TextType::kBold, minizero::utils::TextColor::kBlack,
@@ -190,22 +190,22 @@ B 1  0-R-B-B-0-0-0 B
             } else {
                 rr.push_back('0');
             }
-            if (jj < kHexBoardSize - 1) {
+            if (jj < (size_t)board_size_ - 1) {
                 rr.push_back('-');
             }
         }
-        if (ii == kHexBoardSize / 2) {
+        if (ii == (size_t)board_size_ / 2) {
             rr.push_back(' ');
             rr.push_back('B');
         }
         rr.push_back('\n');
-        if (ii == kHexBoardSize - 1) {
+        if (ii == (size_t)board_size_ - 1) {
             break;
         }
         for (size_t jj = 0; jj < 5; jj++) {
             rr.push_back(' ');
         }
-        for (size_t jj = 0; jj < kHexBoardSize - 1; jj++) {
+        for (size_t jj = 0; jj < (size_t)board_size_ - 1; jj++) {
             rr.push_back('|');
             rr.push_back('/');
         }
@@ -215,12 +215,12 @@ B 1  0-R-B-B-0-0-0 B
     for (size_t ii = 0; ii < 5; ii++) {
         rr.push_back(' ');
     }
-    for (size_t ii = 0; ii < kHexBoardSize; ii++) {
+    for (size_t ii = 0; ii < (size_t)board_size_; ii++) {
         rr.push_back(ii + 97 + (ii > 7 ? 1 : 0));
         rr.push_back(' ');
     }
     rr.push_back('\n');
-    for (size_t ii = 0; ii < kHexBoardSize - 1 + 5; ii++) {
+    for (size_t ii = 0; ii < (size_t)board_size_ - 1 + 5; ii++) {
         rr.push_back(' ');
     }
     rr.push_back('R');
@@ -244,19 +244,19 @@ B 1   0 - R - B - B - 0 - 0 - 0 B
     */
     std::vector<char> rr{};
 
-    for (size_t ii = 0; ii < kHexBoardSize - 1 + 5; ii++) {
+    for (size_t ii = 0; ii < (size_t)board_size_ - 1 + 5; ii++) {
         rr.push_back(' ');
     }
     rr.push_back('R');
     rr.push_back('\n');
-    for (size_t ii = 0; ii < kHexBoardSize; ii++) {
-        if (ii == kHexBoardSize / 2) {
+    for (size_t ii = 0; ii < (size_t)board_size_; ii++) {
+        if (ii == (size_t)board_size_ / 2) {
             rr.push_back('B');
         } else {
             rr.push_back(' ');
         }
         rr.push_back(' ');
-        std::string rowNum{std::to_string(kHexBoardSize - ii)};
+        std::string rowNum{std::to_string((size_t)board_size_ - ii)};
         if (rowNum.size() == 1) {
             rr.push_back(' ');
             rr.push_back(rowNum.at(0));
@@ -265,9 +265,9 @@ B 1   0 - R - B - B - 0 - 0 - 0 B
             rr.push_back(rowNum.at(1));
         }
         rr.push_back(' ');
-        for (size_t jj = 0; jj < kHexBoardSize; jj++) {
-            Cell cc{board_[jj + kHexBoardSize * (kHexBoardSize - ii - 1)]};
-            if ((int)(cc.flags & Flag::BLUE_LEFT) > 0 || (int)(cc.flags & Flag::RED_BOTTOM) > 0) {
+        for (size_t jj = 0; jj < (size_t)board_size_; jj++) {
+            Cell cc{board_[jj + (size_t)board_size_ * ((size_t)board_size_ - ii - 1)]};
+            if ((int)(cc.flags & Flag::BLACK_LEFT) > 0 || (int)(cc.flags & Flag::WHITE_BOTTOM) > 0) {
                 rr.push_back('*');
             } else {
                 rr.push_back(' ');
@@ -279,27 +279,27 @@ B 1   0 - R - B - B - 0 - 0 - 0 B
             } else {
                 rr.push_back('0');
             }
-            if ((int)(cc.flags & Flag::BLUE_RIGHT) > 0 || (int)(cc.flags & Flag::RED_TOP) > 0) {
+            if ((int)(cc.flags & Flag::BLACK_RIGHT) > 0 || (int)(cc.flags & Flag::WHITE_TOP) > 0) {
                 rr.push_back('*');
             } else {
                 rr.push_back(' ');
             }
-            if (jj < kHexBoardSize - 1) {
+            if (jj < (size_t)board_size_ - 1) {
                 rr.push_back('-');
             }
         }
-        if (ii == kHexBoardSize / 2) {
+        if (ii == (size_t)board_size_ / 2) {
             rr.push_back(' ');
             rr.push_back('B');
         }
         rr.push_back('\n');
-        if (ii == kHexBoardSize - 1) {
+        if (ii == (size_t)board_size_ - 1) {
             break;
         }
         for (size_t jj = 0; jj < 5; jj++) {
             rr.push_back(' ');
         }
-        for (size_t jj = 0; jj < kHexBoardSize - 1; jj++) {
+        for (size_t jj = 0; jj < (size_t)board_size_ - 1; jj++) {
             rr.push_back(' ');
             rr.push_back('|');
             rr.push_back(' ');
@@ -312,14 +312,14 @@ B 1   0 - R - B - B - 0 - 0 - 0 B
     for (size_t ii = 0; ii < 5; ii++) {
         rr.push_back(' ');
     }
-    for (size_t ii = 0; ii < kHexBoardSize; ii++) {
+    for (size_t ii = 0; ii < (size_t)board_size_; ii++) {
         rr.push_back(ii + 97 + (ii > 7 ? 1 : 0));
         rr.push_back(' ');
         rr.push_back(' ');
         rr.push_back(' ');
     }
     rr.push_back('\n');
-    for (size_t ii = 0; ii < kHexBoardSize - 1 + 5; ii++) {
+    for (size_t ii = 0; ii < (size_t)board_size_ - 1 + 5; ii++) {
         rr.push_back(' ');
     }
     rr.push_back('R');
@@ -327,6 +327,21 @@ B 1   0 - R - B - B - 0 - 0 - 0 B
 
     std::string ss(rr.begin(), rr.end());
     return ss;
+}
+
+std::vector<int> HexEnv::getWinningStonesPosition() const
+{
+    if (winner_ == Player::kPlayerNone) { return {}; }
+    std::vector<int> winning_stones{};
+    for (size_t ii = 0; ii < board_size_ * board_size_; ii++) {
+        if ((winner_ == Player::kPlayer1 && ((int)(board_[ii].flags & Flag::BLACK_LEFT) > 0) &&
+             ((int)(board_[ii].flags & Flag::BLACK_RIGHT) > 0)) ||
+            (winner_ == Player::kPlayer2 && ((int)(board_[ii].flags & Flag::WHITE_BOTTOM) > 0) &&
+             ((int)(board_[ii].flags & Flag::WHITE_TOP) > 0))) {
+            winning_stones.push_back(ii);
+        }
+    }
+    return winning_stones;
 }
 
 Player HexEnv::updateWinner(int actionID)
@@ -341,20 +356,20 @@ Player HexEnv::updateWinner(int actionID)
     */
 
     // Get neighbor cells.
-    constexpr int neighboorActionIdOffsets[6] = {
-        -1 - kHexBoardSize, 0 - kHexBoardSize,
-        -1 - 0 * kHexBoardSize, 1 + 0 * kHexBoardSize,
-        0 + kHexBoardSize, 1 + kHexBoardSize};
+    int neighboorActionIdOffsets[6] = {
+        -1 - board_size_, 0 - board_size_,
+        -1 - 0 * board_size_, 1 + 0 * board_size_,
+        0 + board_size_, 1 + board_size_};
     std::vector<int> neighboorCellsActions{};
     for (size_t ii = 0; ii < 6; ii++) {
         // Outside right/left walls?
-        int xx{actionID % kHexBoardSize};
+        int xx{actionID % board_size_};
         if (xx == 0 && (ii == 0 || ii == 2)) continue;
-        if (xx == kHexBoardSize - 1 && (ii == 3 || ii == 5)) continue;
+        if (xx == board_size_ - 1 && (ii == 3 || ii == 5)) continue;
 
         // Outside top/bottom walls?
         int neighboorActionId = actionID + neighboorActionIdOffsets[ii];
-        if (neighboorActionId < 0 || neighboorActionId >= kHexBoardSize * kHexBoardSize) continue;
+        if (neighboorActionId < 0 || neighboorActionId >= board_size_ * board_size_) continue;
 
         //
         neighboorCellsActions.push_back(neighboorActionId);
@@ -379,10 +394,10 @@ Player HexEnv::updateWinner(int actionID)
     }
 
     // Check victory.
-    if ((int)(myCell->flags & Flag::BLUE_LEFT) > 0 && (int)(myCell->flags & Flag::BLUE_RIGHT) > 0) {
+    if ((int)(myCell->flags & Flag::BLACK_LEFT) > 0 && (int)(myCell->flags & Flag::BLACK_RIGHT) > 0) {
         return Player::kPlayer1;
     }
-    if ((int)(myCell->flags & Flag::RED_BOTTOM) > 0 && (int)(myCell->flags & Flag::RED_TOP) > 0) {
+    if ((int)(myCell->flags & Flag::WHITE_BOTTOM) > 0 && (int)(myCell->flags & Flag::WHITE_TOP) > 0) {
         return Player::kPlayer2;
     }
 

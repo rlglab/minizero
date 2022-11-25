@@ -72,6 +72,7 @@ extern int env_go_board_size;
 extern float env_go_komi;
 extern std::string env_go_ko_rule;
 extern int env_othello_board_size;
+extern int env_hex_board_size;
 
 void setConfiguration(ConfigureLoader& cl);
 

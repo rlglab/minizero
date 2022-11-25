@@ -1,29 +1,30 @@
 #pragma once
 
 #include "base_env.h"
+#include "configuration.h"
 #include "sgf_loader.h"
 
 namespace minizero::env::hex {
 
 const std::string kHexName = "hex";
 const int kHexNumPlayer = 2;
-const int kHexBoardSize = 11;
+const int kMaxHexBoardSize = 19;
 
 class HexAction : public BaseAction {
 public:
     HexAction() : BaseAction() {}
     HexAction(int action_id, Player player) : BaseAction(action_id, player) {}
-    HexAction(const std::vector<std::string>& action_string_args);
+    HexAction(const std::vector<std::string>& action_string_args, int board_size = minizero::config::env_hex_board_size);
 
     inline Player nextPlayer() const override { return getNextPlayer(player_, kHexNumPlayer); }
-    inline std::string toConsoleString() const override { return minizero::utils::SGFLoader::actionIDToBoardCoordinateString(getActionID(), kHexBoardSize); }
+    inline std::string toConsoleString() const override { return minizero::utils::SGFLoader::actionIDToBoardCoordinateString(getActionID(), minizero::config::env_hex_board_size); }
 };
 
 enum class Flag {
-    BLUE_LEFT = 0x1,
-    BLUE_RIGHT = 0x2,
-    RED_BOTTOM = 0x4,
-    RED_TOP = 0x10
+    BLACK_LEFT = 0x1,
+    BLACK_RIGHT = 0x2,
+    WHITE_BOTTOM = 0x4,
+    WHITE_TOP = 0x10
 };
 inline Flag operator|(Flag a, Flag b)
 {
@@ -40,7 +41,12 @@ struct Cell {
 
 class HexEnv : public BaseEnv<HexAction> {
 public:
-    HexEnv() {}
+    HexEnv(int board_size = minizero::config::env_hex_board_size)
+        : board_size_(board_size)
+    {
+        assert(board_size_ > 0 && board_size_ <= kMaxHexBoardSize);
+        reset();
+    }
 
     void reset() override;
     bool act(const HexAction& action) override;
@@ -56,17 +62,21 @@ public:
     std::string toStringDebug() const;
     inline std::string name() const override { return kHexName; }
     inline int getNumPlayer() const override { return kHexNumPlayer; }
+    inline Player getWinner() const { return winner_; }
+    inline const std::vector<Cell>& getBoard() const { return board_; }
+    std::vector<int> getWinningStonesPosition() const;
 
 private:
     Player updateWinner(int actionID);
 
+    int board_size_;
     Player winner_;
     std::vector<Cell> board_;
 };
 
 class HexEnvLoader : public BaseEnvLoader<HexAction, HexEnv> {
 public:
-    inline int getPolicySize() const override { return kHexBoardSize * kHexBoardSize; }
+    inline int getPolicySize() const override { return minizero::config::env_hex_board_size * minizero::config::env_hex_board_size; }
     inline int getRotatePosition(int position, utils::Rotation rotation) const override { return position; }
     inline std::string getEnvName() const override { return kHexName; }
 };

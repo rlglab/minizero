@@ -70,6 +70,7 @@ int env_go_board_size = 19;
 float env_go_komi = 7.5;
 std::string env_go_ko_rule = "positional";
 int env_othello_board_size = 8;
+int env_hex_board_size = 11;
 
 void setConfiguration(ConfigureLoader& cl)
 {
@@ -146,6 +147,8 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("env_killallgo_ko_rule", env_go_ko_rule, "positional/situational", "Environment");
 #elif OTHELLO
     cl.addParameter("env_othello_board_size", env_othello_board_size, "", "Environment");
+#elif HEX
+    cl.addParameter("env_hex_board_size", env_hex_board_size, "", "Environment");
 #endif
 }
 
