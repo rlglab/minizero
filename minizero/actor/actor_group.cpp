@@ -153,7 +153,7 @@ void ActorGroup::handleFinishedGame()
 
 void ActorGroup::handleCommand()
 {
-    if (commands_.empty()) { return; }
+    if (commands_.empty() || !getSharedData()->do_cpu_job_) { return; }
 
     std::lock_guard<std::mutex> lock(getSharedData()->mutex_);
     while (!commands_.empty()) {
