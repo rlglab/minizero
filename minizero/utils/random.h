@@ -25,7 +25,11 @@ public:
     {
         std::extreme_value_distribution<float> gumbel_distribution(0.0, 1.0);
         std::vector<float> gumbel;
-        for (int i = 0; i < size; ++i) { gumbel.emplace_back(gumbel_distribution(generator_)); }
+        for (int i = 0; i < size; ++i) {
+            float value = gumbel_distribution(generator_);
+            while (std::isinf(value)) { value = gumbel_distribution(generator_); }
+            gumbel.emplace_back(value);
+        }
         return gumbel;
     }
 
