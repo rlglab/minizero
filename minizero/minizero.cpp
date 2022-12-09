@@ -2,6 +2,7 @@
 #include "configuration.h"
 #include "console.h"
 #include "environment.h"
+#include "random.h"
 #include "zero_server.h"
 #include <torch/script.h>
 #include <vector>
@@ -131,6 +132,7 @@ int main(int argc, char* argv[])
     }
 
     if (!readConfiguration(cl, sConfigFile, sConfigString)) { return -1; }
+    utils::Random::seed(config::program_auto_seed ? static_cast<int>(time(NULL)) : config::program_seed); // setup random seed
 
     if (sMode == "console") {
         runConsole();
