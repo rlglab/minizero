@@ -3,30 +3,35 @@
 #include "base_env.h"
 #include "configuration.h"
 #include <deque>
+#include <unordered_set>
 
 namespace minizero::env::atari {
 
 const int kAtariNumPlayer = 1;
 const int kAtariActionSize = 18;
 const std::vector<std::string> kAtariActionName = {
-    "NOOP",
-    "FIRE",
-    "UP",
-    "RIGHT",
-    "LEFT",
-    "DOWN",
-    "UPRIGHT",
-    "UPLEFT",
-    "DOWNRIGHT",
-    "DOWNLEFT",
-    "UPFIRE",
-    "RIGHTFIRE",
-    "LEFTFIRE",
-    "DOWNFIRE",
-    "UPRIGHTFIRE",
-    "UPLEFTFIRE",
-    "DOWNRIGHTFIRE",
-    "DOWNLEFTFIRE",
+    "NOOP",          // 0
+    "FIRE",          // 1
+    "UP",            // 2
+    "RIGHT",         // 3
+    "LEFT",          // 4
+    "DOWN",          // 5
+    "UPRIGHT",       // 6
+    "UPLEFT",        // 7
+    "DOWNRIGHT",     // 8
+    "DOWNLEFT",      // 9
+    "UPFIRE",        // 10
+    "RIGHTFIRE",     // 11
+    "LEFTFIRE",      // 12
+    "DOWNFIRE",      // 13
+    "UPRIGHTFIRE",   // 14
+    "UPLEFTFIRE",    // 15
+    "DOWNRIGHTFIRE", // 16
+    "DOWNLEFTFIRE",  // 17
+};
+const std::unordered_map<std::string, std::unordered_set<int>> kAtariActionMap = {
+    {"ALE/MsPacman-v5", {0, 2, 3, 4, 5, 6, 7, 8, 9}},
+    {"ALE/Breakout-v5", {0, 1, 3, 4}},
 };
 
 class AtariAction : public BaseAction {
@@ -68,7 +73,7 @@ public:
 
     bool act(const std::vector<std::string>& action_string_args) override { return act(AtariAction(action_string_args)); }
     std::vector<AtariAction> getLegalActions() const override { return {}; }
-    bool isLegalAction(const AtariAction& action) const override { return true; }
+    bool isLegalAction(const AtariAction& action) const override { return kAtariActionMap.at(name()).count(action.getActionID()); }
     bool isTerminal() const override { return false; }
     float getEvalScore(bool is_resign = false) const override { return 0.0f; }
 

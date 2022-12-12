@@ -44,7 +44,7 @@ public:
 
         std::vector<torch::jit::IValue> dummy;
         num_action_feature_channels_ = network_.get_method("get_num_action_feature_channels")(dummy).toInt();
-        discrete_value_size_ = (network_type_name_ == "muzero_reward" ? network_.get_method("get_discrete_value_size")(dummy).toInt() : -1);
+        discrete_value_size_ = (getNetworkTypeName() == "muzero_reward" ? network_.get_method("get_discrete_value_size")(dummy).toInt() : -1);
         initial_input_batch_size_ = 0;
         recurrent_input_batch_size_ = 0;
     }
@@ -54,7 +54,7 @@ public:
         std::ostringstream oss;
         oss << Network::toString();
         oss << "Number of action feature channels: " << num_action_feature_channels_ << std::endl;
-        if (network_type_name_ == "muzero_reward") { oss << "Discrete value size: " << discrete_value_size_ << std::endl; }
+        if (getNetworkTypeName() == "muzero_reward") { oss << "Discrete value size: " << discrete_value_size_ << std::endl; }
         return oss.str();
     }
 
@@ -131,8 +131,8 @@ private:
         auto hidden_state_output = forward_result.at("hidden_state").toTensor().to(at::kCPU);
         assert(policy_output.numel() == batch_size * getActionSize());
         assert(policy_logits_output.numel() == batch_size * getActionSize());
-        assert(value_output.numel() == batch_size);
-        assert(!forward_result.contains("reward") || (forward_result.contains("reward") && reward_output.numel() == batch_size));
+        assert((!getNetworkTypeName() == "muzero_reward" && value_output.numel() == batch_size) || (getNetworkTypeName() == "muzero_reward" && value_output.numel() == batch_size * getDiscreteValueSize()));
+        assert(!forward_result.contains("reward") || (forward_result.contains("reward") && reward_output.numel() == batch_size * getDiscreteValueSize()));
         assert(hidden_state_output.numel() == batch_size * getNumHiddenChannels() * getHiddenChannelHeight() * getHiddenChannelWidth());
 
         const int policy_size = getActionSize();
@@ -141,8 +141,7 @@ private:
         for (int i = 0; i < batch_size; ++i) {
             network_outputs.emplace_back(std::make_shared<MuZeroNetworkOutput>(policy_size, hidden_state_size));
             auto muzero_network_output = std::static_pointer_cast<MuZeroNetworkOutput>(network_outputs.back());
-            muzero_network_output->value_ = value_output[i].item<float>();
-            if (forward_result.contains("reward")) { muzero_network_output->reward_ = reward_output[i].item<float>(); }
+
             std::copy(policy_output.data_ptr<float>() + i * policy_size,
                       policy_output.data_ptr<float>() + (i + 1) * policy_size,
                       muzero_network_output->policy_.begin());
@@ -152,9 +151,35 @@ private:
             std::copy(hidden_state_output.data_ptr<float>() + i * hidden_state_size,
                       hidden_state_output.data_ptr<float>() + (i + 1) * hidden_state_size,
                       muzero_network_output->hidden_state_.begin());
+
+            if (getNetworkTypeName() == "muzero_reward") {
+                int start_value = -getDiscreteValueSize() / 2;
+                muzero_network_output->value_ = std::accumulate(value_output.data_ptr<float>() + i * getDiscreteValueSize(),
+                                                                value_output.data_ptr<float>() + (i + 1) * getDiscreteValueSize(),
+                                                                0.0f,
+                                                                [&start_value](const float& sum, const float& value) { return sum + value * start_value++; });
+                muzero_network_output->value_ = invert_value(muzero_network_output->value_);
+                if (forward_result.contains("reward")) {
+                    start_value = -getDiscreteValueSize() / 2;
+                    muzero_network_output->reward_ = std::accumulate(reward_output.data_ptr<float>() + i * getDiscreteValueSize(),
+                                                                     reward_output.data_ptr<float>() + (i + 1) * getDiscreteValueSize(),
+                                                                     0.0f,
+                                                                     [&start_value](const float& sum, const float& value) { return sum + value * start_value++; });
+                    muzero_network_output->reward_ = invert_value(muzero_network_output->reward_);
+                }
+            } else {
+                muzero_network_output->value_ = value_output[i].item<float>();
+            }
         }
 
         return network_outputs;
+    }
+
+    float invert_value(float value)
+    {
+        const float epsilon = 0.001;
+        const float sign_value = (value > 0.0f ? 1.0f : (value == 0.0f ? 0.0f : -1.0f));
+        return sign_value * (powf((sqrt(1 + 4 * epsilon * (fabs(value) + 1 + epsilon)) - 1) / (2 * epsilon), 2.0f) - 1);
     }
 
     int num_action_feature_channels_;
