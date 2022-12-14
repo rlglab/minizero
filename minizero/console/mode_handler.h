@@ -9,6 +9,7 @@ namespace minizero::console {
 class ModeHandler {
 public:
     ModeHandler();
+    virtual ~ModeHandler() = default;
 
     void run(int argc, char* argv[]);
 
