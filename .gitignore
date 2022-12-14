@@ -4,6 +4,7 @@ CMakeFiles/
 CMakeCache.txt
 Makefile
 detect_cuda_compute_capabilities.cpp
+detect_cuda_compute_capabilities.cu
 detect_cuda_version.cc
 
 # execute and library file
