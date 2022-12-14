@@ -8,5 +8,7 @@ target_link_libraries(
     config
     environment
     network
+    utils
+    zero
     ${TORCH_LIBRARIES}
 )
