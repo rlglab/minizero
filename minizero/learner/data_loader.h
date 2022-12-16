@@ -8,8 +8,6 @@
 
 namespace minizero::learner {
 
-using namespace minizero;
-
 class AlphaZeroData {
 public:
     std::vector<float> features_;
@@ -36,7 +34,7 @@ public:
     inline void seed(int random_seed) { utils::Random::seed(random_seed); }
     inline int getDataSize() const { return env_loaders_.back().second; }
 
-private:
+protected:
     std::pair<int, int> getEnvIDAndPosition(int index) const;
     std::vector<float> getPolicyDistribution(const EnvironmentLoader& env_loader, int pos, utils::Rotation rotation = utils::Rotation::kRotationNone);
 
