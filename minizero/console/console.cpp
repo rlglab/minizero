@@ -16,6 +16,7 @@ Console::Console()
     : network_(nullptr),
       actor_(nullptr)
 {
+    RegisterFunction("gogui-analyze_commands", this, &Console::cmdGoguiAnalyzeCommands);
     RegisterFunction("list_commands", this, &Console::cmdListCommands);
     RegisterFunction("name", this, &Console::cmdName);
     RegisterFunction("version", this, &Console::cmdVersion);
@@ -29,6 +30,8 @@ Console::Console()
     RegisterFunction("final_score", this, &Console::cmdFinalScore);
     RegisterFunction("pv", this, &Console::cmdPV);
     RegisterFunction("loadmodel", this, &Console::cmdLoadModel);
+    RegisterFunction("policyGUI", this, &Console::policyGUI);
+    RegisterFunction("value", this, &Console::value);
 }
 
 void Console::executeCommand(std::string command)
@@ -55,6 +58,56 @@ void Console::initialize()
     actor_ = actor::createActor(tree_node_size, network_);
 }
 
+void Console::cmdGoguiAnalyzeCommands(const std::vector<std::string>& args)
+{
+    if (!checkArgument(args, 1, 1)) { return; }
+    std::string registered_cmd = "sboard/policy/policyGUI\n";
+    registered_cmd += "string/value/value\n";
+    reply(console::ConsoleResponse::kSuccess, registered_cmd);
+}
+
+void Console::value(const std::vector<std::string>& args)
+{
+    if (!checkArgument(args, 1, 1)) { return; }
+    std::ostringstream oss;
+    float output_value;
+    std::vector<float> output_policy;
+    calculatePolicyValue(output_policy, output_value);
+    oss << "[value]  " << output_value << std::endl;
+    reply(ConsoleResponse::kSuccess, oss.str());
+}
+
+void Console::policyGUI(const std::vector<std::string>& args)
+{
+    if (!checkArgument(args, 1, 1)) { return; }
+    std::ostringstream oss;
+    const Environment& env_transition = actor_->getEnvironment();
+    int board_size = getBoardSize();
+    if (board_size == 0) {
+        reply(ConsoleResponse::kFail, "getBoardSize error");
+        return;
+    }
+    float output_value;
+    std::vector<float> output_policy;
+    calculatePolicyValue(output_policy, output_value);
+    for (size_t action_id = 0; action_id < output_policy.size(); ++action_id) {
+        Action action(action_id, env_transition.getTurn());
+        if (!env_transition.isLegalAction(action)) {
+            output_policy[action_id] = 0;
+            continue;
+        }
+        output_policy[action_id] *= 100;
+    }
+    static const std::string EMPTY = "\"\"";
+    for (int row = board_size - 1; row >= 0; row--) {
+        for (int col = 0; col < board_size; col++) {
+            (output_policy[row * board_size + col] == 0) ? oss << EMPTY << ' ' : oss << std::to_string(output_policy[row * board_size + col]).substr(0, 4) << "% ";
+        }
+        oss << std::endl;
+    }
+    oss << std::endl;
+    reply(ConsoleResponse::kSuccess, oss.str());
+}
 void Console::cmdLoadModel(const std::vector<std::string>& args)
 {
     if (!checkArgument(args, 2, 2)) { return; }
@@ -63,12 +116,8 @@ void Console::cmdLoadModel(const std::vector<std::string>& args)
     reply(ConsoleResponse::kSuccess, "");
 }
 
-void Console::cmdPV(const std::vector<std::string>& args)
+void Console::calculatePolicyValue(std::vector<float>& output_policy, float& output_value)
 {
-    if (!checkArgument(args, 1, 1)) { return; }
-    float output_value;
-    std::vector<std::pair<std::string, float>> ouput_policy_vector;
-    std::vector<float> output_policy;
     if (network_->getNetworkTypeName() == "alphazero") {
         std::shared_ptr<network::AlphaZeroNetwork> alphazero_network = std::static_pointer_cast<network::AlphaZeroNetwork>(network_);
         int index = alphazero_network->pushBack(actor_->getEnvironment().getFeatures());
@@ -85,20 +134,31 @@ void Console::cmdPV(const std::vector<std::string>& args)
         output_value = zero_output->value_;
     } else {
     }
-    Environment env_transition = actor_->getEnvironment();
+}
+
+void Console::cmdPV(const std::vector<std::string>& args)
+{
+    if (!checkArgument(args, 1, 1)) { return; }
+    float output_value;
+    std::ostringstream oss;
+    std::vector<std::pair<std::string, float>> ouput_policy_vector;
+    std::vector<float> output_policy;
+    calculatePolicyValue(output_policy, output_value);
+
+    const Environment& env_transition = actor_->getEnvironment();
     for (size_t action_id = 0; action_id < output_policy.size(); ++action_id) {
         Action action(action_id, env_transition.getTurn());
         if (!env_transition.isLegalAction(action)) { continue; }
         ouput_policy_vector.push_back(make_pair(action.toConsoleString(), output_policy[action_id]));
     }
-    std::cerr << "[policy] ";
+    oss << "[policy] ";
     std::sort(ouput_policy_vector.begin(), ouput_policy_vector.end(), [](const std::pair<std::string, float>& a, const std::pair<std::string, float>& b) { return (a.second > b.second); });
     for (long unsigned int i = 0; i < ouput_policy_vector.size(); i++) {
-        std::cerr << ouput_policy_vector[i].first << ": " << std::fixed << std::setprecision(3) << ouput_policy_vector[i].second << " ";
+        oss << ouput_policy_vector[i].first << ": " << std::fixed << std::setprecision(3) << ouput_policy_vector[i].second << " ";
     }
-    std::cerr << std::endl
-              << "[value]  " << output_value << std::endl;
-    reply(ConsoleResponse::kSuccess, "");
+    oss << std::endl
+        << "[value]  " << output_value << std::endl;
+    reply(ConsoleResponse::kSuccess, oss.str());
 }
 
 void Console::cmdListCommands(const std::vector<std::string>& args)
@@ -148,6 +208,20 @@ void Console::cmdPlay(const std::vector<std::string>& args)
     for (unsigned int i = 1; i < args.size(); i++) { act_args.push_back(args[i]); }
     if (!actor_->act(act_args)) { return reply(ConsoleResponse::kFail, "Invalid action: \"" + action_string + "\""); }
     reply(ConsoleResponse::kSuccess, "");
+}
+
+int Console::getBoardSize()
+{
+    int board_size = 0;
+#if GO
+    board_size = minizero::config::env_go_board_size;
+#elif KILLALLGO
+    board_size = minizero::config::env_go_board_size;
+#elif OTHELLO
+    board_size = minizero::config::env_othello_board_size;
+#else
+#endif
+    return board_size;
 }
 
 void Console::cmdBoardSize(const std::vector<std::string>& args)

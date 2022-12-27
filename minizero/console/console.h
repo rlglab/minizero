@@ -47,6 +47,7 @@ protected:
     }
 
     virtual void initialize();
+    void cmdGoguiAnalyzeCommands(const std::vector<std::string>& args);
     void cmdListCommands(const std::vector<std::string>& args);
     void cmdName(const std::vector<std::string>& args);
     void cmdVersion(const std::vector<std::string>& args);
@@ -61,6 +62,10 @@ protected:
     void cmdLoadModel(const std::vector<std::string>& args);
     bool checkArgument(const std::vector<std::string>& args, int min_argc, int max_argc);
     void reply(ConsoleResponse response, const std::string& reply);
+    void policyGUI(const std::vector<std::string>& args);
+    void value(const std::vector<std::string>& args);
+    void calculatePolicyValue(std::vector<float>& output_policy, float& output_value);
+    int getBoardSize();
 
     std::shared_ptr<minizero::network::Network> network_;
     std::shared_ptr<actor::BaseActor> actor_;
