@@ -131,7 +131,7 @@ private:
         auto hidden_state_output = forward_result.at("hidden_state").toTensor().to(at::kCPU);
         assert(policy_output.numel() == batch_size * getActionSize());
         assert(policy_logits_output.numel() == batch_size * getActionSize());
-        assert((!getNetworkTypeName() == "muzero_reward" && value_output.numel() == batch_size) || (getNetworkTypeName() == "muzero_reward" && value_output.numel() == batch_size * getDiscreteValueSize()));
+        assert((getNetworkTypeName() != "muzero_reward" && value_output.numel() == batch_size) || (getNetworkTypeName() == "muzero_reward" && value_output.numel() == batch_size * getDiscreteValueSize()));
         assert(!forward_result.contains("reward") || (forward_result.contains("reward") && reward_output.numel() == batch_size * getDiscreteValueSize()));
         assert(hidden_state_output.numel() == batch_size * getNumHiddenChannels() * getHiddenChannelHeight() * getHiddenChannelWidth());
 
