@@ -167,7 +167,6 @@ std::uint64_t ChessEnv::updateHashValue(Player turn, int move_from, int move_to,
                                         Pieces moved, Pieces taken, Pieces promote_to,
                                         bool is00, bool is000, bool isenpassant)
 {
-
     int from = move_from;
     int to = move_to;
 
@@ -288,7 +287,6 @@ int ChessEnv::rowColToPosition(int row, int col) const
 }
 bool ChessEnv::squareIsAttacked(Player ply, int position, bool check_kings_attack) const
 {
-
     int square_col = positionToCol(position);
     int square_row = positionToRow(position);
 
@@ -363,7 +361,6 @@ bool ChessEnv::plyIsCheck(Player ply) const
 }
 bool ChessEnv::generateKingAttackedInfo(Player ply)
 {
-
     king_attacked_info_.reset();
     int position = king_pos_.get(ply);
     int square_col = positionToCol(position);
