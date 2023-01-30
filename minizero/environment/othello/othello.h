@@ -5,6 +5,7 @@
 #include "sgf_loader.h"
 #include <algorithm>
 #include <bitset>
+#include <string>
 #include <vector>
 
 namespace minizero::env::othello {

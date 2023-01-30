@@ -3,6 +3,9 @@
 #include "alphazero_network.h"
 #include "muzero_network.h"
 #include "zero_actor.h"
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace minizero::actor {
 

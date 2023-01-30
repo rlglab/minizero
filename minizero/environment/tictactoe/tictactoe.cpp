@@ -1,6 +1,7 @@
 #include "tictactoe.h"
 #include "sgf_loader.h"
 #include <algorithm>
+#include <string>
 
 namespace minizero::env::tictactoe {
 

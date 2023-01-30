@@ -3,6 +3,8 @@
 #include "console.h"
 #include "random.h"
 #include "zero_server.h"
+#include <string>
+#include <vector>
 
 namespace minizero::console {
 

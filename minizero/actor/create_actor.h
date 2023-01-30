@@ -4,6 +4,7 @@
 #include "configuration.h"
 #include "gumbel_zero_actor.h"
 #include "zero_actor.h"
+#include <memory>
 
 namespace minizero::actor {
 

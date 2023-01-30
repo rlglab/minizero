@@ -4,6 +4,9 @@
 #include "base_actor.h"
 #include "mcts.h"
 #include "muzero_network.h"
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace minizero::actor {
 

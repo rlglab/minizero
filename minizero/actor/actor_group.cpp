@@ -4,9 +4,12 @@
 #include "create_network.h"
 #include "random.h"
 #include "utils.h"
+#include <algorithm>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <torch/cuda.h>
+#include <unordered_map>
 
 namespace minizero::actor {
 

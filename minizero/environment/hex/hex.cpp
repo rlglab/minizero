@@ -3,6 +3,8 @@
 #include "color_message.h"
 #include "sgf_loader.h"
 #include <iostream>
+#include <string>
+#include <vector>
 
 namespace minizero::env::hex {
 

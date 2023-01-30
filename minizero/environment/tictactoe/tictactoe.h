@@ -2,7 +2,9 @@
 
 #include "base_env.h"
 #include "sgf_loader.h"
+#include <string>
 #include <vector>
+
 namespace minizero::env::tictactoe {
 
 const std::string kTicTacToeName = "tictactoe";

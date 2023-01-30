@@ -2,6 +2,9 @@
 #include "color_message.h"
 #include "sgf_loader.h"
 #include <algorithm>
+#include <string>
+#include <unordered_map>
+#include <utility>
 
 namespace minizero::env::gomoku {
 

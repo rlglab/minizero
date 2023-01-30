@@ -1,5 +1,6 @@
 #include "base_actor.h"
 #include "configuration.h"
+#include <string>
 
 namespace minizero::actor {
 

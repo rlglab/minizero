@@ -8,6 +8,7 @@
 #include <ctime>
 #include <fstream>
 #include <queue>
+#include <string>
 
 namespace minizero::zero {
 

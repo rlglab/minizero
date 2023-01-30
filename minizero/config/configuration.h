@@ -1,6 +1,7 @@
 #pragma once
 
 #include "configure_loader.h"
+#include <string>
 
 namespace minizero::config {
 

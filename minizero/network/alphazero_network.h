@@ -1,7 +1,11 @@
 #pragma once
 
 #include "network.h"
+#include <algorithm>
+#include <memory>
 #include <mutex>
+#include <string>
+#include <vector>
 
 namespace minizero::network {
 

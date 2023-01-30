@@ -6,7 +6,9 @@
 #include "search.h"
 #include "tree.h"
 #include <cmath>
+#include <limits>
 #include <map>
+#include <string>
 #include <vector>
 
 namespace minizero::actor {

@@ -2,8 +2,12 @@
 
 #include "base_env.h"
 #include "configuration.h"
+#include <algorithm>
 #include <deque>
+#include <string>
+#include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 namespace minizero::env::atari {
 

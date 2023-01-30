@@ -3,6 +3,7 @@
 #include "configuration.h"
 #include <map>
 #include <memory>
+#include <string>
 
 namespace minizero::console {
 

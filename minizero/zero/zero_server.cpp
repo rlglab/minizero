@@ -1,7 +1,10 @@
 #include "zero_server.h"
 #include "random.h"
+#include <algorithm>
 #include <boost/algorithm/string.hpp>
 #include <iostream>
+#include <string>
+#include <vector>
 
 namespace minizero::zero {
 

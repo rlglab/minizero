@@ -7,6 +7,7 @@
 #include "go_grid.h"
 #include "go_unit.h"
 #include "sgf_loader.h"
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>

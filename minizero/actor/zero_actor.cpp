@@ -1,6 +1,9 @@
 #include "zero_actor.h"
 #include "random.h"
 #include "time_system.h"
+#include <algorithm>
+#include <memory>
+#include <vector>
 
 namespace minizero::actor {
 

@@ -1,4 +1,7 @@
+#pragma once
+
 #include <iostream>
+#include <vector>
 
 // BitBoard format
 // 8| 07 15 23 31 39 47 55 63

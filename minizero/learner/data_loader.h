@@ -4,6 +4,7 @@
 #include "random.h"
 #include <map>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace minizero::learner {

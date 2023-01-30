@@ -3,6 +3,8 @@
 #include "alphazero_network.h"
 #include "muzero_network.h"
 #include "network.h"
+#include <memory>
+#include <string>
 
 namespace minizero::network {
 

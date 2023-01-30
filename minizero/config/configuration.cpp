@@ -1,4 +1,5 @@
 #include "configuration.h"
+#include <string>
 
 namespace minizero::config {
 

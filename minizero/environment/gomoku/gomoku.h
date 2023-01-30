@@ -2,6 +2,8 @@
 
 #include "base_env.h"
 #include "sgf_loader.h"
+#include <string>
+#include <utility>
 #include <vector>
 
 namespace minizero::env::gomoku {

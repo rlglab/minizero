@@ -1,6 +1,7 @@
 #pragma once
 
 #include "go.h"
+#include <string>
 
 namespace minizero::env::killallgo {
 

@@ -3,6 +3,8 @@
 #include "sgf_loader.h"
 #include <random>
 #include <sstream>
+#include <string>
+#include <utility>
 
 namespace minizero::env::go {
 

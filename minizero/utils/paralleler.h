@@ -2,6 +2,7 @@
 
 #include <boost/thread.hpp>
 #include <memory>
+#include <vector>
 
 namespace minizero::utils {
 

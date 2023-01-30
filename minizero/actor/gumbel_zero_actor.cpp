@@ -1,5 +1,11 @@
 #include "gumbel_zero_actor.h"
+#include <algorithm>
 #include <cmath>
+#include <limits>
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace minizero::actor {
 

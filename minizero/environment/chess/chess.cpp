@@ -1,5 +1,8 @@
 #include "chess.h"
 #include <iostream>
+#include <string>
+#include <vector>
+
 namespace minizero::env::chess {
 std::uint64_t hash_key[NUM_OF_PIECES][NUM_OF_SQUARE];
 void initialize()
@@ -14,7 +17,7 @@ ChessAction::ChessAction(const std::vector<std::string>& action_string_args)
 {
     // TODO: implement chess action constructor
 }
-std::string ChessAction::getActionString () const
+std::string ChessAction::getActionString() const
 {
     std::ostringstream oss;
     int from = action_id_ / 73;
@@ -24,7 +27,7 @@ std::string ChessAction::getActionString () const
         new_row = from / 8 + kActionIdDirections64[move_dir].second;
         new_col = from % 8 + kActionIdDirections64[move_dir].first;
         oss << char('a' + from % 8) << 1 + from / 8 << char('a' + new_col) << 1 + new_row;
-        if (pawnmove_){
+        if (pawnmove_) {
             if ((player_ == Player::kPlayer1 && new_row == 7) || (player_ == Player::kPlayer2 && new_row == 0)) oss << "q";
         }
     } else {
@@ -785,7 +788,7 @@ bool ChessEnv::canPlayer00(Player player, int next_square1, int next_square2)
 }
 bool ChessEnv::canPlayer000(Player player, int next_square1, int next_square2, int next_square3)
 {
-    return !(ischecked_.get(player) || king_moved_.get(player) || qrook_moved_.get(player) || 
+    return !(ischecked_.get(player) || king_moved_.get(player) || qrook_moved_.get(player) ||
              board_[next_square1].second != Pieces::empty || board_[next_square2].second != Pieces::empty || board_[next_square3].second != Pieces::empty ||
              squareIsAttacked(player, next_square1, true) || squareIsAttacked(player, next_square2, true));
 }
@@ -992,7 +995,7 @@ std::vector<ChessAction> ChessEnv::getLegalActions() const
     while (!legal_actions.none()) {
         int id = legal_actions._Find_first();
         ChessAction action(id, turn_);
-        if (board_[id/73].second == Pieces::pawn) action.isPawnMove();
+        if (board_[id / 73].second == Pieces::pawn) { action.isPawnMove(); }
         actions.push_back(action);
         legal_actions.reset(id);
     }
@@ -1003,7 +1006,7 @@ bool ChessEnv::act(const std::vector<std::string>& action_string_args)
     // TODO
     assert(action_string_args.size() == 2);
     assert(action_string_args[0].size() == 1 && (charToPlayer(action_string_args[0][0]) == Player::kPlayer1 || charToPlayer(action_string_args[0][0]) == Player::kPlayer2));
-    if(turn_ != charToPlayer(action_string_args[0][0])) {
+    if (turn_ != charToPlayer(action_string_args[0][0])) {
         turn_ = charToPlayer(action_string_args[0][0]);
         generateLegalActions();
     }
@@ -1024,26 +1027,46 @@ bool ChessEnv::act(const std::vector<std::string>& action_string_args)
         }
         if (move_str[4] == 'q') {
             if (turn_ == Player::kPlayer1) {
-                if (dir_col == -1)  id = from * 73 + 7;
-                else if (dir_col == 0)  id = from * 73 + 0;
-                else if (dir_col == 1)  id = from * 73 + 1;
+                if (dir_col == -1) {
+                    id = from * 73 + 7;
+                } else if (dir_col == 0) {
+                    id = from * 73 + 0;
+                } else if (dir_col == 1) {
+                    id = from * 73 + 1;
+                }
             } else {
-                if (dir_col == -1) id = from * 73 + 5;
-                else if (dir_col == 0) id = from * 73 + 4;
-                else if (dir_col == 1) id = from * 73 + 3;
+                if (dir_col == -1) {
+                    id = from * 73 + 5;
+                } else if (dir_col == 0) {
+                    id = from * 73 + 4;
+                } else if (dir_col == 1) {
+                    id = from * 73 + 3;
+                }
             }
         } else if (move_str[4] == 'r') {
-            if (dir_col == -1) id = from * 73 + 64;
-            else if (dir_col == 0) id = from * 73 + 67;
-            else if (dir_col == 1) id = from * 73 + 70;
+            if (dir_col == -1) {
+                id = from * 73 + 64;
+            } else if (dir_col == 0) {
+                id = from * 73 + 67;
+            } else if (dir_col == 1) {
+                id = from * 73 + 70;
+            }
         } else if (move_str[4] == 'b') {
-            if (dir_col == -1) id = from * 73 + 65;
-            else if (dir_col == 0) id = from * 73 + 68;
-            else if (dir_col == 1) id = from * 73 + 71;
+            if (dir_col == -1) {
+                id = from * 73 + 65;
+            } else if (dir_col == 0) {
+                id = from * 73 + 68;
+            } else if (dir_col == 1) {
+                id = from * 73 + 71;
+            }
         } else if (move_str[4] == 'n') {
-            if (dir_col == -1) id = from * 73 + 66;
-            else if (dir_col == 0) id = from * 73 + 69;
-            else if (dir_col == 1) id = from * 73 + 72;
+            if (dir_col == -1) {
+                id = from * 73 + 66;
+            } else if (dir_col == 0) {
+                id = from * 73 + 69;
+            } else if (dir_col == 1) {
+                id = from * 73 + 72;
+            }
         }
         if (id == -1) return false;
         ChessAction action(id, turn_);
@@ -1055,36 +1078,60 @@ bool ChessEnv::act(const std::vector<std::string>& action_string_args)
     if (dir_col * dir_row == 2 || dir_col * dir_row == -2) {
         // knight direction 56-63
         if (dir_col == 1) {
-            if (dir_row == 2) id = from * 73 + 56;
-            else id = from * 73 + 59;
+            if (dir_row == 2) {
+                id = from * 73 + 56;
+            } else {
+                id = from * 73 + 59;
+            }
         } else if (dir_col == 2) {
-            if (dir_row == 1) id = from * 73 + 57;
-            else id = from * 73 + 58;
+            if (dir_row == 1) {
+                id = from * 73 + 57;
+            } else {
+                id = from * 73 + 58;
+            }
         } else if (dir_col == -1) {
-            if (dir_row == 2) id = from * 73 + 63;
-            else id = from * 73 + 60;
+            if (dir_row == 2) {
+                id = from * 73 + 63;
+            } else {
+                id = from * 73 + 60;
+            }
         } else if (dir_col == -2) {
-            if (dir_row == 1) id = from * 73 + 62;
-            else id = from * 73 + 61;
+            if (dir_row == 1) {
+                id = from * 73 + 62;
+            } else {
+                id = from * 73 + 61;
+            }
         }
-    } else if (dir_row * dir_col == 0) {    // rook direction 0-55
+    } else if (dir_row * dir_col == 0) { // rook direction 0-55
         int square = dir_row == 0 ? dir_col : dir_row;
         square = square < 0 ? -1 * square : square;
         if (dir_row == 0) {
-            if (dir_col > 0) id = from * 73 + (square - 1) * 8 + 2;
-            else id = from * 73 + (square - 1) * 8 + 6;
+            if (dir_col > 0) {
+                id = from * 73 + (square - 1) * 8 + 2;
+            } else {
+                id = from * 73 + (square - 1) * 8 + 6;
+            }
         } else {
-            if (dir_row > 0) id = from * 73 + (square - 1) * 8 + 0;
-            else id = from * 73 + (square - 1) * 8 + 4;
-        }    
-    } else if (dir_row / dir_col == 1 ||dir_row / dir_col == -1) {   // bishop direction 0-55
+            if (dir_row > 0) {
+                id = from * 73 + (square - 1) * 8 + 0;
+            } else {
+                id = from * 73 + (square - 1) * 8 + 4;
+            }
+        }
+    } else if (dir_row / dir_col == 1 || dir_row / dir_col == -1) { // bishop direction 0-55
         int square = (dir_row > 0) ? dir_row : -1 * dir_row;
         if (dir_row > 0) {
-            if (dir_col > 0) id = from * 73 + (square - 1) * 8 + 1;
-            else id = from * 73 + (square - 1) * 8 + 7;
+            if (dir_col > 0) {
+                id = from * 73 + (square - 1) * 8 + 1;
+            } else {
+                id = from * 73 + (square - 1) * 8 + 7;
+            }
         } else {
-            if (dir_col > 0) id = from * 73 + (square - 1) * 8 + 3;
-            else id = from * 73 + (square - 1) * 8 + 5;
+            if (dir_col > 0) {
+                id = from * 73 + (square - 1) * 8 + 3;
+            } else {
+                id = from * 73 + (square - 1) * 8 + 5;
+            }
         }
     }
     if (id == -1) { return false; }

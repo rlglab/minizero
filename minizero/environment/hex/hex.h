@@ -3,6 +3,8 @@
 #include "base_env.h"
 #include "configuration.h"
 #include "sgf_loader.h"
+#include <string>
+#include <vector>
 
 namespace minizero::env::hex {
 

@@ -3,10 +3,12 @@
 #include "create_actor.h"
 #include "create_network.h"
 #include "sgf_loader.h"
+#include <algorithm>
 #include <climits>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <utility>
 
 namespace minizero::console {
 
