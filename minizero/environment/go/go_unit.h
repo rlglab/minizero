@@ -10,7 +10,7 @@ const std::string kGoName = "go";
 const int kGoNumPlayer = 2;
 const int kMaxGoBoardSize = 19;
 
-typedef unsigned long long GoHashKey;
+typedef int64_t GoHashKey;
 typedef std::bitset<kMaxGoBoardSize * kMaxGoBoardSize> GoBitboard;
 
 } // namespace minizero::env::go

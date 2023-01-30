@@ -405,8 +405,9 @@ bool ChessEnv::generateKingAttackedInfo(Player ply)
                     if (!pin_pieces_found) {
                         pin_pieces_found = true;
                         pin_piece_position = new_position;
-                    } else
+                    } else {
                         break;
+                    }
                 }
             }
         }
@@ -435,8 +436,9 @@ bool ChessEnv::generateKingAttackedInfo(Player ply)
                     if (!pin_pieces_found) {
                         pin_pieces_found = true;
                         pin_piece_position = new_position;
-                    } else
+                    } else {
                         break;
+                    }
                 }
             }
         }
@@ -747,9 +749,9 @@ void ChessEnv::update50Steps(Pieces take, Pieces move)
 void ChessEnv::setEnPassantFlag(int from, int to)
 {
     int delta_row = positionToRow(to) - positionToRow(from);
-    if (delta_row == 2)
-        bitboard_.pawns_.set(toBitBoardSquare(7, positionToCol(to))); // ply2 can enpassant
-    else if (delta_row == -2) {
+    if (delta_row == 2) { // ply2 can enpassant
+        bitboard_.pawns_.set(toBitBoardSquare(7, positionToCol(to)));
+    } else if (delta_row == -2) {
         bitboard_.pawns_.set(toBitBoardSquare(0, positionToCol(to)));
     }
 }
@@ -1267,9 +1269,9 @@ void ChessEnv::fakeAct(int from, int to, Pieces move, Pieces take, Pieces promot
 
     if (move == Pieces::pawn) {
         bitboard_.pawns_.reset(toBitBoardSquare(from));
-        if (promote == Pieces::empty)
+        if (promote == Pieces::empty) {
             bitboard_.pawns_.set(toBitBoardSquare(to));
-        else if (promote == Pieces::bishop || promote == Pieces::queen) {
+        } else if (promote == Pieces::bishop || promote == Pieces::queen) {
             bitboard_.bishops_.set(toBitBoardSquare(to));
         }
         if (promote == Pieces::rook || promote == Pieces::queen) {

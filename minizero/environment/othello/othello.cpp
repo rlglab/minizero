@@ -230,8 +230,9 @@ Player OthelloEnv::eval() const
     int totalPlayer1 = board_.get(Player::kPlayer1).count();
     int totalPlayer2 = board_.get(Player::kPlayer2).count();
     if (legal_board_.get(Player::kPlayer1).none() && legal_board_.get(Player::kPlayer2).none()) {
-        if (totalPlayer1 > totalPlayer2) { return Player::kPlayer1; } // player 1 win
-        else if (totalPlayer1 < totalPlayer2) {
+        if (totalPlayer1 > totalPlayer2) { // player 1 win
+            return Player::kPlayer1;
+        } else if (totalPlayer1 < totalPlayer2) {
             return Player::kPlayer2;
         } else {
             return Player::kPlayerNone;

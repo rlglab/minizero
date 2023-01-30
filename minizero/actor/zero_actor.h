@@ -20,7 +20,7 @@ public:
 
 class ZeroActor : public BaseActor {
 public:
-    ZeroActor(long long tree_node_size)
+    ZeroActor(int64_t tree_node_size)
         : tree_node_size_(tree_node_size)
     {
         alphazero_network_ = nullptr;
@@ -54,7 +54,7 @@ protected:
     Environment getEnvironmentTransition(const std::vector<MCTSNode*>& node_path);
 
     bool enable_resign_;
-    long long tree_node_size_;
+    int64_t tree_node_size_;
     MCTSSearchData mcts_search_data_;
     std::shared_ptr<network::AlphaZeroNetwork> alphazero_network_;
     std::shared_ptr<network::MuZeroNetwork> muzero_network_;

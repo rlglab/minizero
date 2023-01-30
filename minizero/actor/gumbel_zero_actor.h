@@ -11,7 +11,7 @@ namespace minizero::actor {
 
 class GumbelZeroActor : public ZeroActor {
 public:
-    GumbelZeroActor(long long tree_node_size) : ZeroActor(tree_node_size)
+    GumbelZeroActor(int64_t tree_node_size) : ZeroActor(tree_node_size)
     {
     }
 

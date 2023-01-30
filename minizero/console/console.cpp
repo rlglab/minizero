@@ -56,7 +56,7 @@ void Console::executeCommand(std::string command)
 void Console::initialize()
 {
     network_ = createNetwork(config::nn_file_name, 0);
-    long long tree_node_size = static_cast<long long>(config::actor_num_simulation + 1) * network_->getActionSize();
+    int64_t tree_node_size = static_cast<int64_t>(config::actor_num_simulation + 1) * network_->getActionSize();
     actor_ = actor::createActor(tree_node_size, network_);
 }
 
@@ -155,7 +155,7 @@ void Console::cmdPV(const std::vector<std::string>& args)
     }
     oss << "[policy] ";
     std::sort(ouput_policy_vector.begin(), ouput_policy_vector.end(), [](const std::pair<std::string, float>& a, const std::pair<std::string, float>& b) { return (a.second > b.second); });
-    for (long unsigned int i = 0; i < ouput_policy_vector.size(); i++) {
+    for (size_t i = 0; i < ouput_policy_vector.size(); i++) {
         oss << ouput_policy_vector[i].first << ": " << std::fixed << std::setprecision(3) << ouput_policy_vector[i].second << " ";
     }
     oss << std::endl

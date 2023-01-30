@@ -139,7 +139,7 @@ void ModeHandler::runEnvTest()
     env.reset();
     while (!env.isTerminal()) {
         std::vector<Action> legal_actions = env.getLegalActions();
-        int index = rand() % legal_actions.size();
+        int index = utils::Random::randInt() % legal_actions.size();
         env.act(legal_actions[index]);
     }
     std::cout << env.toString() << std::endl;

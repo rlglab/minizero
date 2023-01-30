@@ -49,7 +49,7 @@ private:
         if (width < 0) width = 0;
 
         char* format = (width ? zero_fill_format : non_zero_fill_format);
-        sprintf(buf, format, width, value);
+        snprintf(buf, sizeof(buf), format, width, value);
         return buf;
     }
 };
