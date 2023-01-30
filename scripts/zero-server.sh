@@ -3,7 +3,7 @@ set -e
 
 usage()
 {
-	echo "Usage: ./zero-server.sh configure_file train_dir end_iteration [OPTION...]"
+	echo "Usage: ./zero-server.sh game_type configure_file train_dir end_iteration [OPTION...]"
 	echo ""
 	echo "  -h, --help                 Give this help list"
 	echo "    , --sp_executable_file   Assign the path for self-play executable file"
@@ -12,18 +12,16 @@ usage()
 }
 
 # check argument
-if [ $# -lt 3 ]; then
+if [ $# -lt 4 ]; then
 	usage
 else
-	CONFIGURE_FILE=$1
-	TRAIN_DIR=$2
-	END_ITERATION=$3
-	shift
-	shift
-	shift
+	game_type=$1; shift
+	configure_file=$1; shift
+	train_dir=$1; shift
+	end_iteration=$1; shift
 fi
 
-sp_executable_file=Release/minizero
+sp_executable_file=build/${game_type}/minizero_${game_type}
 op_executable_file=minizero/learner/train.py
 while :; do
 	case $1 in
@@ -42,43 +40,41 @@ while :; do
 done
 
 run_stage="R"
-if [ -d ${TRAIN_DIR} ]; then
-	echo "${TRAIN_DIR} has existed: Restart(R) / Continue(C) / Quit(Q)."
+if [ -d ${train_dir} ]; then
+	echo "${train_dir} has existed: restart(r) / continue(c) / quit(q)."
 	read -n1 run_stage
 	echo ""
 fi
 
-ZERO_START_ITERATION=1
-MODEL_FILE="weight_iter_0.pt"
-if [[ ${run_stage} == "R" ]]; then
-	rm -rf ${TRAIN_DIR}
+zero_start_iteration=1
+model_file="weight_iter_0.pt"
+if [[ ${run_stage,} == "r" ]]; then
+	rm -rf ${train_dir}
 
-	echo "create ${TRAIN_DIR} ..."
-	mkdir ${TRAIN_DIR}
-	mkdir ${TRAIN_DIR}/model
-	mkdir ${TRAIN_DIR}/sgf
-	touch ${TRAIN_DIR}/op.log
-	NEW_CONFIGURE_FILE=$(echo ${TRAIN_DIR} | awk -F "/" '{ print ($NF==""? $(NF-1): $NF)".cfg"; }')
-	cp ${CONFIGURE_FILE} ${TRAIN_DIR}/${NEW_CONFIGURE_FILE}
+	echo "create ${train_dir} ..."
+	mkdir ${train_dir}
+	mkdir ${train_dir}/model
+	mkdir ${train_dir}/sgf
+	touch ${train_dir}/op.log
+	new_configure_file=$(echo ${train_dir} | awk -F "/" '{ print ($NF==""? $(NF-1): $NF)".cfg"; }')
+	cp ${configure_file} ${train_dir}/${new_configure_file}
 
 	# setup initial weight
-	echo "\"\" -1 -1" | PYTHONPATH=. python ${op_executable_file} ${TRAIN_DIR} ${TRAIN_DIR}/${NEW_CONFIGURE_FILE} >/dev/null 2>&1
-elif [[ ${run_stage} == "C" ]]; then
-    ZERO_START_ITERATION=$(ls -t ${TRAIN_DIR}/sgf/* | head -n1 | sed 's/.sgf//g' | awk -F "/" '{ print $NF+1; }')
-    MODEL_FILE=$(ls -t ${TRAIN_DIR}/model/*.pt | head -n1 | sed 's/\// /g' | awk '{ print $NF; }')
-    NEW_CONFIGURE_FILE=$(ls ${TRAIN_DIR}/*.cfg | sed 's/\// /g' | awk '{ print $NF; }')
+	echo "\"\" -1 -1" | PYTHONPATH=. python ${op_executable_file} ${game_type} ${train_dir} ${train_dir}/${new_configure_file} >/dev/null 2>&1
+elif [[ ${run_stage,} == "c" ]]; then
+    zero_start_iteration=$(ls -t ${train_dir}/sgf/* | head -n1 | sed 's/.sgf//g' | awk -F "/" '{ print $NF+1; }')
+    model_file=$(ls -t ${train_dir}/model/*.pt | head -n1 | sed 's/\// /g' | awk '{ print $NF; }')
+    new_configure_file=$(ls ${train_dir}/*.cfg | sed 's/\// /g' | awk '{ print $NF; }')
 else
 	exit
 fi
 
 # friendly notify
 yn="?"
-echo "Start training from iteration: ${ZERO_START_ITERATION}, model file: ${MODEL_FILE}, configuration: ${TRAIN_DIR}/${NEW_CONFIGURE_FILE}. Sure? (y/n)"
+echo "Start training from iteration: ${zero_start_iteration}, model file: ${model_file}, configuration: ${train_dir}/${new_configure_file}. Sure? (y/n)"
 read -n1 yn
-if [[ ${yn} != "y" ]]; then
-    exit
-fi
+[[ ${yn,} == "y" ]] || exit
 
 # run zero server
-CONF_STR="zero_training_directory=${TRAIN_DIR}:zero_end_iteration=${END_ITERATION}:nn_file_name=${MODEL_FILE}:zero_start_iteration=${ZERO_START_ITERATION}"
-${sp_executable_file} -conf_file ${TRAIN_DIR}/${NEW_CONFIGURE_FILE} -conf_str ${CONF_STR} -mode zero_server
+conf_str="zero_training_directory=${train_dir}:zero_end_iteration=${end_iteration}:nn_file_name=${model_file}:zero_start_iteration=${zero_start_iteration}"
+${sp_executable_file} -conf_file ${train_dir}/${new_configure_file} -conf_str ${conf_str} -mode zero_server

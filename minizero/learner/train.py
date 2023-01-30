@@ -6,7 +6,6 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
-import minizero_py
 from torch.utils.data import DataLoader
 from torch.utils.data import IterableDataset
 from torch.utils.data import get_worker_info
@@ -191,11 +190,16 @@ def train(training_dir, conf_file_name, conf, model_file, start_iter, end_iter):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) == 3:
-        training_dir = sys.argv[1]
-        conf_file_name = sys.argv[2]
+    if len(sys.argv) == 4:
+        game_type = sys.argv[1]
+        training_dir = sys.argv[2]
+        conf_file_name = sys.argv[3]
+
+        # import pybind library
+        _temps = __import__(f'build.{game_type}', globals(), locals(), ['minizero_py'], 0)
+        minizero_py = _temps.minizero_py
     else:
-        eprint("python train.py training_dir conf_file")
+        eprint("python train.py game_type training_dir conf_file")
         exit(0)
 
     conf = minizero_py.Conf(conf_file_name)
