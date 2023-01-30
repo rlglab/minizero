@@ -87,4 +87,5 @@ public:
     inline int getRotatePosition(int position, utils::Rotation rotation) const override { return getPositionByRotating(rotation, position, getBoardSize()); }
     inline std::string getEnvName() const override { return kOthelloName; }
 };
+
 } // namespace minizero::env::othello

@@ -267,4 +267,5 @@ std::vector<float> OthelloEnv::getActionFeatures(const OthelloAction& action, ut
     }
     return action_features;
 }
+
 } // namespace minizero::env::othello
