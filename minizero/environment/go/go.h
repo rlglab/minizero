@@ -52,7 +52,7 @@ public:
     bool act(const GoAction& action) override;
     bool act(const std::vector<std::string>& action_string_args) override;
     std::vector<GoAction> getLegalActions() const override;
-    virtual bool isLegalAction(const GoAction& action) const override;
+    bool isLegalAction(const GoAction& action) const override;
     bool isTerminal() const override;
     float getEvalScore(bool is_resign = false) const override;
     void setObservation(const std::vector<float>& observation) override {}

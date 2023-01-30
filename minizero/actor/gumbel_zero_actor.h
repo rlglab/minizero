@@ -12,12 +12,12 @@ public:
     {
     }
 
-    virtual void afterNNEvaluation(const std::shared_ptr<network::NetworkOutput>& network_output) override;
-    virtual std::string getActionComment() const override;
+    void afterNNEvaluation(const std::shared_ptr<network::NetworkOutput>& network_output) override;
+    std::string getActionComment() const override;
 
 protected:
-    virtual MCTSNode* decideActionNode() override;
-    virtual std::vector<MCTSNode*> selection() override;
+    MCTSNode* decideActionNode() override;
+    std::vector<MCTSNode*> selection() override;
     virtual void sequentialHalving();
     virtual void sortCandidatesByScore();
 

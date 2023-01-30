@@ -15,7 +15,7 @@ class MCTSNode : public TreeNode {
 public:
     MCTSNode() { reset(); }
 
-    virtual void reset() override
+    void reset() override
     {
         num_children_ = 0;
         hidden_state_data_index_ = -1;
@@ -73,7 +73,7 @@ public:
         return value_u + value_q;
     }
 
-    virtual std::string toString() const override
+    std::string toString() const override
     {
         std::ostringstream oss;
         oss.precision(4);
@@ -87,7 +87,7 @@ public:
         return oss.str();
     }
 
-    virtual bool displayInTreeLog() const override { return count_ > 0; }
+    bool displayInTreeLog() const override { return count_ > 0; }
 
     // setter
     inline void setHiddenStateDataIndex(int hidden_state_data_index) { hidden_state_data_index_ = hidden_state_data_index; }
@@ -149,7 +149,7 @@ public:
     MCTS(long long tree_node_size)
         : Tree(tree_node_size) {}
 
-    virtual void reset() override
+    void reset() override
     {
         Tree::reset();
         tree_hidden_state_data_.reset();
@@ -267,8 +267,8 @@ public:
     inline const std::map<float, int>& getTreeValueMap() const { return tree_value_map_; }
 
 protected:
-    virtual TreeNode* createTreeNodes(long long tree_node_size) override { return new MCTSNode[tree_node_size]; }
-    virtual TreeNode* getNodeIndex(int index) override { return getRootNode() + index; }
+    TreeNode* createTreeNodes(long long tree_node_size) override { return new MCTSNode[tree_node_size]; }
+    TreeNode* getNodeIndex(int index) override { return getRootNode() + index; }
 
     virtual MCTSNode* selectChildByPUCTScore(const MCTSNode* node) const
     {

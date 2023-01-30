@@ -30,9 +30,9 @@ public:
     SlaveThread(int id, std::shared_ptr<utils::BaseSharedData> shared_data)
         : BaseSlaveThread(id, shared_data) {}
 
-    virtual void initialize() override;
-    virtual void runJob() override;
-    virtual bool isDone() override { return false; }
+    void initialize() override;
+    void runJob() override;
+    bool isDone() override { return false; }
 
 protected:
     virtual bool doCPUJob();
@@ -49,8 +49,8 @@ public:
     }
 
     void run();
-    virtual void initialize() override;
-    virtual void summarize() override {}
+    void initialize() override;
+    void summarize() override {}
 
 protected:
     virtual void createNeuralNetworks();
@@ -63,8 +63,8 @@ protected:
     virtual void handleCommand();
     virtual void handleCommand(const std::string& command_prefix, const std::string& command);
 
-    virtual void createSharedData() override { shared_data_ = std::make_shared<ThreadSharedData>(); }
-    virtual std::shared_ptr<utils::BaseSlaveThread> newSlaveThread(int id) override { return std::make_shared<SlaveThread>(id, shared_data_); }
+    void createSharedData() override { shared_data_ = std::make_shared<ThreadSharedData>(); }
+    std::shared_ptr<utils::BaseSlaveThread> newSlaveThread(int id) override { return std::make_shared<SlaveThread>(id, shared_data_); }
     inline std::shared_ptr<ThreadSharedData> getSharedData() { return std::static_pointer_cast<ThreadSharedData>(shared_data_); }
 
     bool running_;
