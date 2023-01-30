@@ -4,7 +4,7 @@ set -e
 support_games=("atari" "chess" "go" "gomoku" "hex" "killallgo" "othello" "tictactoe")
 
 usage() {
-	echo "Usage: setup-cmake.sh games build_type"
+	echo "Usage: build.sh games build_type"
 	echo "  games: $(echo ${support_games[@]} | sed 's/ /, /g')"
 	echo "  build_type: release(default), debug"
 	exit 1

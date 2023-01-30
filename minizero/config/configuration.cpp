@@ -147,12 +147,12 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("env_go_board_size", env_go_board_size, "", "Environment");
     cl.addParameter("env_go_komi", env_go_komi, "", "Environment");
     cl.addParameter("env_go_ko_rule", env_go_ko_rule, "positional/situational", "Environment");
+#elif HEX
+    cl.addParameter("env_hex_board_size", env_hex_board_size, "", "Environment");
 #elif KILLALLGO
     cl.addParameter("env_killallgo_ko_rule", env_go_ko_rule, "positional/situational", "Environment");
 #elif OTHELLO
     cl.addParameter("env_othello_board_size", env_othello_board_size, "", "Environment");
-#elif HEX
-    cl.addParameter("env_hex_board_size", env_hex_board_size, "", "Environment");
 #endif
 }
 
