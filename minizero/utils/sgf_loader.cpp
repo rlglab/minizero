@@ -73,7 +73,7 @@ std::string SGFLoader::actionIDToBoardCoordinateString(int action_id, int board_
     int x = action_id % board_size;
     int y = action_id / board_size;
     std::ostringstream oss;
-    oss << (char)(x + 'A' + (x >= 8)) << y + 1;
+    oss << static_cast<char>(x + 'A' + (x >= 8)) << y + 1;
     return oss.str();
 }
 
@@ -93,7 +93,7 @@ std::string SGFLoader::actionIDToSGFString(int action_id, int board_size)
     int x = action_id % board_size;
     int y = action_id / board_size;
     std::ostringstream oss;
-    oss << (char)(x + 'a') << (char)(((board_size - 1) - y) + 'a');
+    oss << static_cast<char>(x + 'a') << static_cast<char>(((board_size - 1) - y) + 'a');
     return oss.str();
 }
 

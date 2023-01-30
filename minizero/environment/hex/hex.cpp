@@ -152,19 +152,19 @@ B 1  0-R-B-B-0-0-0 B
     */
     std::vector<char> rr{};
 
-    for (size_t ii = 0; ii < (size_t)board_size_ - 1 + 5; ii++) {
+    for (size_t ii = 0; ii < static_cast<size_t>(board_size_) - 1 + 5; ii++) {
         rr.push_back(' ');
     }
     rr.push_back('R');
     rr.push_back('\n');
-    for (size_t ii = 0; ii < (size_t)board_size_; ii++) {
-        if (ii == (size_t)board_size_ / 2) {
+    for (size_t ii = 0; ii < static_cast<size_t>(board_size_); ii++) {
+        if (ii == static_cast<size_t>(board_size_) / 2) {
             rr.push_back('B');
         } else {
             rr.push_back(' ');
         }
         rr.push_back(' ');
-        std::string rowNum{std::to_string((size_t)board_size_ - ii)};
+        std::string rowNum{std::to_string(static_cast<size_t>(board_size_) - ii)};
         if (rowNum.size() == 1) {
             rr.push_back(' ');
             rr.push_back(rowNum.at(0));
@@ -173,8 +173,8 @@ B 1  0-R-B-B-0-0-0 B
             rr.push_back(rowNum.at(1));
         }
         rr.push_back(' ');
-        for (size_t jj = 0; jj < (size_t)board_size_; jj++) {
-            Cell cc{board_[jj + (size_t)board_size_ * ((size_t)board_size_ - ii - 1)]};
+        for (size_t jj = 0; jj < static_cast<size_t>(board_size_); jj++) {
+            Cell cc{board_[jj + static_cast<size_t>(board_size_) * (static_cast<size_t>(board_size_) - ii - 1)]};
             if (cc.player == Player::kPlayer1) {
                 std::string colored{minizero::utils::getColorText(
                     "B", minizero::utils::TextType::kBold, minizero::utils::TextColor::kBlack,
@@ -190,22 +190,22 @@ B 1  0-R-B-B-0-0-0 B
             } else {
                 rr.push_back('0');
             }
-            if (jj < (size_t)board_size_ - 1) {
+            if (jj < static_cast<size_t>(board_size_) - 1) {
                 rr.push_back('-');
             }
         }
-        if (ii == (size_t)board_size_ / 2) {
+        if (ii == static_cast<size_t>(board_size_) / 2) {
             rr.push_back(' ');
             rr.push_back('B');
         }
         rr.push_back('\n');
-        if (ii == (size_t)board_size_ - 1) {
+        if (ii == static_cast<size_t>(board_size_) - 1) {
             break;
         }
         for (size_t jj = 0; jj < 5; jj++) {
             rr.push_back(' ');
         }
-        for (size_t jj = 0; jj < (size_t)board_size_ - 1; jj++) {
+        for (size_t jj = 0; jj < static_cast<size_t>(board_size_) - 1; jj++) {
             rr.push_back('|');
             rr.push_back('/');
         }
@@ -215,12 +215,12 @@ B 1  0-R-B-B-0-0-0 B
     for (size_t ii = 0; ii < 5; ii++) {
         rr.push_back(' ');
     }
-    for (size_t ii = 0; ii < (size_t)board_size_; ii++) {
+    for (size_t ii = 0; ii < static_cast<size_t>(board_size_); ii++) {
         rr.push_back(ii + 97 + (ii > 7 ? 1 : 0));
         rr.push_back(' ');
     }
     rr.push_back('\n');
-    for (size_t ii = 0; ii < (size_t)board_size_ - 1 + 5; ii++) {
+    for (size_t ii = 0; ii < static_cast<size_t>(board_size_) - 1 + 5; ii++) {
         rr.push_back(' ');
     }
     rr.push_back('R');
@@ -244,19 +244,19 @@ B 1   0 - R - B - B - 0 - 0 - 0 B
     */
     std::vector<char> rr{};
 
-    for (size_t ii = 0; ii < (size_t)board_size_ - 1 + 5; ii++) {
+    for (size_t ii = 0; ii < static_cast<size_t>(board_size_) - 1 + 5; ii++) {
         rr.push_back(' ');
     }
     rr.push_back('R');
     rr.push_back('\n');
-    for (size_t ii = 0; ii < (size_t)board_size_; ii++) {
-        if (ii == (size_t)board_size_ / 2) {
+    for (size_t ii = 0; ii < static_cast<size_t>(board_size_); ii++) {
+        if (ii == static_cast<size_t>(board_size_) / 2) {
             rr.push_back('B');
         } else {
             rr.push_back(' ');
         }
         rr.push_back(' ');
-        std::string rowNum{std::to_string((size_t)board_size_ - ii)};
+        std::string rowNum{std::to_string(static_cast<size_t>(board_size_) - ii)};
         if (rowNum.size() == 1) {
             rr.push_back(' ');
             rr.push_back(rowNum.at(0));
@@ -265,9 +265,9 @@ B 1   0 - R - B - B - 0 - 0 - 0 B
             rr.push_back(rowNum.at(1));
         }
         rr.push_back(' ');
-        for (size_t jj = 0; jj < (size_t)board_size_; jj++) {
-            Cell cc{board_[jj + (size_t)board_size_ * ((size_t)board_size_ - ii - 1)]};
-            if ((int)(cc.flags & Flag::BLACK_LEFT) > 0 || (int)(cc.flags & Flag::WHITE_BOTTOM) > 0) {
+        for (size_t jj = 0; jj < static_cast<size_t>(board_size_); jj++) {
+            Cell cc{board_[jj + static_cast<size_t>(board_size_) * (static_cast<size_t>(board_size_) - ii - 1)]};
+            if (static_cast<int>(cc.flags & Flag::BLACK_LEFT) > 0 || static_cast<int>(cc.flags & Flag::WHITE_BOTTOM) > 0) {
                 rr.push_back('*');
             } else {
                 rr.push_back(' ');
@@ -279,27 +279,27 @@ B 1   0 - R - B - B - 0 - 0 - 0 B
             } else {
                 rr.push_back('0');
             }
-            if ((int)(cc.flags & Flag::BLACK_RIGHT) > 0 || (int)(cc.flags & Flag::WHITE_TOP) > 0) {
+            if (static_cast<int>(cc.flags & Flag::BLACK_RIGHT) > 0 || static_cast<int>(cc.flags & Flag::WHITE_TOP) > 0) {
                 rr.push_back('*');
             } else {
                 rr.push_back(' ');
             }
-            if (jj < (size_t)board_size_ - 1) {
+            if (jj < static_cast<size_t>(board_size_) - 1) {
                 rr.push_back('-');
             }
         }
-        if (ii == (size_t)board_size_ / 2) {
+        if (ii == static_cast<size_t>(board_size_) / 2) {
             rr.push_back(' ');
             rr.push_back('B');
         }
         rr.push_back('\n');
-        if (ii == (size_t)board_size_ - 1) {
+        if (ii == static_cast<size_t>(board_size_) - 1) {
             break;
         }
         for (size_t jj = 0; jj < 5; jj++) {
             rr.push_back(' ');
         }
-        for (size_t jj = 0; jj < (size_t)board_size_ - 1; jj++) {
+        for (size_t jj = 0; jj < static_cast<size_t>(board_size_) - 1; jj++) {
             rr.push_back(' ');
             rr.push_back('|');
             rr.push_back(' ');
@@ -312,14 +312,14 @@ B 1   0 - R - B - B - 0 - 0 - 0 B
     for (size_t ii = 0; ii < 5; ii++) {
         rr.push_back(' ');
     }
-    for (size_t ii = 0; ii < (size_t)board_size_; ii++) {
+    for (size_t ii = 0; ii < static_cast<size_t>(board_size_); ii++) {
         rr.push_back(ii + 97 + (ii > 7 ? 1 : 0));
         rr.push_back(' ');
         rr.push_back(' ');
         rr.push_back(' ');
     }
     rr.push_back('\n');
-    for (size_t ii = 0; ii < (size_t)board_size_ - 1 + 5; ii++) {
+    for (size_t ii = 0; ii < static_cast<size_t>(board_size_) - 1 + 5; ii++) {
         rr.push_back(' ');
     }
     rr.push_back('R');
@@ -334,10 +334,10 @@ std::vector<int> HexEnv::getWinningStonesPosition() const
     if (winner_ == Player::kPlayerNone) { return {}; }
     std::vector<int> winning_stones{};
     for (size_t ii = 0; ii < board_size_ * board_size_; ii++) {
-        if ((winner_ == Player::kPlayer1 && ((int)(board_[ii].flags & Flag::BLACK_LEFT) > 0) &&
-             ((int)(board_[ii].flags & Flag::BLACK_RIGHT) > 0)) ||
-            (winner_ == Player::kPlayer2 && ((int)(board_[ii].flags & Flag::WHITE_BOTTOM) > 0) &&
-             ((int)(board_[ii].flags & Flag::WHITE_TOP) > 0))) {
+        if ((winner_ == Player::kPlayer1 && (static_cast<int>(board_[ii].flags & Flag::BLACK_LEFT) > 0) &&
+             (static_cast<int>(board_[ii].flags & Flag::BLACK_RIGHT) > 0)) ||
+            (winner_ == Player::kPlayer2 && (static_cast<int>(board_[ii].flags & Flag::WHITE_BOTTOM) > 0) &&
+             (static_cast<int>(board_[ii].flags & Flag::WHITE_TOP) > 0))) {
             winning_stones.push_back(ii);
         }
     }
@@ -394,10 +394,10 @@ Player HexEnv::updateWinner(int actionID)
     }
 
     // Check victory.
-    if ((int)(myCell->flags & Flag::BLACK_LEFT) > 0 && (int)(myCell->flags & Flag::BLACK_RIGHT) > 0) {
+    if (static_cast<int>(myCell->flags & Flag::BLACK_LEFT) > 0 && static_cast<int>(myCell->flags & Flag::BLACK_RIGHT) > 0) {
         return Player::kPlayer1;
     }
-    if ((int)(myCell->flags & Flag::WHITE_BOTTOM) > 0 && (int)(myCell->flags & Flag::WHITE_TOP) > 0) {
+    if (static_cast<int>(myCell->flags & Flag::WHITE_BOTTOM) > 0 && static_cast<int>(myCell->flags & Flag::WHITE_TOP) > 0) {
         return Player::kPlayer2;
     }
 
