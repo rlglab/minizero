@@ -15,7 +15,7 @@ GomokuAction::GomokuAction(const std::vector<std::string>& action_string_args)
     assert(action_string_args.size() == 2);
     assert(action_string_args[0].size() == 1 && (charToPlayer(action_string_args[0][0]) == Player::kPlayer1 || charToPlayer(action_string_args[0][0]) == Player::kPlayer2));
     player_ = charToPlayer(action_string_args[0][0]);
-    action_id_ = SGFLoader::boardCoordinateStringToActionID(action_string_args[1], kGomokuBoardSize);
+    action_id_ = SGFLoader::boardCoordinateStringToActionID(action_string_args[1], minizero::config::env_gomoku_board_size);
 }
 
 void GomokuEnv::reset()
@@ -23,7 +23,7 @@ void GomokuEnv::reset()
     winner_ = Player::kPlayerNone;
     turn_ = Player::kPlayer1;
     actions_.clear();
-    board_.resize(kGomokuBoardSize * kGomokuBoardSize);
+    board_.resize(board_size_ * board_size_);
     fill(board_.begin(), board_.end(), Player::kPlayerNone);
 }
 
@@ -45,7 +45,7 @@ bool GomokuEnv::act(const std::vector<std::string>& action_string_args)
 std::vector<GomokuAction> GomokuEnv::getLegalActions() const
 {
     std::vector<GomokuAction> actions;
-    for (int pos = 0; pos < kGomokuBoardSize * kGomokuBoardSize; ++pos) {
+    for (int pos = 0; pos < board_size_ * board_size_; ++pos) {
         GomokuAction action(pos, turn_);
         if (!isLegalAction(action)) { continue; }
         actions.push_back(action);
@@ -55,7 +55,7 @@ std::vector<GomokuAction> GomokuEnv::getLegalActions() const
 
 bool GomokuEnv::isLegalAction(const GomokuAction& action) const
 {
-    assert(action.getActionID() >= 0 && action.getActionID() < kGomokuBoardSize * kGomokuBoardSize);
+    assert(action.getActionID() >= 0 && action.getActionID() < board_size_ * board_size_);
     assert(action.getPlayer() == Player::kPlayer1 || action.getPlayer() == Player::kPlayer2);
     return (board_[action.getActionID()] == Player::kPlayerNone);
 }
@@ -67,7 +67,7 @@ bool GomokuEnv::isTerminal() const
 
 float GomokuEnv::getEvalScore(bool is_resign /*= false*/) const
 {
-    Player eval = (is_resign ? getNextPlayer(turn_, kGomokuBoardSize) : winner_);
+    Player eval = (is_resign ? getNextPlayer(turn_, board_size_) : winner_);
     switch (eval) {
         case Player::kPlayer1: return 1.0f;
         case Player::kPlayer2: return -1.0f;
@@ -84,12 +84,12 @@ std::vector<float> GomokuEnv::getFeatures(utils::Rotation rotation /*= utils::Ro
     */
     std::vector<float> vFeatures;
     for (int channel = 0; channel < 4; ++channel) {
-        for (int pos = 0; pos < kGomokuBoardSize * kGomokuBoardSize; ++pos) {
-            int rotation_pos = getPositionByRotating(utils::reversed_rotation[static_cast<int>(rotation)], pos, kGomokuBoardSize);
+        for (int pos = 0; pos < board_size_ * board_size_; ++pos) {
+            int rotation_pos = getPositionByRotating(utils::reversed_rotation[static_cast<int>(rotation)], pos, board_size_);
             if (channel == 0) {
                 vFeatures.push_back((board_[rotation_pos] == turn_ ? 1.0f : 0.0f));
             } else if (channel == 1) {
-                vFeatures.push_back((board_[rotation_pos] == getNextPlayer(turn_, kGomokuBoardSize) ? 1.0f : 0.0f));
+                vFeatures.push_back((board_[rotation_pos] == getNextPlayer(turn_, board_size_) ? 1.0f : 0.0f));
             } else if (channel == 2) {
                 vFeatures.push_back((turn_ == Player::kPlayer1 ? 1.0f : 0.0f));
             } else if (channel == 3) {
@@ -102,8 +102,8 @@ std::vector<float> GomokuEnv::getFeatures(utils::Rotation rotation /*= utils::Ro
 
 std::vector<float> GomokuEnv::getActionFeatures(const GomokuAction& action, utils::Rotation rotation /*= utils::Rotation::kRotationNone*/) const
 {
-    std::vector<float> action_features(kGomokuBoardSize * kGomokuBoardSize, 0.0f);
-    action_features[getPositionByRotating(rotation, action.getActionID(), kGomokuBoardSize)] = 1.0f;
+    std::vector<float> action_features(board_size_ * board_size_, 0.0f);
+    action_features[getPositionByRotating(rotation, action.getActionID(), board_size_)] = 1.0f;
     return action_features;
 }
 
@@ -118,10 +118,10 @@ std::string GomokuEnv::toString() const
                                                                                         {Player::kPlayer2, {"O", TextColor::kWhite}}});
     std::ostringstream oss;
     oss << getCoordinateString() << std::endl;
-    for (int row = kGomokuBoardSize - 1; row >= 0; --row) {
+    for (int row = board_size_ - 1; row >= 0; --row) {
         oss << getColorText((row + 1 < 10 ? " " : "") + std::to_string(row + 1), TextType::kBold, TextColor::kBlack, TextColor::kYellow);
-        for (int col = 0; col < kGomokuBoardSize; ++col) {
-            int pos = row * kGomokuBoardSize + col;
+        for (int col = 0; col < board_size_; ++col) {
+            int pos = row * board_size_ + col;
             const std::pair<std::string, TextColor> text_pair = player_to_text_color[board_[pos]];
             if (pos == last_move_pos) {
                 oss << getColorText(">", TextType::kBold, TextColor::kRed, TextColor::kYellow);
@@ -153,11 +153,11 @@ Player GomokuEnv::updateWinner(const GomokuAction& action)
 int GomokuEnv::calculateNumberOfConnection(int start_pos, std::pair<int, int> direction)
 {
     int count = 0;
-    int x = start_pos % kGomokuBoardSize;
-    int y = start_pos / kGomokuBoardSize;
+    int x = start_pos % board_size_;
+    int y = start_pos / board_size_;
     Player find_player = board_[start_pos];
-    while (x >= 0 && x < kGomokuBoardSize && y >= 0 && y < kGomokuBoardSize) {
-        if (board_[y * kGomokuBoardSize + x] != find_player) { break; }
+    while (x >= 0 && x < board_size_ && y >= 0 && y < board_size_) {
+        if (board_[y * board_size_ + x] != find_player) { break; }
         ++count;
         x += direction.first;
         y += direction.second;
@@ -169,7 +169,7 @@ std::string GomokuEnv::getCoordinateString() const
 {
     std::ostringstream oss;
     oss << "  ";
-    for (int i = 0; i < kGomokuBoardSize; ++i) {
+    for (int i = 0; i < board_size_; ++i) {
         char c = 'A' + i + ('A' + i >= 'I' ? 1 : 0);
         oss << " " + std::string(1, c);
     }

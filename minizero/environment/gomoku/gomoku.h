@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base_env.h"
+#include "configuration.h"
 #include "sgf_loader.h"
 #include <string>
 #include <utility>
@@ -10,7 +11,7 @@ namespace minizero::env::gomoku {
 
 const std::string kGomokuName = "gomoku";
 const int kGomokuNumPlayer = 2;
-const int kGomokuBoardSize = 15;
+const int kMaxGomokuBoardSize = 19;
 
 class GomokuAction : public BaseAction {
 public:
@@ -19,12 +20,16 @@ public:
     GomokuAction(const std::vector<std::string>& action_string_args);
 
     inline Player nextPlayer() const override { return getNextPlayer(player_, kGomokuNumPlayer); }
-    inline std::string toConsoleString() const override { return minizero::utils::SGFLoader::actionIDToBoardCoordinateString(getActionID(), kGomokuBoardSize); }
+    inline std::string toConsoleString() const override { return minizero::utils::SGFLoader::actionIDToBoardCoordinateString(getActionID(), minizero::config::env_gomoku_board_size); }
 };
 
 class GomokuEnv : public BaseEnv<GomokuAction> {
 public:
-    GomokuEnv() {}
+    GomokuEnv() : board_size_(minizero::config::env_gomoku_board_size)
+    {
+        assert(board_size_ > 0 && board_size_ <= kMaxGomokuBoardSize);
+        reset();
+    }
 
     void reset() override;
     bool act(const GomokuAction& action) override;
@@ -45,14 +50,15 @@ private:
     int calculateNumberOfConnection(int start_pos, std::pair<int, int> direction);
     std::string getCoordinateString() const;
 
+    int board_size_;
     Player winner_;
     std::vector<Player> board_;
 };
 
 class GomokuEnvLoader : public BaseEnvLoader<GomokuAction, GomokuEnv> {
 public:
-    inline int getPolicySize() const override { return kGomokuBoardSize * kGomokuBoardSize; }
-    inline int getRotatePosition(int position, utils::Rotation rotation) const override { return getPositionByRotating(rotation, position, kGomokuBoardSize); }
+    inline int getPolicySize() const override { return minizero::config::env_gomoku_board_size * minizero::config::env_gomoku_board_size; }
+    inline int getRotatePosition(int position, utils::Rotation rotation) const override { return getPositionByRotating(rotation, position, minizero::config::env_gomoku_board_size); }
     inline std::string getEnvName() const override { return kGomokuName; }
 };
 
