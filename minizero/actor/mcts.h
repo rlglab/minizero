@@ -148,7 +148,7 @@ public:
             : action_(action), policy_(policy), policy_logit_(policy_logit) {}
     };
 
-    MCTS(int64_t tree_node_size)
+    MCTS(uint64_t tree_node_size)
         : Tree(tree_node_size) {}
 
     void reset() override
@@ -269,7 +269,7 @@ public:
     inline const std::map<float, int>& getTreeValueMap() const { return tree_value_map_; }
 
 protected:
-    TreeNode* createTreeNodes(int64_t tree_node_size) override { return new MCTSNode[tree_node_size]; }
+    TreeNode* createTreeNodes(uint64_t tree_node_size) override { return new MCTSNode[tree_node_size]; }
     TreeNode* getNodeIndex(int index) override { return getRootNode() + index; }
 
     virtual MCTSNode* selectChildByPUCTScore(const MCTSNode* node) const

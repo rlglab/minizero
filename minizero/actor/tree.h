@@ -54,7 +54,7 @@ protected:
 
 class Tree {
 public:
-    Tree(int64_t tree_node_size)
+    Tree(uint64_t tree_node_size)
         : tree_node_size_(tree_node_size),
           nodes_(nullptr)
     {
@@ -113,11 +113,11 @@ public:
     inline const TreeNode* getRootNode() const { return &nodes_[0]; }
 
 protected:
-    virtual TreeNode* createTreeNodes(int64_t tree_node_size) = 0;
+    virtual TreeNode* createTreeNodes(uint64_t tree_node_size) = 0;
     virtual TreeNode* getNodeIndex(int index) = 0;
 
-    int64_t tree_node_size_;
-    int64_t current_node_size_;
+    uint64_t tree_node_size_;
+    uint64_t current_node_size_;
     TreeNode* nodes_;
 };
 

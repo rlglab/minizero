@@ -8,7 +8,7 @@
 
 namespace minizero::actor {
 
-inline std::shared_ptr<actor::BaseActor> createActor(int64_t tree_node_size, const std::shared_ptr<network::Network>& network)
+inline std::shared_ptr<actor::BaseActor> createActor(uint64_t tree_node_size, const std::shared_ptr<network::Network>& network)
 {
     if (config::actor_use_gumbel) {
         auto actor = std::make_shared<GumbelZeroActor>(tree_node_size);
