@@ -10,6 +10,9 @@ usage() {
 	exit 1
 }
 
+# add environment settings
+git config core.hooksPath .githooks
+
 # check game and build type
 [ $# -ge 1 ] || usage
 game_type=${1,,}

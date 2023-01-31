@@ -52,7 +52,7 @@ def env_group(env_name, num_env, actor_start_id, input_commands, output_results,
                     observation_string = " ".join([str(f) for f in envs[actor_id].get_features().flatten()])
                     output_results.append(f"obs {actor_id+actor_start_id} {observation_string}")
             elif commands[0] == "act":
-                for act_string in zip(*[iter(commands[1:])]*2):
+                for act_string in zip(*[iter(commands[1:])] * 2):
                     actor_id, action_id = act_string
                     actor_id = int(actor_id) - actor_start_id
                     if actor_id < 0 or actor_id >= len(envs):
@@ -109,7 +109,7 @@ if __name__ == '__main__':
     for i in range(num_process):
         input_commands.append(manager.list())
         output_results.append(manager.list())
-        processes.append(Process(target=env_group, args=(env_name, num_env_per_process, i*num_env_per_process, input_commands[-1], output_results[-1], np.random.randint(2147483647))))
+        processes.append(Process(target=env_group, args=(env_name, num_env_per_process, i * num_env_per_process, input_commands[-1], output_results[-1], np.random.randint(2147483647))))
         processes[-1].start()
     run_commands("obs", num_process, input_commands, output_results)
 

@@ -1,0 +1,45 @@
+#!/bin/bash
+#
+# An example hook script to verify what is about to be committed.
+# Called by "git commit" with no arguments.  The hook should
+# exit with non-zero status after issuing an appropriate message if
+# it wants to stop the commit.
+#
+# To enable this hook, rename this file to "pre-commit".
+
+if git rev-parse --verify HEAD >/dev/null 2>&1
+then
+	against=HEAD
+else
+	# Initial commit: diff against an empty tree object
+	against=$(git hash-object -t tree /dev/null)
+fi
+
+# Redirect output to stderr.
+exec 1>&2
+
+# check cpp, reference: https://github.com/cpplint/cpplint & https://qiita.com/janus_wel/items/cfc6914d6b7b8bf185b6
+format_warning=0
+filters='-build/c++11,-build/include_subdir,-build/include_order,-build/namespaces,-legal/copyright,-readability/todo,-runtime/explicit,-runtime/references,-runtime/string,-whitespace/braces,-whitespace/comments,-whitespace/indent,-whitespace/line_length'
+for file in $(git diff --staged --name-only $against -- | grep -E '\.[ch](pp)?$'); do
+	python3 .githooks/cpplint.py --filter=$filters $file > /dev/null
+    format_warning=$(expr ${format_warning} + $?)
+done
+
+# check clang-format
+for file in $(git diff --staged --name-only $against -- | grep -E '\.[ch](pp)?$'); do
+    clangformat_output=$(git-clang-format --diff -q $file)
+	[[ "$clangformat_output" != "no modified files to format" ]] && git-clang-format --diff -q $file && format_warning=$(expr ${format_warning} + 1)
+done
+
+# check python format, reference: https://github.com/hhatto/autopep8
+for file in $(git diff --staged --name-only $against -- | grep -E '\.py?$'); do
+	autopep8_output=$(python3 .githooks/autopep8.py -d -a -a --global-config .autopep8 $file 2>&1)
+	[[ ! -z "$autopep8_output" ]] && python3 .githooks/autopep8.py -d -a -a --global-config .autopep8 $file && format_warning=$(expr ${format_warning} + 1)
+done
+
+# verify if the modified code pass the check
+[[ ${format_warning} -ne 0 ]] && echo && echo "Found ${format_warning} format warning(s): check format again!" && exit 1
+
+# return successfully
+exit 0

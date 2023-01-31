@@ -161,9 +161,9 @@ def train(training_dir, conf_file_name, conf, model_file, start_iter, end_iter):
             for i in range(muzero_unrolling_step):
                 network_output = network(network_output["hidden_state"], actions[:, i].to(device))
                 output_policy_logit, output_value = network_output["policy_logit"], network_output["value"]
-                loss_step_policy, loss_step_value = calculate_loss(conf, output_policy_logit, output_value, label_policy[:, i+1].to(device), label_value.to(device))
+                loss_step_policy, loss_step_value = calculate_loss(conf, output_policy_logit, output_value, label_policy[:, i + 1].to(device), label_value.to(device))
                 add_training_info(training_info, f'loss_policy_{i+1}', loss_step_policy.item() / muzero_unrolling_step)
-                add_training_info(training_info, f'accuracy_policy_{i+1}', calculate_accuracy(output_policy_logit, label_policy[:, i+1], conf.get_batch_size()))
+                add_training_info(training_info, f'accuracy_policy_{i+1}', calculate_accuracy(output_policy_logit, label_policy[:, i + 1], conf.get_batch_size()))
                 add_training_info(training_info, f'loss_value_{i+1}', loss_step_value.item() / muzero_unrolling_step)
                 loss_policy += loss_step_policy / muzero_unrolling_step
                 loss_value += loss_step_value / muzero_unrolling_step
@@ -181,7 +181,7 @@ def train(training_dir, conf_file_name, conf, model_file, start_iter, end_iter):
         if training_step != 0 and training_step % conf.get_training_display_step() == 0:
             eprint("[{}] nn step {}, lr: {}.".format(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), training_step, round(optimizer.param_groups[0]["lr"], 6)))
             for loss in training_info:
-                eprint("\t{}: {}".format(loss, round(training_info[loss]/conf.get_training_display_step(), 5)))
+                eprint("\t{}: {}".format(loss, round(training_info[loss] / conf.get_training_display_step(), 5)))
             training_info = {}
 
     save_model(training_step, network, optimizer, scheduler, training_dir)

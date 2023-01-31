@@ -12,7 +12,7 @@ def getPlayerName(lines, black=True):
         command = 'WhiteCommand'
     try:
         return lines.split(command)[1].split('\n')[0].split('weight_iter_')[1][:-4]
-    except:
+    except BaseException:
         return '0'
 
 
@@ -31,13 +31,13 @@ def getWinRate(file, game0_white):
         p1_white_win = 0
         draw = 0
         dup_game = 0
-        
+
         if game0_white:
             white_games = 0
-            resign_win='W+'
+            resign_win = 'W+'
         else:
             white_games = 1
-            resign_win='B+'
+            resign_win = 'B+'
         for line in lines:
             game_info = line.split('\t')
             # 0 GAME, 1	RES_B, 2 RES_W, 3 RES_R, 4 ALT, 5 DUP
@@ -62,17 +62,17 @@ def compute_elo(cur_elo, win):
     elif win == 0:
         cur_elo -= 1000
     else:
-        cur_elo -= max(min(1000, 400*np.log((1-win)/win)), -1000)
+        cur_elo -= max(min(1000, 400 * np.log((1 - win) / win)), -1000)
     return round(cur_elo, 3)
 
 
 def plot_elo_curve(fig_name, *args):
-    _, ax=plt.subplots()
+    _, ax = plt.subplots()
     ax.set_xlabel('iteration')
     ax.set_ylabel('elo rating')
     for i, (its, elos) in enumerate(args):
         player_name = input(f'player{i+1} name: ')
-        ax.plot([0]+its, [0]+elos, label=player_name)
+        ax.plot([0] + its, [0] + elos, label=player_name)
     ax.legend()
     plt.savefig(fig_name)
 
@@ -97,8 +97,8 @@ def eval(dir, fout_name, player1_elo_file, game0_white, step_num, plot_elo):
             white_wins.append(white_win)
             totals.append(total)
             dup_games.append(dup_game)
-            player1s.append(int(player1)//step_num)
-            player2s.append(int(player2)//step_num)
+            player1s.append(int(player1) // step_num)
+            player2s.append(int(player2) // step_num)
     result = pd.DataFrame({'P1': player1s,
                            'P2': player2s,
                            'Black': black_wins,
@@ -116,12 +116,12 @@ def eval(dir, fout_name, player1_elo_file, game0_white, step_num, plot_elo):
                 if not game0_white:
                     black_elos.append(
                         elo_df[elo_df['P1'] == model]['P1 Elo'].to_list()[0])
-                    white_elos.append(compute_elo(black_elos[-1], 1-win))
+                    white_elos.append(compute_elo(black_elos[-1], 1 - win))
                 else:
                     white_elos.append(
                         elo_df[elo_df['P1'] == model]['P1 Elo'].to_list()[0])
-                    black_elos.append(compute_elo(white_elos[-1], 1-win))
-            except:
+                    black_elos.append(compute_elo(white_elos[-1], 1 - win))
+            except BaseException:
                 black_elos.append(np.nan)
                 white_elos.append(np.nan)
                 print(f'No data for {model} in {player1_elo_file} !')
@@ -140,7 +140,7 @@ def eval(dir, fout_name, player1_elo_file, game0_white, step_num, plot_elo):
         result.insert(8, 'P1 Elo', elos)
         if plot_elo:
             plot_elo_curve(os.path.join(dir, f'{fout_name}.png'),
-                        [result['P1'].to_list(), result['P1 Elo'].to_list()])
+                           [result['P1'].to_list(), result['P1 Elo'].to_list()])
     result.to_csv(os.path.join(dir, f'{fout_name}.csv'), index=False)
     print(result.to_string(index=False))
 

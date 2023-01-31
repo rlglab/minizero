@@ -1,7 +1,3 @@
-
-
-
-
 from fileinput import filename
 import os
 from glob import glob
@@ -9,8 +5,10 @@ from turtle import goto
 from typing import Tuple, List, Dict
 import re
 
+
 class Node:
     nextId: int = 0
+
     def __init__(self, filename: str, path: str, content: str):
         self.filename = filename
         self.path: str = path
@@ -18,6 +16,7 @@ class Node:
         self.content: str = content
         self.id: int = Node.nextId
         Node.nextId += 1
+
 
 nodes: Dict[str, Node] = {}
 
@@ -158,11 +157,10 @@ result.append("""
     </graph>
 </graphml>""")
 
-#print("".join(result))
+# print("".join(result))
 
 with open("tools/dependency_graph_generator/dependency_graph.graphml", "w") as ff:
     ff.write("".join(result))
 
 print("Generated file \"tools/dependency_graph_generator/dependency_graph.graphml\"")
 print("Load this file to https://www.yworks.com/yed-live/ and press the automatic layout button.")
-
