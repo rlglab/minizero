@@ -29,7 +29,7 @@ done
 # check clang-format
 for file in $(git diff --staged --name-only $against -- | grep -E '\.[ch](pp)?$'); do
     clangformat_output=$(git-clang-format --diff -q $file)
-	[[ "$clangformat_output" != "no modified files to format" ]] && git-clang-format --diff -q $file && format_warning=$(expr ${format_warning} + 1)
+	[[ ! -z "$clangformat_output" ]] && git-clang-format --diff -q $file && format_warning=$(expr ${format_warning} + 1)
 done
 
 # check python format, reference: https://github.com/hhatto/autopep8
