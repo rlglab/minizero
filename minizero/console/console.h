@@ -59,11 +59,9 @@ protected:
     void cmdGenmove(const std::vector<std::string>& args);
     void cmdFinalScore(const std::vector<std::string>& args);
     void cmdPV(const std::vector<std::string>& args);
-    void cmdPolicyGUI(const std::vector<std::string>& args);
-    void cmdValue(const std::vector<std::string>& args);
     void cmdLoadModel(const std::vector<std::string>& args);
 
-    void calculatePolicyValue(std::vector<float>& output_policy, float& output_value);
+    virtual void calculatePolicyValue(std::vector<float>& policy, float& value, utils::Rotation rotation = utils::Rotation::kRotationNone);
     int getBoardSize();
     bool checkArgument(const std::vector<std::string>& args, int min_argc, int max_argc);
     void reply(ConsoleResponse response, const std::string& reply);

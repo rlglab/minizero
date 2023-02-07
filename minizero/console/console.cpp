@@ -32,8 +32,6 @@ Console::Console()
     RegisterFunction("final_score", this, &Console::cmdFinalScore);
     RegisterFunction("pv", this, &Console::cmdPV);
     RegisterFunction("loadmodel", this, &Console::cmdLoadModel);
-    RegisterFunction("policyGUI", this, &Console::cmdPolicyGUI);
-    RegisterFunction("value", this, &Console::cmdValue);
 }
 
 void Console::executeCommand(std::string command)
@@ -65,8 +63,7 @@ void Console::initialize()
 void Console::cmdGoguiAnalyzeCommands(const std::vector<std::string>& args)
 {
     if (!checkArgument(args, 1, 1)) { return; }
-    std::string registered_cmd = "sboard/policy/policyGUI\n";
-    registered_cmd += "string/value/value\n";
+    std::string registered_cmd = "sboard/policy_value/pv\n";
     reply(console::ConsoleResponse::kSuccess, registered_cmd);
 }
 
@@ -158,68 +155,42 @@ void Console::cmdFinalScore(const std::vector<std::string>& args)
 void Console::cmdPV(const std::vector<std::string>& args)
 {
     if (!checkArgument(args, 1, 1)) { return; }
-    float output_value;
-    std::ostringstream oss;
-    std::vector<std::pair<std::string, float>> ouput_policy_vector;
-    std::vector<float> output_policy;
-    calculatePolicyValue(output_policy, output_value);
+
+    float value;
+    std::vector<float> policy;
+    utils::Rotation rotation = config::actor_use_random_rotate_features ? static_cast<utils::Rotation>(utils::Random::randInt() % static_cast<int>(utils::Rotation::kRotateSize)) : utils::Rotation::kRotationNone;
+    calculatePolicyValue(policy, value, rotation);
 
     const Environment& env_transition = actor_->getEnvironment();
-    for (size_t action_id = 0; action_id < output_policy.size(); ++action_id) {
+    std::vector<std::pair<std::string, float>> sorted_policy;
+    for (size_t action_id = 0; action_id < policy.size(); ++action_id) {
         Action action(action_id, env_transition.getTurn());
         if (!env_transition.isLegalAction(action)) { continue; }
-        ouput_policy_vector.push_back(make_pair(action.toConsoleString(), output_policy[action_id]));
+        sorted_policy.push_back(make_pair(action.toConsoleString(), policy[action_id]));
     }
-    oss << "[policy] ";
-    std::sort(ouput_policy_vector.begin(), ouput_policy_vector.end(), [](const std::pair<std::string, float>& a, const std::pair<std::string, float>& b) { return (a.second > b.second); });
-    for (size_t i = 0; i < ouput_policy_vector.size(); i++) {
-        oss << ouput_policy_vector[i].first << ": " << std::fixed << std::setprecision(3) << ouput_policy_vector[i].second << " ";
-    }
-    oss << std::endl
-        << "[value]  " << output_value << std::endl;
-    reply(ConsoleResponse::kSuccess, oss.str());
-}
 
-void Console::cmdPolicyGUI(const std::vector<std::string>& args)
-{
-    if (!checkArgument(args, 1, 1)) { return; }
     std::ostringstream oss;
-    const Environment& env_transition = actor_->getEnvironment();
+    std::sort(sorted_policy.begin(), sorted_policy.end(), [](const std::pair<std::string, float>& a, const std::pair<std::string, float>& b) { return (a.second > b.second); });
+    oss << "[rotation] " << utils::getRotationString(rotation) << std::endl;
+    oss << "[policy] ";
+    for (size_t i = 0; i < sorted_policy.size(); i++) { oss << sorted_policy[i].first << ": " << std::fixed << std::setprecision(3) << sorted_policy[i].second << " "; }
+    oss << std::endl;
+    oss << "[value] " << value << std::endl;
+    std::cerr << oss.str() << std::endl;
+
+    // for GUI
+    oss.str("");
+    oss.clear();
     int board_size = getBoardSize();
-    if (board_size == 0) {
-        reply(ConsoleResponse::kFail, "getBoardSize error");
-        return;
-    }
-    float output_value;
-    std::vector<float> output_policy;
-    calculatePolicyValue(output_policy, output_value);
-    for (size_t action_id = 0; action_id < output_policy.size(); ++action_id) {
-        Action action(action_id, env_transition.getTurn());
-        if (!env_transition.isLegalAction(action)) {
-            output_policy[action_id] = 0;
-            continue;
-        }
-        output_policy[action_id] *= 100;
-    }
-    static const std::string EMPTY = "\"\"";
+    oss << std::endl;
     for (int row = board_size - 1; row >= 0; row--) {
         for (int col = 0; col < board_size; col++) {
-            (output_policy[row * board_size + col] == 0) ? oss << EMPTY << ' ' : oss << std::to_string(output_policy[row * board_size + col]).substr(0, 4) << "% ";
+            int action_id = row * board_size + col;
+            oss << (env_transition.isLegalAction(Action(action_id, env_transition.getTurn())) ? std::to_string(policy[action_id] * 100).substr(0, 4) + "%" : "\"\"") << " ";
         }
         oss << std::endl;
     }
-    oss << std::endl;
-    reply(ConsoleResponse::kSuccess, oss.str());
-}
 
-void Console::cmdValue(const std::vector<std::string>& args)
-{
-    if (!checkArgument(args, 1, 1)) { return; }
-    std::ostringstream oss;
-    float output_value;
-    std::vector<float> output_policy;
-    calculatePolicyValue(output_policy, output_value);
-    oss << "[value]  " << output_value << std::endl;
     reply(ConsoleResponse::kSuccess, oss.str());
 }
 
@@ -232,24 +203,24 @@ void Console::cmdLoadModel(const std::vector<std::string>& args)
     reply(ConsoleResponse::kSuccess, "");
 }
 
-void Console::calculatePolicyValue(std::vector<float>& output_policy, float& output_value)
+void Console::calculatePolicyValue(std::vector<float>& policy, float& value, utils::Rotation rotation /* = utils::Rotation::kRotationNone */)
 {
     if (network_->getNetworkTypeName() == "alphazero") {
         std::shared_ptr<network::AlphaZeroNetwork> alphazero_network = std::static_pointer_cast<network::AlphaZeroNetwork>(network_);
-        utils::Rotation rotation = config::actor_use_random_rotate_features ? static_cast<utils::Rotation>(utils::Random::randInt() % static_cast<int>(utils::Rotation::kRotateSize)) : utils::Rotation::kRotationNone;
         int index = alphazero_network->pushBack(actor_->getEnvironment().getFeatures(rotation), rotation);
         std::shared_ptr<NetworkOutput> network_output = alphazero_network->forward()[index];
         std::shared_ptr<minizero::network::AlphaZeroNetworkOutput> zero_output = std::static_pointer_cast<minizero::network::AlphaZeroNetworkOutput>(network_output);
-        output_policy = zero_output->policy_;
-        output_value = zero_output->value_;
+        policy = zero_output->policy_;
+        value = zero_output->value_;
     } else if (network_->getNetworkTypeName() == "muzero") {
         std::shared_ptr<network::MuZeroNetwork> muzero_network = std::static_pointer_cast<network::MuZeroNetwork>(network_);
         int index = muzero_network->pushBackInitialData(actor_->getEnvironment().getFeatures());
         std::shared_ptr<NetworkOutput> network_output = muzero_network->initialInference()[index];
         std::shared_ptr<minizero::network::MuZeroNetworkOutput> zero_output = std::static_pointer_cast<minizero::network::MuZeroNetworkOutput>(network_output);
-        output_policy = zero_output->policy_;
-        output_value = zero_output->value_;
+        policy = zero_output->policy_;
+        value = zero_output->value_;
     } else {
+        assert(false); // should not be here
     }
 }
 
