@@ -59,13 +59,14 @@ protected:
     void cmdGenmove(const std::vector<std::string>& args);
     void cmdFinalScore(const std::vector<std::string>& args);
     void cmdPV(const std::vector<std::string>& args);
+    void cmdPolicyGUI(const std::vector<std::string>& args);
+    void cmdValue(const std::vector<std::string>& args);
     void cmdLoadModel(const std::vector<std::string>& args);
-    bool checkArgument(const std::vector<std::string>& args, int min_argc, int max_argc);
-    void reply(ConsoleResponse response, const std::string& reply);
-    void policyGUI(const std::vector<std::string>& args);
-    void value(const std::vector<std::string>& args);
+
     void calculatePolicyValue(std::vector<float>& output_policy, float& output_value);
     int getBoardSize();
+    bool checkArgument(const std::vector<std::string>& args, int min_argc, int max_argc);
+    void reply(ConsoleResponse response, const std::string& reply);
 
     std::shared_ptr<minizero::network::Network> network_;
     std::shared_ptr<actor::BaseActor> actor_;
