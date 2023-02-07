@@ -55,9 +55,11 @@ void Console::executeCommand(std::string command)
 
 void Console::initialize()
 {
-    network_ = createNetwork(config::nn_file_name, 0);
-    uint64_t tree_node_size = static_cast<uint64_t>(config::actor_num_simulation + 1) * network_->getActionSize();
-    actor_ = actor::createActor(tree_node_size, network_);
+    if (!network_) { network_ = createNetwork(config::nn_file_name, 0); }
+    if (!actor_) {
+        uint64_t tree_node_size = static_cast<uint64_t>(config::actor_num_simulation + 1) * network_->getActionSize();
+        actor_ = actor::createActor(tree_node_size, network_);
+    }
 }
 
 void Console::cmdGoguiAnalyzeCommands(const std::vector<std::string>& args)
@@ -225,6 +227,7 @@ void Console::cmdLoadModel(const std::vector<std::string>& args)
 {
     if (!checkArgument(args, 2, 2)) { return; }
     minizero::config::nn_file_name = args[1];
+    network_ = nullptr;
     initialize();
     reply(ConsoleResponse::kSuccess, "");
 }
