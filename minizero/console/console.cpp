@@ -31,7 +31,17 @@ Console::Console()
     RegisterFunction("reg_genmove", this, &Console::cmdGenmove);
     RegisterFunction("final_score", this, &Console::cmdFinalScore);
     RegisterFunction("pv", this, &Console::cmdPV);
-    RegisterFunction("loadmodel", this, &Console::cmdLoadModel);
+    RegisterFunction("load_model", this, &Console::cmdLoadModel);
+}
+
+void Console::initialize()
+{
+    if (!network_) { network_ = createNetwork(config::nn_file_name, 0); }
+    if (!actor_) {
+        uint64_t tree_node_size = static_cast<uint64_t>(config::actor_num_simulation + 1) * network_->getActionSize();
+        actor_ = actor::createActor(tree_node_size, network_);
+    }
+    actor_->setNetwork(network_);
 }
 
 void Console::executeCommand(std::string command)
@@ -49,15 +59,6 @@ void Console::executeCommand(std::string command)
     // execute function
     if (function_map_.count(args[0]) == 0) { return reply(ConsoleResponse::kFail, "Unknown command: " + command); }
     (*function_map_[args[0]])(args);
-}
-
-void Console::initialize()
-{
-    if (!network_) { network_ = createNetwork(config::nn_file_name, 0); }
-    if (!actor_) {
-        uint64_t tree_node_size = static_cast<uint64_t>(config::actor_num_simulation + 1) * network_->getActionSize();
-        actor_ = actor::createActor(tree_node_size, network_);
-    }
 }
 
 void Console::cmdGoguiAnalyzeCommands(const std::vector<std::string>& args)
@@ -134,16 +135,12 @@ void Console::cmdBoardSize(const std::vector<std::string>& args)
 void Console::cmdGenmove(const std::vector<std::string>& args)
 {
     if (!checkArgument(args, 2, 2)) { return; }
-    if (actor_->isEnvTerminal()) {
-        reply(ConsoleResponse::kSuccess, "PASS");
-        return;
-    }
+
+    if (actor_->isEnvTerminal()) { return reply(ConsoleResponse::kSuccess, "PASS"); }
     actor_->getEnvironment().setTurn(minizero::env::charToPlayer(args[1].c_str()[0]));
     const Action action = actor_->think((args[0] == "genmove" ? true : false), true);
-    if (actor_->isResign()) {
-        reply(ConsoleResponse::kSuccess, "Resign");
-        return;
-    }
+    if (actor_->isResign()) { return reply(ConsoleResponse::kSuccess, "Resign"); }
+
     reply(ConsoleResponse::kSuccess, action.toConsoleString());
 }
 
@@ -158,7 +155,7 @@ void Console::cmdPV(const std::vector<std::string>& args)
 
     float value;
     std::vector<float> policy;
-    utils::Rotation rotation = config::actor_use_random_rotate_features ? static_cast<utils::Rotation>(utils::Random::randInt() % static_cast<int>(utils::Rotation::kRotateSize)) : utils::Rotation::kRotationNone;
+    utils::Rotation rotation = config::actor_use_random_rotation_features ? static_cast<utils::Rotation>(utils::Random::randInt() % static_cast<int>(utils::Rotation::kRotateSize)) : utils::Rotation::kRotationNone;
     calculatePolicyValue(policy, value, rotation);
 
     const Environment& env_transition = actor_->getEnvironment();

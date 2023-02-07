@@ -115,6 +115,8 @@ void ModeHandler::runConsole()
 {
     console::Console console;
     std::string command;
+    console.initialize();
+    if (!config::program_quiet) { std::cerr << "Successfully started console mode" << std::endl; }
     while (getline(std::cin, command)) {
         if (command == "quit") { break; }
         console.executeCommand(command);

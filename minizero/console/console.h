@@ -21,6 +21,7 @@ public:
     Console();
     virtual ~Console() = default;
 
+    virtual void initialize();
     virtual void executeCommand(std::string command);
 
 protected:
@@ -46,7 +47,6 @@ protected:
         function_map_[name] = std::make_shared<Function<I, F>>(instance, function);
     }
 
-    virtual void initialize();
     void cmdGoguiAnalyzeCommands(const std::vector<std::string>& args);
     void cmdListCommands(const std::vector<std::string>& args);
     void cmdName(const std::vector<std::string>& args);

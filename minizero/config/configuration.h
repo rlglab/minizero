@@ -23,7 +23,7 @@ extern bool actor_mcts_value_rescale;
 extern bool actor_select_action_by_count;
 extern bool actor_select_action_by_softmax_count;
 extern float actor_select_action_softmax_temperature;
-extern bool actor_use_random_rotate_features;
+extern bool actor_use_random_rotation_features;
 extern bool actor_use_dirichlet_noise;
 extern float actor_dirichlet_noise_alpha;
 extern float actor_dirichlet_noise_epsilon;

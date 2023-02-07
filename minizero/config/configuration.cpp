@@ -21,7 +21,7 @@ bool actor_mcts_value_rescale = false;
 bool actor_select_action_by_count = false;
 bool actor_select_action_by_softmax_count = true;
 float actor_select_action_softmax_temperature = 1.0f;
-bool actor_use_random_rotate_features = true;
+bool actor_use_random_rotation_features = true;
 bool actor_use_dirichlet_noise = true;
 float actor_dirichlet_noise_alpha = 0.03f;
 float actor_dirichlet_noise_epsilon = 0.25f;
@@ -96,7 +96,7 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("actor_select_action_by_count", actor_select_action_by_count, "", "Actor");
     cl.addParameter("actor_select_action_by_softmax_count", actor_select_action_by_softmax_count, "", "Actor");
     cl.addParameter("actor_select_action_softmax_temperature", actor_select_action_softmax_temperature, "", "Actor");
-    cl.addParameter("actor_use_random_rotate_features", actor_use_random_rotate_features, "randomly rotate input features, currently only supports alphazero mode", "Actor");
+    cl.addParameter("actor_use_random_rotation_features", actor_use_random_rotation_features, "randomly rotate input features, currently only supports alphazero mode", "Actor");
     cl.addParameter("actor_use_dirichlet_noise", actor_use_dirichlet_noise, "", "Actor");
     cl.addParameter("actor_dirichlet_noise_alpha", actor_dirichlet_noise_alpha, "", "Actor");
     cl.addParameter("actor_dirichlet_noise_epsilon", actor_dirichlet_noise_epsilon, "", "Actor");
