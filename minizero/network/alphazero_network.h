@@ -1,6 +1,7 @@
 #pragma once
 
 #include "network.h"
+#include "rotation.h"
 #include <algorithm>
 #include <memory>
 #include <mutex>
@@ -27,14 +28,14 @@ class AlphaZeroNetwork : public Network {
 public:
     AlphaZeroNetwork()
     {
-        batch_size_ = 0;
-        clearTensorInput();
+        clear();
     }
 
     void loadModel(const std::string& nn_file_name, const int gpu_id) override
     {
+        assert(batch_size_ == 0); // should avoid loading model when batch size is not 0
         Network::loadModel(nn_file_name, gpu_id);
-        batch_size_ = 0;
+        clear();
     }
 
     std::string toString() const override
@@ -44,17 +45,20 @@ public:
         return oss.str();
     }
 
-    int pushBack(std::vector<float> features)
+    int pushBack(std::vector<float> features, utils::Rotation rotation = utils::Rotation::kRotationNone)
     {
         assert(static_cast<int>(features.size()) == getNumInputChannels() * getInputChannelHeight() * getInputChannelWidth());
+        assert(batch_size_ < kReserved_batch_size);
 
         int index;
         {
             std::lock_guard<std::mutex> lock(mutex_);
             index = batch_size_++;
             tensor_input_.resize(batch_size_);
+            input_rotation_.resize(batch_size_);
         }
         tensor_input_[index] = torch::from_blob(features.data(), {1, getNumInputChannels(), getInputChannelHeight(), getInputChannelWidth()}).clone();
+        input_rotation_[index] = rotation;
         return index;
     }
 
@@ -82,25 +86,30 @@ public:
             std::copy(policy_logits_output.data_ptr<float>() + i * policy_size,
                       policy_logits_output.data_ptr<float>() + (i + 1) * policy_size,
                       alphazero_network_output->policy_logits_.begin());
+            utils::rotateBoardVector(alphazero_network_output->policy_, input_channel_height_, utils::reversed_rotation[static_cast<int>(input_rotation_[i])]);
+            utils::rotateBoardVector(alphazero_network_output->policy_logits_, input_channel_height_, utils::reversed_rotation[static_cast<int>(input_rotation_[i])]);
         }
 
-        batch_size_ = 0;
-        clearTensorInput();
+        clear();
         return network_outputs;
     }
 
     inline int getBatchSize() const { return batch_size_; }
 
 private:
-    inline void clearTensorInput()
+    inline void clear()
     {
+        batch_size_ = 0;
         tensor_input_.clear();
         tensor_input_.reserve(kReserved_batch_size);
+        input_rotation_.clear();
+        input_rotation_.reserve(kReserved_batch_size);
     }
 
     int batch_size_;
     std::mutex mutex_;
     std::vector<torch::Tensor> tensor_input_;
+    std::vector<utils::Rotation> input_rotation_;
 
     const int kReserved_batch_size = 4096;
 };

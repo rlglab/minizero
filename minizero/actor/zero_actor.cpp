@@ -44,7 +44,8 @@ void ZeroActor::beforeNNEvaluation()
     mcts_search_data_.node_path_ = selection();
     if (alphazero_network_) {
         Environment env_transition = getEnvironmentTransition(mcts_search_data_.node_path_);
-        nn_evaluation_batch_id_ = alphazero_network_->pushBack(env_transition.getFeatures());
+        utils::Rotation rotation = config::actor_use_random_rotate_features ? static_cast<utils::Rotation>(utils::Random::randInt() % static_cast<int>(utils::Rotation::kRotateSize)) : utils::Rotation::kRotationNone;
+        nn_evaluation_batch_id_ = alphazero_network_->pushBack(env_transition.getFeatures(rotation), rotation);
     } else if (muzero_network_) {
         if (getMCTS()->getNumSimulation() == 0) { // initial inference for root node
             nn_evaluation_batch_id_ = muzero_network_->pushBackInitialData(env_.getFeatures());

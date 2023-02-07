@@ -236,7 +236,8 @@ void Console::calculatePolicyValue(std::vector<float>& output_policy, float& out
 {
     if (network_->getNetworkTypeName() == "alphazero") {
         std::shared_ptr<network::AlphaZeroNetwork> alphazero_network = std::static_pointer_cast<network::AlphaZeroNetwork>(network_);
-        int index = alphazero_network->pushBack(actor_->getEnvironment().getFeatures());
+        utils::Rotation rotation = config::actor_use_random_rotate_features ? static_cast<utils::Rotation>(utils::Random::randInt() % static_cast<int>(utils::Rotation::kRotateSize)) : utils::Rotation::kRotationNone;
+        int index = alphazero_network->pushBack(actor_->getEnvironment().getFeatures(rotation), rotation);
         std::shared_ptr<NetworkOutput> network_output = alphazero_network->forward()[index];
         std::shared_ptr<minizero::network::AlphaZeroNetworkOutput> zero_output = std::static_pointer_cast<minizero::network::AlphaZeroNetworkOutput>(network_output);
         output_policy = zero_output->policy_;
