@@ -96,10 +96,9 @@ template <class T>
 void rotateBoardVector(std::vector<T>& input, int board_size, Rotation rotation)
 {
     if (rotation == Rotation::kRotationNone) { return; }
-    assert(input.size() == board_size * board_size);
 
     std::vector<T> output;
-    for (size_t pos = 0; pos < input.size(); ++pos) {
+    for (size_t pos = 0; pos < board_size * board_size; ++pos) {
         int rotation_pos = getPositionByRotating(reversed_rotation[static_cast<int>(rotation)], pos, board_size);
         output.push_back(input[rotation_pos]);
     }
