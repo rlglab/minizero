@@ -1,18 +1,16 @@
 #!/usr/bin/bash
 # check arguments
-if [ $# -lt 4 ]
+if [ $# -lt 5 ]
 then
-	echo "Usage: ./self-eval.sh [Folder] [Config] [Interval] [Game num] [-s Start] [-b Board Size] [-g GPU LIST] [-d Result Folder Name]"
+	echo "Usage: ./self-eval.sh [Game type] [Folder] [Config] [Interval] [Game num] [-s Start] [-b Board Size] [-g GPU LIST] [-d Result Folder Name]"
 	exit 1
 else
-    FOLDER=$1
-    CONF_FILE=$2
-    INTERVAL=$3
-    GAMENUM=$4
-    for (( i=0; i < 4 ; i = i+1 ))
-    do
-        shift
-    done
+    GAME_TYPE=$1
+    FOLDER=$2
+    CONF_FILE=$3
+    INTERVAL=$4
+    GAMENUM=$5
+    shift 5
     # default arguments
     START=0
     NUM_GPU=$(nvidia-smi -L | wc -l)
@@ -38,7 +36,7 @@ while :; do
 	esac
 	shift
 done
-echo "./self-eval.sh $FOLDER $CONF_FILE $INTERVAL $GAMENUM -s $START -b $BOARD_SIZE -g $GPU_LIST -d $NAME"
+echo "./self-eval.sh $GAME_TYPE $FOLDER $CONF_FILE $INTERVAL $GAMENUM -s $START -b $BOARD_SIZE -g $GPU_LIST -d $NAME"
 if [ ! -d "${FOLDER}" ]; then
     echo "${FOLDER} not exists!"
     exit 1
@@ -49,8 +47,8 @@ if [ ! -d "${FOLDER}/$NAME" ]; then
 fi
 
 function run_twogtp(){
-    BLACK="./Release/minizero -conf_file $CONF_FILE -conf_str \"nn_file_name=$FOLDER/model/$3\""
-    WHITE="./Release/minizero -conf_file $CONF_FILE -conf_str \"nn_file_name=$FOLDER/model/$2\""
+    BLACK="build/$GAME_TYPE/minizero_$GAME_TYPE -conf_file $CONF_FILE -conf_str \"nn_file_name=$FOLDER/model/$3\""
+    WHITE="build/$GAME_TYPE/minizero_$GAME_TYPE -conf_file $CONF_FILE -conf_str \"nn_file_name=$FOLDER/model/$2\""
     EVAL_FOLDER="${FOLDER}/$4/${3:12:-3}_vs_${2:12:-3}"
     SGFFILE="${EVAL_FOLDER}/${3:12:-3}_vs_${2:12:-3}"
     if [ ! -d "${EVAL_FOLDER}" ];then
@@ -59,8 +57,12 @@ function run_twogtp(){
     if [ -f "$SGFFILE.lock" ] || [ -f "${SGFFILE}-$((${GAMENUM}-1)).sgf" ] ; then
         return
     fi
+    KOMI=0
+    if [[ $GAME_TYPE == go ]]; then
+        KOMI=7
+    fi
     echo "GPUID: $1, Current players: ${3:12:-3} vs. ${2:12:-3}, Game num $GAMENUM"
-    CUDA_VISIBLE_DEVICES=$1 gogui-twogtp -black "$BLACK" -white "$WHITE" -games $GAMENUM -sgffile $SGFFILE -alternate -auto -size $BOARD_SIZE -komi 7 -threads 2
+    CUDA_VISIBLE_DEVICES=$1 gogui-twogtp -black "$BLACK" -white "$WHITE" -games $GAMENUM -sgffile $SGFFILE -alternate -auto -size $BOARD_SIZE -komi $KOMI -threads 2
 }
 function run_gpu(){
     CUR_NUM=1

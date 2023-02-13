@@ -1,19 +1,17 @@
 #!/usr/bin/bash
 # check arguments
-if [ $# -lt 5 ]
+if [ $# -lt 6 ]
 then
-	echo "Usage: ./fight-eval.sh [Folder1] [Folder2] [Config 1] [Interval] [Game num] [-s Start] [-f Config 2] [-b Board_Size] [-g GPU_LIST] [-d Result Folder Name]"
+	echo "Usage: ./fight-eval.sh [Game type] [Folder1] [Folder2] [Config 1] [Interval] [Game num] [-s Start] [-f Config 2] [-b Board_Size] [-g GPU_LIST] [-d Result Folder Name]"
 	exit 1
 else
-    FOLDER1=$1
-    FOLDER2=$2
-    CONF_FILE1=$3
-    INTERVAL=$4
-    GAMENUM=$5
-    for (( i=0; i < 5 ; i = i+1 ))
-    do
-        shift
-    done
+    GAME_TYPE=$1
+    FOLDER1=$2
+    FOLDER2=$3
+    CONF_FILE1=$4
+    INTERVAL=$5
+    GAMENUM=$6
+    shift 6
     # default arguments
     START=0
     CONF_FILE2=$CONF_FILE1
@@ -43,7 +41,7 @@ while :; do
 	shift
 done
 
-echo "./fight-eval.sh $FOLDER1 $FOLDER2 $CONF_FILE1 $INTERVAL $GAMENUM -s $START -f $CONF_FILE2 -b $BOARD_SIZE -g $GPU_LIST -d $NAME"
+echo "./fight-eval.sh $GAME_TYPE $FOLDER1 $FOLDER2 $CONF_FILE1 $INTERVAL $GAMENUM -s $START -f $CONF_FILE2 -b $BOARD_SIZE -g $GPU_LIST -d $NAME"
 
 if [ ! -d "${FOLDER1}" ] || [ ! -d "${FOLDER2}" ]; then
     echo "${FOLDER1} or ${FOLDER2} not exists!"
@@ -55,8 +53,8 @@ if [ ! -d "${FOLDER1}/$NAME" ]; then
 fi
 echo "FOLDERS: $FOLDER1 & $FOLDER2, CONF_FILES: $CONF_FILE1 & $CONF_FILE2 "
 function run_twogtp(){
-    BLACK="./Release/minizero -conf_file $CONF_FILE1 -conf_str \"nn_file_name=$FOLDER1/model/$2\""
-    WHITE="./Release/minizero -conf_file $CONF_FILE2 -conf_str \"nn_file_name=$FOLDER2/model/$2\""
+    BLACK="build/$GAME_TYPE/minizero_$GAME_TYPE -conf_file $CONF_FILE1 -conf_str \"nn_file_name=$FOLDER1/model/$2\""
+    WHITE="build/$GAME_TYPE/minizero_$GAME_TYPE -conf_file $CONF_FILE2 -conf_str \"nn_file_name=$FOLDER2/model/$2\""
     EVAL_FOLDER="${FOLDER1}/$3/${2:12:-3}"
     SGFFILE="${EVAL_FOLDER}/${2:12:-3}"
     if [ -f "$SGFFILE.lock" ] || [ -f "${SGFFILE}-$((${GAMENUM}-1)).sgf" ] || [ ! -f "$FOLDER2/model/$2" ] || [ ! -f "$FOLDER1/model/$2" ] ; then
@@ -66,9 +64,12 @@ function run_twogtp(){
     if [ ! -d "${EVAL_FOLDER}" ];then
         mkdir $EVAL_FOLDER
     fi
-    
+    KOMI=0
+    if [[ $GAME_TYPE == go ]]; then
+        KOMI=7
+    fi
     echo "GPUID: $1, Current players: ${2:12:-3}, Game num $GAMENUM"
-    CUDA_VISIBLE_DEVICES=$1 gogui-twogtp -black "$BLACK" -white "$WHITE" -games $GAMENUM -sgffile $SGFFILE -alternate -auto -size $BOARD_SIZE -komi 7 -threads 2
+    CUDA_VISIBLE_DEVICES=$1 gogui-twogtp -black "$BLACK" -white "$WHITE" -games $GAMENUM -sgffile $SGFFILE -alternate -auto -size $BOARD_SIZE -komi $KOMI -threads 2
 }
 function run_gpu(){
     CUR_NUM=1
