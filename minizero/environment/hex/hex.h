@@ -16,10 +16,10 @@ class HexAction : public BaseAction {
 public:
     HexAction() : BaseAction() {}
     HexAction(int action_id, Player player) : BaseAction(action_id, player) {}
-    HexAction(const std::vector<std::string>& action_string_args, int board_size = minizero::config::env_hex_board_size);
+    HexAction(const std::vector<std::string>& action_string_args, int board_size = minizero::config::env_board_size);
 
     inline Player nextPlayer() const override { return getNextPlayer(player_, kHexNumPlayer); }
-    inline std::string toConsoleString() const override { return minizero::utils::SGFLoader::actionIDToBoardCoordinateString(getActionID(), minizero::config::env_hex_board_size); }
+    inline std::string toConsoleString() const override { return minizero::utils::SGFLoader::actionIDToBoardCoordinateString(getActionID(), minizero::config::env_board_size); }
 };
 
 enum class Flag {
@@ -43,8 +43,8 @@ struct Cell {
 
 class HexEnv : public BaseEnv<HexAction> {
 public:
-    HexEnv(int board_size = minizero::config::env_hex_board_size)
-        : board_size_(board_size)
+    HexEnv()
+        : board_size_(minizero::config::env_board_size)
     {
         assert(board_size_ > 0 && board_size_ <= kMaxHexBoardSize);
         reset();
@@ -78,7 +78,7 @@ private:
 
 class HexEnvLoader : public BaseEnvLoader<HexAction, HexEnv> {
 public:
-    inline int getPolicySize() const override { return minizero::config::env_hex_board_size * minizero::config::env_hex_board_size; }
+    inline int getPolicySize() const override { return minizero::config::env_board_size * minizero::config::env_board_size; }
     inline int getRotatePosition(int position, utils::Rotation rotation) const override { return position; }
     inline std::string getEnvName() const override { return kHexName; }
 };

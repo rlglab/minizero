@@ -32,15 +32,15 @@ public:
     GoAction(const std::vector<std::string>& action_string_args, int board_size);
 
     inline Player nextPlayer() const override { return getNextPlayer(player_, kGoNumPlayer); }
-    inline std::string toConsoleString() const override { return minizero::utils::SGFLoader::actionIDToBoardCoordinateString(getActionID(), minizero::config::env_go_board_size); }
+    inline std::string toConsoleString() const override { return minizero::utils::SGFLoader::actionIDToBoardCoordinateString(getActionID(), minizero::config::env_board_size); }
 };
 
 class GoEnv : public BaseEnv<GoAction> {
 public:
     friend class GoBenson;
 
-    GoEnv(int board_size = minizero::config::env_go_board_size)
-        : board_size_(board_size)
+    GoEnv()
+        : board_size_(minizero::config::env_board_size)
     {
         assert(board_size_ > 0 && board_size_ <= kMaxGoBoardSize);
         initialize();

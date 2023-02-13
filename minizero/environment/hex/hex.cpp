@@ -10,7 +10,7 @@ namespace minizero::env::hex {
 
 using namespace minizero::utils;
 
-HexAction::HexAction(const std::vector<std::string>& action_string_args, int board_size /* = minizero::config::env_hex_board_size */)
+HexAction::HexAction(const std::vector<std::string>& action_string_args, int board_size /* = minizero::config::env_board_size */)
 {
     // play b d5 => {"b", "d5"}
     if (action_string_args.size() != 2) {

@@ -14,9 +14,8 @@ typedef go::GoAction KillAllGoAction;
 class KillAllGoEnv : public go::GoEnv {
 public:
     KillAllGoEnv()
-        : go::GoEnv(kKillAllGoBoardSize)
+        : go::GoEnv(minizero::config::env_board_size = kKillAllGoBoardSize)
     {
-        minizero::config::env_go_board_size = kKillAllGoBoardSize;
     }
 
     bool isLegalAction(const KillAllGoAction& action) const override

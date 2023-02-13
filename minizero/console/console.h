@@ -62,7 +62,6 @@ protected:
     void cmdLoadModel(const std::vector<std::string>& args);
 
     virtual void calculatePolicyValue(std::vector<float>& policy, float& value, utils::Rotation rotation = utils::Rotation::kRotationNone);
-    int getBoardSize();
     bool checkArgument(const std::vector<std::string>& args, int min_argc, int max_argc);
     void reply(ConsoleResponse response, const std::string& reply);
 

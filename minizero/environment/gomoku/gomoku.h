@@ -20,12 +20,13 @@ public:
     GomokuAction(const std::vector<std::string>& action_string_args);
 
     inline Player nextPlayer() const override { return getNextPlayer(player_, kGomokuNumPlayer); }
-    inline std::string toConsoleString() const override { return minizero::utils::SGFLoader::actionIDToBoardCoordinateString(getActionID(), minizero::config::env_gomoku_board_size); }
+    inline std::string toConsoleString() const override { return minizero::utils::SGFLoader::actionIDToBoardCoordinateString(getActionID(), minizero::config::env_board_size); }
 };
 
 class GomokuEnv : public BaseEnv<GomokuAction> {
 public:
-    GomokuEnv() : board_size_(minizero::config::env_gomoku_board_size)
+    GomokuEnv()
+        : board_size_(minizero::config::env_board_size)
     {
         assert(board_size_ > 0 && board_size_ <= kMaxGomokuBoardSize);
         reset();
@@ -57,8 +58,8 @@ private:
 
 class GomokuEnvLoader : public BaseEnvLoader<GomokuAction, GomokuEnv> {
 public:
-    inline int getPolicySize() const override { return minizero::config::env_gomoku_board_size * minizero::config::env_gomoku_board_size; }
-    inline int getRotatePosition(int position, utils::Rotation rotation) const override { return getPositionByRotating(rotation, position, minizero::config::env_gomoku_board_size); }
+    inline int getPolicySize() const override { return minizero::config::env_board_size * minizero::config::env_board_size; }
+    inline int getRotatePosition(int position, utils::Rotation rotation) const override { return getPositionByRotating(rotation, position, minizero::config::env_board_size); }
     inline std::string getEnvName() const override { return kGomokuName; }
 };
 

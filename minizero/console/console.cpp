@@ -120,14 +120,7 @@ void Console::cmdPlay(const std::vector<std::string>& args)
 void Console::cmdBoardSize(const std::vector<std::string>& args)
 {
     if (!checkArgument(args, 2, 2)) { return; }
-#if GO
-    minizero::config::env_go_board_size = stoi(args[1]);
-#elif KILLALLGO
-    minizero::config::env_go_board_size = stoi(args[1]);
-#elif OTHELLO
-    minizero::config::env_othello_board_size = stoi(args[1]);
-#else
-#endif
+    minizero::config::env_board_size = stoi(args[1]);
     initialize();
     reply(ConsoleResponse::kSuccess, "\n" + actor_->getEnvironment().toString());
 }
@@ -178,7 +171,7 @@ void Console::cmdPV(const std::vector<std::string>& args)
     // for GUI
     oss.str("");
     oss.clear();
-    int board_size = getBoardSize();
+    int board_size = minizero::config::env_board_size;
     oss << std::endl;
     for (int row = board_size - 1; row >= 0; row--) {
         for (int col = 0; col < board_size; col++) {
@@ -219,20 +212,6 @@ void Console::calculatePolicyValue(std::vector<float>& policy, float& value, uti
     } else {
         assert(false); // should not be here
     }
-}
-
-int Console::getBoardSize()
-{
-    int board_size = 0;
-#if GO
-    board_size = minizero::config::env_go_board_size;
-#elif KILLALLGO
-    board_size = minizero::config::env_go_board_size;
-#elif OTHELLO
-    board_size = minizero::config::env_othello_board_size;
-#else
-#endif
-    return board_size;
 }
 
 bool Console::checkArgument(const std::vector<std::string>& args, int min_argc, int max_argc)

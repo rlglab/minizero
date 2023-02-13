@@ -70,12 +70,21 @@ std::string nn_type_name = "alphazero";
 
 // environment parameters
 std::string env_atari_name = "ALE/MsPacman-v5";
-int env_go_board_size = 19;
+#if GO
+int env_board_size = 19;
+#elif HEX
+int env_board_size = 11;
+#elif KILLALLGO
+int env_board_size = 7;
+#elif OTHELLO
+int env_board_size = 8;
+#elif GOMOKU
+int env_board_size = 15;
+#else
+int env_board_size = 0;
+#endif
 float env_go_komi = 7.5;
 std::string env_go_ko_rule = "positional";
-int env_othello_board_size = 8;
-int env_hex_board_size = 11;
-int env_gomoku_board_size = 15;
 
 void setConfiguration(ConfigureLoader& cl)
 {
@@ -145,20 +154,14 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("nn_type_name", nn_type_name, "", "Network");
 
     // environment parameters
+    cl.addParameter("env_board_size", env_board_size, "", "Environment");
 #if ATARI
     cl.addParameter("env_atari_name", env_atari_name, "", "Environment");
 #elif GO
-    cl.addParameter("env_go_board_size", env_go_board_size, "", "Environment");
     cl.addParameter("env_go_komi", env_go_komi, "", "Environment");
     cl.addParameter("env_go_ko_rule", env_go_ko_rule, "positional/situational", "Environment");
-#elif HEX
-    cl.addParameter("env_hex_board_size", env_hex_board_size, "", "Environment");
 #elif KILLALLGO
     cl.addParameter("env_killallgo_ko_rule", env_go_ko_rule, "positional/situational", "Environment");
-#elif OTHELLO
-    cl.addParameter("env_othello_board_size", env_othello_board_size, "", "Environment");
-#elif GOMOKU
-    cl.addParameter("env_gomoku_board_size", env_gomoku_board_size, "", "Environment");
 #endif
 }
 
