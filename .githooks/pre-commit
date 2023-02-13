@@ -23,13 +23,13 @@ format_warning=0
 filters='-build/c++11,-build/include_subdir,-build/include_order,-build/namespaces,-legal/copyright,-readability/todo,-runtime/explicit,-runtime/references,-runtime/string,-whitespace/braces,-whitespace/comments,-whitespace/indent,-whitespace/line_length'
 for file in $(git diff --staged --name-only $against -- | grep -E '\.[ch](pp)?$'); do
 	python3 .githooks/cpplint.py --filter=$filters $file > /dev/null
-    format_warning=$(expr ${format_warning} + $?)
+	format_warning=$(expr ${format_warning} + $?)
 done
 
-# check clang-format
+# check clang-format, reference: https://gist.github.com/alexeagle/c8ed91b14a407342d9a8e112b5ac7dab
 for file in $(git diff --staged --name-only $against -- | grep -E '\.[ch](pp)?$'); do
-    clangformat_output=$(git-clang-format --diff -q $file)
-	[[ ! -z "$clangformat_output" ]] && git-clang-format --diff -q $file && format_warning=$(expr ${format_warning} + 1)
+	clangformat_output=$(git-clang-format --diff -q $file)
+	[[ "$clangformat_output" != *"no modified files to format"* ]] && [[ "$clangformat_output" != *"clang-format did not modify any files"* ]] && [[ ! -z "$clangformat_output" ]] && git-clang-format --diff -q $file && format_warning=$(expr ${format_warning} + 1)
 done
 
 # check python format, reference: https://github.com/hhatto/autopep8
