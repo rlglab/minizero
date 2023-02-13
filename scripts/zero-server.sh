@@ -62,9 +62,9 @@ if [[ ${run_stage,} == "r" ]]; then
 	# setup initial weight
 	echo "\"\" -1 -1" | PYTHONPATH=. python ${op_executable_file} ${game_type} ${train_dir} ${train_dir}/${new_configure_file} >/dev/null 2>&1
 elif [[ ${run_stage,} == "c" ]]; then
-    zero_start_iteration=$(ls -t ${train_dir}/sgf/* | head -n1 | sed 's/.sgf//g' | awk -F "/" '{ print $NF+1; }')
-    model_file=$(ls -t ${train_dir}/model/*.pt | head -n1 | sed 's/\// /g' | awk '{ print $NF; }')
-    new_configure_file=$(ls ${train_dir}/*.cfg | sed 's/\// /g' | awk '{ print $NF; }')
+    zero_start_iteration=$(($(grep -Ei 'optimization.+finished' ${train_dir}/Training.log | wc -l)+1))
+    model_file=$(ls ${train_dir}/model/ | grep ".pt$" | sort -V | tail -n1)
+    new_configure_file=$(basename ${train_dir}/*.cfg)
 else
 	exit
 fi
