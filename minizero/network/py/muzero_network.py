@@ -162,12 +162,14 @@ class MuZeroNetwork(nn.Module):
 
     def scale_hidden_state(self, hidden_state):
         # scale hidden state to range [0, 1] for each feature plane
-        batch_size, channel, _, _ = hidden_state.shape
-        min_val = hidden_state.min(-1).values.min(-1).values.view(batch_size, channel, 1, 1)
-        max_val = hidden_state.max(-1).values.max(-1).values.view(batch_size, channel, 1, 1)
+        batch_size, channel, w, h = hidden_state.shape
+        hidden_state = hidden_state.view(batch_size, -1)
+        min_val = hidden_state.min(-1, keepdim=True).values
+        max_val = hidden_state.max(-1, keepdim=True).values
         scale = (max_val - min_val)
         scale[scale < 1e-5] += 1e-5
         hidden_state = (hidden_state - min_val) / scale
+        hidden_state = hidden_state.view(batch_size, channel, w, h)
         return hidden_state
 
     def forward(self, state, action_plane=torch.empty(0)):
