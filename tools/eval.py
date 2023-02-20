@@ -62,7 +62,7 @@ def compute_elo(cur_elo, win):
     elif win == 0:
         cur_elo -= 1000
     else:
-        cur_elo -= max(min(1000, 400 * np.log((1 - win) / win)), -1000)
+        cur_elo -= max(min(1000, 400 * np.log10((1 - win) / win)), -1000)
     return round(cur_elo, 3)
 
 
