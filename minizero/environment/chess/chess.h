@@ -139,6 +139,7 @@ public:
     bool noMoreLegalAction() const;
     bool isTerminal() const override;
     Player eval() const;
+    float getReward() const override { return 0.0f; }
     float getEvalScore(bool is_resign = false) const override
     {
         // TODO
@@ -149,7 +150,6 @@ public:
             default: return 0.0f;
         }
     }
-    void setObservation(const std::vector<float>& observation) override {}
     std::vector<float> getFeatures(utils::Rotation rotation = utils::Rotation::kRotationNone) const override
     {
         std::vector<float> vFeatures;

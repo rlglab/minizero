@@ -48,8 +48,8 @@ public:
     std::vector<AtariAction> getLegalActions() const override;
     bool isLegalAction(const AtariAction& action) const override { return minimal_action_set_.count(action.getActionID()); }
     bool isTerminal() const override { return ale_.game_over(false); }
+    float getReward() const override { return reward_; }
     float getEvalScore(bool is_resign = false) const override { return total_reward_; }
-    void setObservation(const std::vector<float>& observation) override {}
     std::vector<float> getFeatures(utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::vector<float> getActionFeatures(const AtariAction& action, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::string toString() const override { return ""; }

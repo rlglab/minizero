@@ -78,8 +78,8 @@ public:
     virtual std::vector<Action> getLegalActions() const = 0;
     virtual bool isLegalAction(const Action& action) const = 0;
     virtual bool isTerminal() const = 0;
+    virtual float getReward() const = 0;
     virtual float getEvalScore(bool is_resign = false) const = 0;
-    virtual void setObservation(const std::vector<float>& observation) = 0;
     virtual std::vector<float> getFeatures(utils::Rotation rotation = utils::Rotation::kRotationNone) const = 0;
     virtual std::vector<float> getActionFeatures(const Action& action, utils::Rotation rotation = utils::Rotation::kRotationNone) const = 0;
     virtual std::string toString() const = 0;

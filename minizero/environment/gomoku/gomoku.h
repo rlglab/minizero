@@ -38,8 +38,8 @@ public:
     std::vector<GomokuAction> getLegalActions() const override;
     bool isLegalAction(const GomokuAction& action) const override;
     bool isTerminal() const override;
+    float getReward() const override { return 0.0f; }
     float getEvalScore(bool is_resign = false) const override;
-    void setObservation(const std::vector<float>& observation) override {}
     std::vector<float> getFeatures(utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::vector<float> getActionFeatures(const GomokuAction& action, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::string toString() const override;
