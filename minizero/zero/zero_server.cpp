@@ -98,7 +98,7 @@ void ZeroWorkerHandler::handleReceivedMessage(const std::string& message)
         std::string error_message = message;
         std::replace(error_message.begin(), error_message.end(), '\r', ' ');
         std::replace(error_message.begin(), error_message.end(), '\n', ' ');
-        shared_data_.logger_.addWorkerLog("[Worker Error] " + error_message);
+        shared_data_.logger_.addWorkerLog("[Worker Error] \"" + error_message + "\"");
         close();
     }
 }

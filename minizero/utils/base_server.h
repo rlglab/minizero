@@ -47,7 +47,7 @@ public:
         socket_.close();
     }
 
-    inline bool isClosed() { return is_closed_; }
+    inline bool isClosed() const { return is_closed_; }
     inline boost::asio::ip::tcp::socket& getSocket() { return socket_; }
 
     virtual void handleReceivedMessage(const std::string& message) = 0;
