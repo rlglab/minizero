@@ -50,8 +50,9 @@ public:
     std::string toString() const override
     {
         std::ostringstream oss;
+        if (description_.size() > 150) { oss << "# " << description_ << std::endl; }
         oss << key_ << "=" << getter_(ref_);
-        if (!description_.empty()) { oss << " # " << description_; }
+        if (!description_.empty() && description_.size() <= 150) { oss << " # " << description_; }
         oss << std::endl;
         return oss.str();
     }

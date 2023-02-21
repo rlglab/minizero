@@ -69,7 +69,8 @@ int nn_discrete_value_size = 601;
 std::string nn_type_name = "alphazero";
 
 // environment parameters
-std::string env_atari_name = "ALE/MsPacman-v5";
+std::string env_atari_rom_dir = "/opt/atari57/";
+std::string env_atari_name = "ms_pacman";
 #if GO
 int env_board_size = 19;
 #elif HEX
@@ -156,7 +157,15 @@ void setConfiguration(ConfigureLoader& cl)
     // environment parameters
     cl.addParameter("env_board_size", env_board_size, "", "Environment");
 #if ATARI
-    cl.addParameter("env_atari_name", env_atari_name, "", "Environment");
+    cl.addParameter("env_atari_rom_dir", env_atari_rom_dir, "", "Environment");
+    cl.addParameter("env_atari_name", env_atari_name, "Atari 57 Games:\n"
+                                                      "#\talien amidar assault asterix asteroids atlantis bank_heist battle_zone beam_rider berzerk\n"
+                                                      "#\tbowling boxing breakout centipede chopper_command crazy_climber defender demon_attack double_dunk enduro\n"
+                                                      "#\tfishing_derby freeway frostbite gopher gravitar hero ice_hockey jamesbond kangaroo krull\n"
+                                                      "#\tkung_fu_master montezuma_revenge ms_pacman name_this_game phoenix pitfall pong private_eye qbert riverraid\n"
+                                                      "#\troad_runner robotank seaquest skiing solaris space_invaders star_gunner surround tennis time_pilot\n"
+                                                      "#\ttutankham up_n_down venture video_pinball wizard_of_wor yars_revenge zaxxon",
+                    "Environment");
 #elif GO
     cl.addParameter("env_go_komi", env_go_komi, "", "Environment");
     cl.addParameter("env_go_ko_rule", env_go_ko_rule, "positional/situational", "Environment");

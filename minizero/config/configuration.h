@@ -71,6 +71,7 @@ extern int nn_discrete_value_size;
 extern std::string nn_type_name;
 
 // environment parameters
+extern std::string env_atari_rom_dir;
 extern std::string env_atari_name;
 extern int env_board_size;
 extern float env_go_komi;

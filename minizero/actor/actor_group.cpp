@@ -174,7 +174,7 @@ void ActorGroup::handleFinishedGame()
         std::shared_ptr<BaseActor>& actor = getSharedData()->actors_[actor_id];
         if (!actor->isSearchDone()) { continue; }
         bool is_endgame = (actor->isResign() || actor->isEnvTerminal());
-        bool display_game = (actor_id == 0 && (config::actor_num_simulation >= 100 || (config::actor_num_simulation < 100 && is_endgame)));
+        bool display_game = (actor_id == 0 && (config::actor_num_simulation >= 50 || (config::actor_num_simulation < 50 && is_endgame)));
         if (display_game) { std::cerr << actor->getEnvironment().toString() << actor->getSearchInfo() << std::endl; }
         if (is_endgame) {
             std::cout << actor->getRecord() << std::endl;

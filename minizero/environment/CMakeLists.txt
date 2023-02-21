@@ -18,4 +18,6 @@ target_link_libraries(
     environment
     config
     utils
+    ale::ale-lib
+    ${OpenCV_LIBS}
 )
