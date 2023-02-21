@@ -38,8 +38,8 @@ int zero_start_iteration = 0;
 int zero_end_iteration = 100;
 int zero_replay_buffer = 20;
 float zero_disable_resign_ratio = 0.1;
-std::string zero_actor_ignored_command = "";
-bool zero_server_accept_different_model_games = false;
+std::string zero_actor_ignored_command = "reset_actors";
+bool zero_server_accept_different_model_games = true;
 
 // learner parameters
 int learner_training_step = 500;
