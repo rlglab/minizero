@@ -9,7 +9,6 @@
 #include <memory>
 #include <string>
 #include <torch/cuda.h>
-#include <unordered_map>
 
 namespace minizero::actor {
 
@@ -20,19 +19,6 @@ int ThreadSharedData::getAvailableActorIndex()
 {
     std::lock_guard<std::mutex> lock(mutex_);
     return (actor_index_ < static_cast<int>(actors_.size()) ? actor_index_++ : actors_.size());
-}
-
-void ThreadSharedData::syncObservation(int actor_id)
-{
-    if (!observation_map_.count(actor_id)) { return; }
-
-    std::vector<float> observation;
-    std::vector<std::string> observation_string = utils::stringToVector(observation_map_[actor_id]);
-    for (const auto& s : observation_string) { observation.push_back(std::stof(s)); }
-    actors_[actor_id]->getEnvironment().setObservation(observation);
-
-    std::lock_guard<std::mutex> lock(mutex_);
-    observation_map_.erase(actor_id);
 }
 
 void SlaveThread::initialize()
@@ -55,7 +41,6 @@ bool SlaveThread::doCPUJob()
     size_t actor_id = getSharedData()->getAvailableActorIndex();
     if (actor_id >= getSharedData()->actors_.size()) { return false; }
 
-    getSharedData()->syncObservation(actor_id);
     std::shared_ptr<BaseActor>& actor = getSharedData()->actors_[actor_id];
     int network_id = actor_id % getSharedData()->networks_.size();
     int network_output_id = actor->getNNEvaluationBatchIndex();
@@ -107,7 +92,6 @@ void ActorGroup::initialize()
     createSlaveThreads(num_threads);
     createNeuralNetworks();
     createActors();
-    createEnvironmentServer();
     running_ = false;
     getSharedData()->do_cpu_job_ = true;
 
@@ -129,21 +113,6 @@ void ActorGroup::createNeuralNetworks()
     for (int gpu_id = 0; gpu_id < num_networks; ++gpu_id) {
         getSharedData()->networks_[gpu_id] = createNetwork(config::nn_file_name, gpu_id);
     }
-}
-
-void ActorGroup::createEnvironmentServer()
-{
-    if (!config::actor_use_remote_environment) { return; }
-
-    boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::tcp::v4(), config::actor_server_port);
-    acceptor_.open(endpoint.protocol());
-    acceptor_.set_option(boost::asio::socket_base::reuse_address(true));
-    acceptor_.bind(endpoint);
-    acceptor_.listen();
-    acceptor_.accept(socket_);
-    boost::asio::write(socket_, boost::asio::buffer(config::zero_training_directory + "\n"));
-    boost::asio::write(socket_, boost::asio::buffer("num_actors " + std::to_string(getSharedData()->actors_.size()) + "\n"));
-    handleRemoteEnvMessage();
 }
 
 void ActorGroup::createActors()
@@ -169,7 +138,6 @@ void ActorGroup::handleIO()
 
 void ActorGroup::handleFinishedGame()
 {
-    handleRemoteEnvAct();
     for (size_t actor_id = 0; actor_id < getSharedData()->actors_.size(); ++actor_id) {
         std::shared_ptr<BaseActor>& actor = getSharedData()->actors_[actor_id];
         if (!actor->isSearchDone()) { continue; }
@@ -182,53 +150,6 @@ void ActorGroup::handleFinishedGame()
         } else {
             actor->resetSearch();
         }
-    }
-}
-
-void ActorGroup::handleRemoteEnvAct()
-{
-    if (!config::actor_use_remote_environment) { return; }
-
-    std::string act_string = "";
-    for (size_t actor_id = 0; actor_id < getSharedData()->actors_.size(); ++actor_id) {
-        std::shared_ptr<BaseActor>& actor = getSharedData()->actors_[actor_id];
-        if (!actor->isSearchDone()) { continue; }
-        if (actor_id == 0) { std::cerr << actor->getEnvironment().toString() << actor->getSearchInfo() << std::endl; }
-        act_string += " " + std::to_string(actor_id) + " " + std::to_string(actor->getEnvironment().getActionHistory().back().getActionID());
-        actor->resetSearch();
-    }
-    if (act_string.empty()) { return; }
-
-    boost::asio::write(socket_, boost::asio::buffer("act" + act_string + "\n"));
-    handleRemoteEnvMessage();
-}
-
-void ActorGroup::handleRemoteEnvMessage()
-{
-    if (!config::actor_use_remote_environment) { return; }
-
-    std::string recevied_message;
-    boost::asio::read_until(socket_, boost::asio::dynamic_buffer(recevied_message), '\n');
-    recevied_message.pop_back(); // remove new line character
-
-    size_t index = 0, dim_index = 0;
-    while ((dim_index = recevied_message.find(';', index)) != std::string::npos) {
-        std::string message = recevied_message.substr(index, dim_index - index);
-        std::string message_prefix = message.substr(0, message.find(" "));
-        if (message_prefix == "obs") {
-            size_t first_space = message.find(" ");
-            size_t second_space = message.find(" ", first_space + 1);
-            int actor_id = std::stoi(message.substr(first_space + 1, second_space - first_space - 1));
-            getSharedData()->observation_map_[actor_id] = message.substr(second_space + 1);
-        } else if (message_prefix == "game") {
-            std::vector<std::string> game_string = utils::stringToVector(message);
-            std::shared_ptr<BaseActor>& actor = getSharedData()->actors_[std::stoi(game_string[1])];
-            std::unordered_map<std::string, std::string> tags;
-            for (size_t i = 2; i < game_string.size(); i += 2) { tags.insert({game_string[i], game_string[i + 1]}); }
-            std::cout << actor->getRecord(tags) << std::endl;
-            actor->reset();
-        }
-        index = dim_index + 1;
     }
 }
 

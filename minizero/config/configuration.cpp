@@ -9,8 +9,6 @@ bool program_auto_seed = false;
 bool program_quiet = false;
 
 // actor parameters
-bool actor_use_remote_environment = false;
-int actor_server_port = 9998;
 int actor_num_threads = 4;
 int actor_num_parallel_games = 32;
 int actor_num_simulation = 50;
@@ -95,8 +93,6 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("program_quiet", program_quiet, "", "Program");
 
     // actor parameters
-    cl.addParameter("actor_use_remote_environment", actor_use_remote_environment, "", "Actor");
-    cl.addParameter("actor_server_port", actor_server_port, "", "Actor");
     cl.addParameter("actor_num_threads", actor_num_threads, "", "Actor");
     cl.addParameter("actor_num_parallel_games", actor_num_parallel_games, "", "Actor");
     cl.addParameter("actor_num_simulation", actor_num_simulation, "", "Actor");

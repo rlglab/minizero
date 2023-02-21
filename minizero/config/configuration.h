@@ -11,8 +11,6 @@ extern bool program_auto_seed;
 extern bool program_quiet;
 
 // actor parameters
-extern bool actor_use_remote_environment;
-extern int actor_server_port;
 extern int actor_num_threads;
 extern int actor_num_parallel_games;
 extern int actor_num_simulation;
