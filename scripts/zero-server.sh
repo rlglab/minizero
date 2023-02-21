@@ -65,15 +65,15 @@ elif [[ ${run_stage,} == "c" ]]; then
     zero_start_iteration=$(($(grep -Ei 'optimization.+finished' ${train_dir}/Training.log | wc -l)+1))
     model_file=$(ls ${train_dir}/model/ | grep ".pt$" | sort -V | tail -n1)
     new_configure_file=$(basename ${train_dir}/*.cfg)
+
+	# friendly notification if continuing training
+	yn="?"
+	echo "Continue training from iteration: ${zero_start_iteration}, model file: ${model_file}, configuration: ${train_dir}/${new_configure_file}. Sure? (y/n)"
+	read -n1 yn
+	[[ ${yn,} == "y" ]] || exit
 else
 	exit
 fi
-
-# friendly notify
-yn="?"
-echo "Start training from iteration: ${zero_start_iteration}, model file: ${model_file}, configuration: ${train_dir}/${new_configure_file}. Sure? (y/n)"
-read -n1 yn
-[[ ${yn,} == "y" ]] || exit
 
 # run zero server
 conf_str="zero_training_directory=${train_dir}:zero_end_iteration=${end_iteration}:nn_file_name=${model_file}:zero_start_iteration=${zero_start_iteration}"
