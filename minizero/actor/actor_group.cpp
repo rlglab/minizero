@@ -25,7 +25,8 @@ void ThreadSharedData::outputRecord(const std::shared_ptr<BaseActor>& actor)
 {
     std::ostringstream oss;
     oss << "SelfPlay "
-        << actor->getEnvironment().getActionHistory().size() << " "
+        << actor->getEnvironment().getActionHistory().size() << " "             // game length
+        << actor->getEnvironment().getEvalScore(!actor->isEnvTerminal()) << " " // return
         << actor->getRecord();
 
     std::lock_guard<std::mutex> lock(mutex_);

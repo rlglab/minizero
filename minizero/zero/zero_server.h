@@ -29,6 +29,16 @@ private:
     std::fstream self_play_game_;
 };
 
+class ZeroSelfPlayData {
+public:
+    int game_length_;
+    float return_;
+    std::string game_record_;
+
+    ZeroSelfPlayData() {}
+    ZeroSelfPlayData(std::string input_data);
+};
+
 class ZeroWorkerSharedData {
 public:
     ZeroWorkerSharedData(boost::mutex& worker_mutex)
@@ -36,7 +46,7 @@ public:
     {
     }
 
-    std::string getSelfPlayGame();
+    bool getSelfPlayData(ZeroSelfPlayData& sp_data);
     bool isOptimizationPahse();
     int getModelIetration();
 
@@ -44,7 +54,7 @@ public:
     int total_games_;
     int model_iteration_;
     ZeroLogger logger_;
-    std::queue<std::string> self_play_queue_;
+    std::queue<ZeroSelfPlayData> sp_data_queue_;
     boost::mutex mutex_;
     boost::mutex& worker_mutex_;
 };
