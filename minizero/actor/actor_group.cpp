@@ -21,6 +21,17 @@ int ThreadSharedData::getAvailableActorIndex()
     return (actor_index_ < static_cast<int>(actors_.size()) ? actor_index_++ : actors_.size());
 }
 
+void ThreadSharedData::outputRecord(const std::shared_ptr<BaseActor>& actor)
+{
+    std::ostringstream oss;
+    oss << "SelfPlay "
+        << actor->getEnvironment().getActionHistory().size() << " "
+        << actor->getRecord();
+
+    std::lock_guard<std::mutex> lock(mutex_);
+    std::cout << oss.str() << std::endl;
+}
+
 void SlaveThread::initialize()
 {
     int seed = config::program_auto_seed ? std::random_device()() : config::program_seed + id_;
@@ -47,9 +58,9 @@ bool SlaveThread::doCPUJob()
     if (network_output_id >= 0) {
         assert(network_output_id < static_cast<int>(getSharedData()->network_outputs_[network_id].size()));
         actor->afterNNEvaluation(getSharedData()->network_outputs_[network_id][network_output_id]);
-        if (actor->isSearchDone() && !actor->isResign()) { actor->act(actor->getSearchAction(), actor->getActionComment()); }
+        if (actor->isSearchDone()) { handleSearchDone(actor_id); }
     }
-    if (!actor->isSearchDone()) { actor->beforeNNEvaluation(); }
+    actor->beforeNNEvaluation();
     return true;
 }
 
@@ -71,6 +82,23 @@ void SlaveThread::doGPUJob()
     }
 }
 
+void SlaveThread::handleSearchDone(int actor_id)
+{
+    assert(actor_id >= 0 && actor_id < getSharedData()->actors_.size() && getSharedData()->actors_[actor_id]->isSearchDone());
+
+    std::shared_ptr<BaseActor>& actor = getSharedData()->actors_[actor_id];
+    if (!actor->isResign()) { actor->act(actor->getSearchAction(), actor->getActionComment()); }
+    bool is_endgame = (actor->isResign() || actor->isEnvTerminal());
+    bool display_game = (actor_id == 0 && (config::actor_num_simulation >= 50 || (config::actor_num_simulation < 50 && is_endgame)));
+    if (display_game) { std::cerr << actor->getEnvironment().toString() << actor->getSearchInfo() << std::endl; }
+    if (is_endgame) {
+        getSharedData()->outputRecord(actor);
+        actor->reset();
+    } else {
+        actor->resetSearch();
+    }
+}
+
 void ActorGroup::run()
 {
     initialize();
@@ -81,7 +109,6 @@ void ActorGroup::run()
         getSharedData()->actor_index_ = 0;
         for (auto& t : slave_threads_) { t->start(); }
         for (auto& t : slave_threads_) { t->finish(); }
-        handleFinishedGame();
         getSharedData()->do_cpu_job_ = !getSharedData()->do_cpu_job_;
     }
 }
@@ -133,23 +160,6 @@ void ActorGroup::handleIO()
     while (getline(std::cin, command)) {
         std::lock_guard<std::mutex> lock(getSharedData()->mutex_);
         commands_.push_back(command);
-    }
-}
-
-void ActorGroup::handleFinishedGame()
-{
-    for (size_t actor_id = 0; actor_id < getSharedData()->actors_.size(); ++actor_id) {
-        std::shared_ptr<BaseActor>& actor = getSharedData()->actors_[actor_id];
-        if (!actor->isSearchDone()) { continue; }
-        bool is_endgame = (actor->isResign() || actor->isEnvTerminal());
-        bool display_game = (actor_id == 0 && (config::actor_num_simulation >= 50 || (config::actor_num_simulation < 50 && is_endgame)));
-        if (display_game) { std::cerr << actor->getEnvironment().toString() << actor->getSearchInfo() << std::endl; }
-        if (is_endgame) {
-            std::cout << actor->getRecord() << std::endl;
-            actor->reset();
-        } else {
-            actor->resetSearch();
-        }
     }
 }
 

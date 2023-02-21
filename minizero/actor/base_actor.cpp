@@ -47,7 +47,7 @@ std::string BaseActor::getRecord(std::unordered_map<std::string, std::string> ta
     // if the game is not ended, then treat the game as a resign game, where the next player is the lose side
     if (!isEnvTerminal()) { env_loader.addTag("RE", std::to_string(env_.getEvalScore(true))); }
     for (auto tag : tags) { env_loader.addTag(tag.first, tag.second); }
-    return "SelfPlay " + std::to_string(env_loader.getActionPairs().size()) + " " + env_loader.toString();
+    return env_loader.toString();
 }
 
 } // namespace minizero::actor

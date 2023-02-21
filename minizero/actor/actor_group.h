@@ -15,6 +15,7 @@ namespace minizero::actor {
 class ThreadSharedData : public utils::BaseSharedData {
 public:
     int getAvailableActorIndex();
+    void outputRecord(const std::shared_ptr<BaseActor>& actor);
 
     bool do_cpu_job_;
     int actor_index_;
@@ -36,6 +37,7 @@ public:
 protected:
     virtual bool doCPUJob();
     virtual void doGPUJob();
+    virtual void handleSearchDone(int actor_id);
     inline std::shared_ptr<ThreadSharedData> getSharedData() { return std::static_pointer_cast<ThreadSharedData>(shared_data_); }
 };
 
@@ -51,7 +53,6 @@ protected:
     virtual void createNeuralNetworks();
     virtual void createActors();
     virtual void handleIO();
-    virtual void handleFinishedGame();
     virtual void handleCommand();
     virtual void handleCommand(const std::string& command_prefix, const std::string& command);
 
