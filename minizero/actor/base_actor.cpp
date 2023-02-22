@@ -7,7 +7,7 @@ namespace minizero::actor {
 void BaseActor::reset()
 {
     env_.reset();
-    action_comments_.clear();
+    action_info_history_.clear();
     resetSearch();
 }
 
@@ -18,30 +18,39 @@ void BaseActor::resetSearch()
     search_->reset();
 }
 
-bool BaseActor::act(const Action& action, const std::string action_comment /*= ""*/)
+bool BaseActor::act(const Action& action, const std::unordered_map<std::string, std::string>& action_info /* = {} */)
 {
     bool can_act = env_.act(action);
     if (can_act) {
-        action_comments_.resize(env_.getActionHistory().size());
-        action_comments_[action_comments_.size() - 1] = action_comment;
+        action_info_history_.resize(env_.getActionHistory().size());
+        action_info_history_.back() = action_info;
     }
     return can_act;
 }
 
-bool BaseActor::act(const std::vector<std::string>& action_string_args, const std::string action_comment /*= ""*/)
+bool BaseActor::act(const std::vector<std::string>& action_string_args, const std::unordered_map<std::string, std::string>& action_info /* = {} */)
 {
     bool can_act = env_.act(action_string_args);
     if (can_act) {
-        action_comments_.resize(env_.getActionHistory().size());
-        action_comments_[action_comments_.size() - 1] = action_comment;
+        action_info_history_.resize(env_.getActionHistory().size());
+        action_info_history_.back() = action_info;
     }
     return can_act;
 }
 
-std::string BaseActor::getRecord(std::unordered_map<std::string, std::string> tags /* = {} */) const
+std::unordered_map<std::string, std::string> BaseActor::getActionInfo() const
+{
+    std::unordered_map<std::string, std::string> action_info;
+    action_info.insert({"P", getMCTSPolicy()});
+    action_info.insert({"V", getMCTSValue()});
+    action_info.insert({"R", getEnvReward()});
+    return action_info;
+}
+
+std::string BaseActor::getRecord(const std::unordered_map<std::string, std::string>& tags /* = {} */) const
 {
     EnvironmentLoader env_loader;
-    env_loader.loadFromEnvironment(env_, action_comments_);
+    env_loader.loadFromEnvironment(env_, action_info_history_);
     env_loader.addTag("EV", config::nn_file_name.substr(config::nn_file_name.find_last_of('/') + 1));
 
     // if the game is not ended, then treat the game as a resign game, where the next player is the lose side

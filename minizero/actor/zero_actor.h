@@ -36,13 +36,16 @@ public:
     Action getSearchAction() const override { return mcts_search_data_.selected_node_->getAction(); }
     bool isResign() const override { return enable_resign_ && getMCTS()->isResign(mcts_search_data_.selected_node_); }
     std::string getSearchInfo() const override { return mcts_search_data_.search_info_; }
-    std::string getActionComment() const override { return getMCTS()->getSearchDistributionString(); }
     void setNetwork(const std::shared_ptr<network::Network>& network) override;
     std::shared_ptr<Search> createSearch() override { return std::make_shared<MCTS>(tree_node_size_); }
     std::shared_ptr<MCTS> getMCTS() { return std::static_pointer_cast<MCTS>(search_); }
     const std::shared_ptr<MCTS> getMCTS() const { return std::static_pointer_cast<MCTS>(search_); }
 
 protected:
+    std::string getMCTSPolicy() const override { return getMCTS()->getSearchDistributionString(); }
+    std::string getMCTSValue() const override { return std::to_string(getMCTS()->getRootNode()->getMean()); }
+    std::string getEnvReward() const override;
+
     virtual void step();
     virtual void handleSearchDone();
     virtual MCTSNode* decideActionNode();

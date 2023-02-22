@@ -19,9 +19,10 @@ public:
 
     virtual void reset();
     virtual void resetSearch();
-    bool act(const Action& action, const std::string action_comment = "");
-    bool act(const std::vector<std::string>& action_string_args, const std::string action_comment = "");
-    virtual std::string getRecord(std::unordered_map<std::string, std::string> tags = {}) const;
+    bool act(const Action& action, const std::unordered_map<std::string, std::string>& action_info = {});
+    bool act(const std::vector<std::string>& action_string_args, const std::unordered_map<std::string, std::string>& action_info = {});
+    virtual std::unordered_map<std::string, std::string> getActionInfo() const;
+    virtual std::string getRecord(const std::unordered_map<std::string, std::string>& tags = {}) const;
 
     inline bool isEnvTerminal() const { return env_.isTerminal(); }
     inline const float getEvalScore() const { return env_.getEvalScore(); }
@@ -36,15 +37,18 @@ public:
     virtual Action getSearchAction() const = 0;
     virtual bool isResign() const = 0;
     virtual std::string getSearchInfo() const = 0;
-    virtual std::string getActionComment() const = 0;
     virtual void setNetwork(const std::shared_ptr<network::Network>& network) = 0;
     virtual std::shared_ptr<Search> createSearch() = 0;
 
 protected:
+    virtual std::string getMCTSPolicy() const = 0;
+    virtual std::string getMCTSValue() const = 0;
+    virtual std::string getEnvReward() const = 0;
+
     int nn_evaluation_batch_id_;
     Environment env_;
     std::shared_ptr<Search> search_;
-    std::vector<std::string> action_comments_;
+    std::vector<std::unordered_map<std::string, std::string>> action_info_history_;
 };
 
 } // namespace minizero::actor

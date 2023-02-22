@@ -16,9 +16,10 @@ public:
     }
 
     void afterNNEvaluation(const std::shared_ptr<network::NetworkOutput>& network_output) override;
-    std::string getActionComment() const override;
 
 protected:
+    std::string getMCTSPolicy() const override;
+
     MCTSNode* decideActionNode() override;
     std::vector<MCTSNode*> selection() override;
     virtual void sequentialHalving();

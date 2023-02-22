@@ -102,6 +102,13 @@ void ZeroActor::setNetwork(const std::shared_ptr<network::Network>& network)
     assert((alphazero_network_ && !muzero_network_) || (!alphazero_network_ && muzero_network_));
 }
 
+std::string ZeroActor::getEnvReward() const
+{
+    std::ostringstream oss;
+    oss << env_.getReward();
+    return oss.str();
+}
+
 void ZeroActor::step()
 {
     beforeNNEvaluation();

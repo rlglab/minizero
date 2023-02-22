@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <bitset>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace minizero::env::othello {
@@ -78,9 +79,9 @@ private:
 
 class OthelloEnvLoader : public BaseEnvLoader<OthelloAction, OthelloEnv> {
 public:
-    void loadFromEnvironment(const OthelloEnv& env, const std::vector<std::string> action_distributions = {})
+    void loadFromEnvironment(const OthelloEnv& env, const std::vector<std::unordered_map<std::string, std::string>>& action_info_history = {})
     {
-        BaseEnvLoader<OthelloAction, OthelloEnv>::loadFromEnvironment(env, action_distributions);
+        BaseEnvLoader<OthelloAction, OthelloEnv>::loadFromEnvironment(env, action_info_history);
         addTag("SZ", std::to_string(env.getBoardSize()));
     }
     inline int getBoardSize() const { return std::stoi(getTag("SZ")); }

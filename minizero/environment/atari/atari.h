@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <deque>
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
@@ -76,9 +77,9 @@ private:
 
 class AtariEnvLoader : public BaseEnvLoader<AtariAction, AtariEnv> {
 public:
-    void loadFromEnvironment(const AtariEnv& env, const std::vector<std::string> action_distributions = {})
+    void loadFromEnvironment(const AtariEnv& env, const std::vector<std::unordered_map<std::string, std::string>>& action_info_history = {})
     {
-        BaseEnvLoader<AtariAction, AtariEnv>::loadFromEnvironment(env, action_distributions);
+        BaseEnvLoader<AtariAction, AtariEnv>::loadFromEnvironment(env, action_info_history);
         addTag("SD", std::to_string(env.getSeed()));
     }
 

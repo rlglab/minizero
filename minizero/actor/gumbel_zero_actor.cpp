@@ -18,7 +18,7 @@ void GumbelZeroActor::afterNNEvaluation(const std::shared_ptr<network::NetworkOu
     sequentialHalving();
 }
 
-std::string GumbelZeroActor::getActionComment() const
+std::string GumbelZeroActor::getMCTSPolicy() const
 {
     // calculate value for non-visisted nodes
     float pi_sum = 0.0f, q_sum = 0.0f;

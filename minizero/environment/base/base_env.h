@@ -134,8 +134,8 @@ public:
             std::string value = content.substr(left_bracket_pos + 1, right_bracket_pos - left_bracket_pos - 1);
             if (key == "B" || key == "W") {
                 Action action(std::stoi(value.substr(0, value.find('|'))), charToPlayer(key[0]));
-                std::string action_distribution = value.substr(value.find('|') + 1);
-                addActionPair(action, action_distribution);
+                std::string action_info = value.substr(value.find('|') + 1);
+                addActionPair(action, action_info);
             } else {
                 addTag(key, value);
             }
@@ -144,12 +144,13 @@ public:
         return true;
     }
 
-    inline void loadFromEnvironment(const Env& env, const std::vector<std::string>& action_distributions = {})
+    inline void loadFromEnvironment(const Env& env, const std::vector<std::unordered_map<std::string, std::string>>& action_info_history = {})
     {
         reset();
         for (size_t i = 0; i < env.getActionHistory().size(); ++i) {
-            std::string distribution = i < action_distributions.size() ? action_distributions[i] : "";
-            addActionPair(env.getActionHistory()[i], distribution);
+            std::string action_info = "";
+            for (const auto& p : action_info_history[i]) { action_info += p.first + ":" + p.second + ";"; }
+            addActionPair(env.getActionHistory()[i], action_info);
         }
         addTag("RE", std::to_string(env.getEvalScore()));
     }
@@ -171,14 +172,19 @@ public:
     std::vector<float> getPolicyDistribution(int id, utils::Rotation rotation = utils::Rotation::kRotationNone) const
     {
         assert(id < static_cast<int>(action_pairs_.size()));
+
         std::vector<float> policy(getPolicySize(), 0.0f);
-        std::string distribution = action_pairs_[id].second;
-        if (distribution.empty()) {
+        std::string action_info = action_pairs_[id].second;
+        if (action_info.find("P:") == std::string::npos) {
             policy[getRotatePosition(action_pairs_[id].first.getActionID(), rotation)] = 1.0f;
         } else {
-            float total = 0.0f;
+            size_t start = action_info.find("P:") + std::string("P:").size();
+            size_t end = action_info.find(";", start);
+            std::string distribution = action_info.substr(start, end - start);
+
             std::string tmp;
-            std::istringstream iss(getActionPairs()[id].second);
+            float total = 0.0f;
+            std::istringstream iss(distribution);
             while (std::getline(iss, tmp, ',')) {
                 int position = getRotatePosition(std::stoi(tmp.substr(0, tmp.find(":"))), rotation);
                 float count = std::stoi(tmp.substr(tmp.find(":") + 1));
@@ -199,7 +205,7 @@ public:
     inline std::vector<std::pair<Action, std::string>>& getActionPairs() { return action_pairs_; }
     inline const std::vector<std::pair<Action, std::string>>& getActionPairs() const { return action_pairs_; }
     inline float getReturn() const { return std::stof(getTag("RE")); }
-    inline void addActionPair(const Action& action, const std::string& action_distribution = "") { action_pairs_.push_back({action, action_distribution}); }
+    inline void addActionPair(const Action& action, const std::string& action_info = "") { action_pairs_.push_back({action, action_info}); }
     inline void addTag(const std::string& key, const std::string& value) { tags_[key] = value; }
 
 protected:
