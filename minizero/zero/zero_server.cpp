@@ -177,9 +177,7 @@ void ZeroServer::selfPlay()
         }
 
         // save record
-        shared_data_.logger_.getSelfPlayFileStream() << num_collect_game << " "
-                                                     << sp_data.game_length_ << " "
-                                                     << sp_data.game_record_ << std::endl;
+        shared_data_.logger_.getSelfPlayFileStream() << sp_data.game_record_ << std::endl;
         ++num_collect_game;
         total_return += sp_data.return_;
         total_game_length += sp_data.game_length_;
