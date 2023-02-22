@@ -3,6 +3,26 @@
 
 namespace minizero::env::atari {
 
+std::string encode_observation(const std::vector<float>& observation)
+{
+    // use hex to represent RGB unsigned char
+    std::ostringstream oss;
+    for (const auto& o : observation) {
+        assert(o >= 0 && o < 255);
+        oss << std::setfill('0') << std::setw(2) << std::hex << static_cast<int>(o);
+    }
+    return oss.str();
+}
+
+std::vector<float> decode_observation(const std::string& s)
+{
+    std::vector<float> observation;
+    for (size_t i = 0; i < s.size(); i += 2) {
+        observation.push_back(std::stoi(s.substr(i, 2), 0, 16));
+    }
+    return observation;
+}
+
 std::string getAtariActionName(int action_id)
 {
     assert(action.getActionID() >= 0 && action.getActionID() < kAtariActionSize);
