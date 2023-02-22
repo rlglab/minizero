@@ -49,7 +49,7 @@ public:
 
         std::vector<torch::jit::IValue> dummy;
         num_action_feature_channels_ = network_.get_method("get_num_action_feature_channels")(dummy).toInt();
-        discrete_value_size_ = (getNetworkTypeName() == "muzero_reward" ? network_.get_method("get_discrete_value_size")(dummy).toInt() : -1);
+        discrete_value_size_ = (getNetworkTypeName() == "muzero_atari" ? network_.get_method("get_discrete_value_size")(dummy).toInt() : -1);
         initial_input_batch_size_ = 0;
         recurrent_input_batch_size_ = 0;
     }
@@ -59,7 +59,7 @@ public:
         std::ostringstream oss;
         oss << Network::toString();
         oss << "Number of action feature channels: " << num_action_feature_channels_ << std::endl;
-        if (getNetworkTypeName() == "muzero_reward") { oss << "Discrete value size: " << discrete_value_size_ << std::endl; }
+        if (getNetworkTypeName() == "muzero_atari") { oss << "Discrete value size: " << discrete_value_size_ << std::endl; }
         return oss.str();
     }
 
@@ -136,7 +136,7 @@ private:
         auto hidden_state_output = forward_result.at("hidden_state").toTensor().to(at::kCPU);
         assert(policy_output.numel() == batch_size * getActionSize());
         assert(policy_logits_output.numel() == batch_size * getActionSize());
-        assert((getNetworkTypeName() != "muzero_reward" && value_output.numel() == batch_size) || (getNetworkTypeName() == "muzero_reward" && value_output.numel() == batch_size * getDiscreteValueSize()));
+        assert((getNetworkTypeName() != "muzero_atari" && value_output.numel() == batch_size) || (getNetworkTypeName() == "muzero_atari" && value_output.numel() == batch_size * getDiscreteValueSize()));
         assert(!forward_result.contains("reward") || (forward_result.contains("reward") && reward_output.numel() == batch_size * getDiscreteValueSize()));
         assert(hidden_state_output.numel() == batch_size * getNumHiddenChannels() * getHiddenChannelHeight() * getHiddenChannelWidth());
 
@@ -157,7 +157,7 @@ private:
                       hidden_state_output.data_ptr<float>() + (i + 1) * hidden_state_size,
                       muzero_network_output->hidden_state_.begin());
 
-            if (getNetworkTypeName() == "muzero_reward") {
+            if (getNetworkTypeName() == "muzero_atari") {
                 int start_value = -getDiscreteValueSize() / 2;
                 muzero_network_output->value_ = std::accumulate(value_output.data_ptr<float>() + i * getDiscreteValueSize(),
                                                                 value_output.data_ptr<float>() + (i + 1) * getDiscreteValueSize(),

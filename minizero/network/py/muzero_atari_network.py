@@ -69,7 +69,7 @@ class MuZeroPredictionNetwork(nn.Module):
         return policy_logit, value_logit
 
 
-class MuZeroRewardNetwork(nn.Module):
+class MuZeroAtariNetwork(nn.Module):
     def __init__(self,
                  game_name,
                  num_input_channels,
@@ -84,7 +84,7 @@ class MuZeroRewardNetwork(nn.Module):
                  action_size,
                  num_value_hidden_channels,
                  discrete_value_size):
-        super(MuZeroRewardNetwork, self).__init__()
+        super(MuZeroAtariNetwork, self).__init__()
         self.game_name = game_name
         self.num_input_channels = num_input_channels
         self.input_channel_height = input_channel_height
@@ -106,7 +106,7 @@ class MuZeroRewardNetwork(nn.Module):
 
     @torch.jit.export
     def get_type_name(self):
-        return "muzero_reward"
+        return "muzero_atari"
 
     @torch.jit.export
     def get_game_name(self):

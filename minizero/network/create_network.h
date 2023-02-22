@@ -18,7 +18,7 @@ inline std::shared_ptr<Network> createNetwork(const std::string& nn_file_name, c
     if (base_network.getNetworkTypeName() == "alphazero") {
         network = std::make_shared<AlphaZeroNetwork>();
         std::dynamic_pointer_cast<AlphaZeroNetwork>(network)->loadModel(nn_file_name, gpu_id);
-    } else if (base_network.getNetworkTypeName() == "muzero" || base_network.getNetworkTypeName() == "muzero_reward") {
+    } else if (base_network.getNetworkTypeName() == "muzero" || base_network.getNetworkTypeName() == "muzero_atari") {
         network = std::make_shared<MuZeroNetwork>();
         std::dynamic_pointer_cast<MuZeroNetwork>(network)->loadModel(nn_file_name, gpu_id);
     } else {

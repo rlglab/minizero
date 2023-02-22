@@ -94,7 +94,7 @@ void ZeroActor::setNetwork(const std::shared_ptr<network::Network>& network)
     muzero_network_ = nullptr;
     if (network->getNetworkTypeName() == "alphazero") {
         alphazero_network_ = std::static_pointer_cast<AlphaZeroNetwork>(network);
-    } else if (network->getNetworkTypeName() == "muzero" || network->getNetworkTypeName() == "muzero_reward") {
+    } else if (network->getNetworkTypeName() == "muzero" || network->getNetworkTypeName() == "muzero_atari") {
         muzero_network_ = std::static_pointer_cast<MuZeroNetwork>(network);
     } else {
         assert(false);
