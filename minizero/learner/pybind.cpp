@@ -21,6 +21,8 @@ public:
     inline int getTrainingStep() const { return config::learner_training_step; }
     inline int getTrainingDisplayStep() const { return config::learner_training_display_step; }
     inline int getBatchSize() const { return config::learner_batch_size; }
+    inline int getMuZeroUnrollingStep() const { return config::learner_muzero_unrolling_step; }
+    inline int getNStepReturn() const { return config::learner_n_step_return; }
     inline float getLearningRate() const { return config::learner_learning_rate; }
     inline float getMomentum() const { return config::learner_momentum; }
     inline float getWeightDecay() const { return config::learner_weight_decay; }
@@ -49,6 +51,8 @@ PYBIND11_MODULE(minizero_py, m)
         .def("get_training_step", &Conf::getTrainingStep)
         .def("get_training_display_step", &Conf::getTrainingDisplayStep)
         .def("get_batch_size", &Conf::getBatchSize)
+        .def("get_muzero_unrolling_step", &Conf::getMuZeroUnrollingStep)
+        .def("get_n_step_return", &Conf::getNStepReturn)
         .def("get_learning_rate", &Conf::getLearningRate)
         .def("get_momentum", &Conf::getMomentum)
         .def("get_weight_decay", &Conf::getWeightDecay)

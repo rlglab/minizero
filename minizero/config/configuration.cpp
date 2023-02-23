@@ -47,6 +47,7 @@ bool zero_server_accept_different_model_games = true;
 int learner_training_step = 500;
 int learner_training_display_step = 100;
 int learner_batch_size = 1024;
+int learner_muzero_unrolling_step = 5;
 int learner_n_step_return = 0;
 float learner_learning_rate = 0.02;
 float learner_momentum = 0.9;
@@ -134,6 +135,7 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("learner_training_step", learner_training_step, "", "Learner");
     cl.addParameter("learner_training_display_step", learner_training_display_step, "", "Learner");
     cl.addParameter("learner_batch_size", learner_batch_size, "", "Learner");
+    cl.addParameter("learner_muzero_unrolling_step", learner_muzero_unrolling_step, "", "Learner");
     cl.addParameter("learner_n_step_return", learner_n_step_return, "board games: 0, atari: 10", "Learner");
     cl.addParameter("learner_learning_rate", learner_learning_rate, "", "Learner");
     cl.addParameter("learner_momentum", learner_momentum, "", "Learner");

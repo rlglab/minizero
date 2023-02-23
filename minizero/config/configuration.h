@@ -49,6 +49,7 @@ extern bool zero_server_accept_different_model_games;
 extern int learner_training_step;
 extern int learner_training_display_step;
 extern int learner_batch_size;
+extern int learner_muzero_unrolling_step;
 extern int learner_n_step_return;
 extern float learner_learning_rate;
 extern float learner_momentum;
