@@ -8,6 +8,7 @@ usage()
 	echo "  -h, --help                 Give this help list"
 	echo "    , --sp_executable_file   Assign the path for self-play executable file"
 	echo "    , --op_executable_file   Assign the path for optimization executable file"
+	echo "    , --conf_str             Overwrite configuration file"
 	exit 1
 }
 
@@ -23,6 +24,7 @@ fi
 
 sp_executable_file=build/${game_type}/minizero_${game_type}
 op_executable_file=minizero/learner/train.py
+overwrite_conf_str=""
 while :; do
 	case $1 in
 		-h|--help) shift; usage
@@ -30,6 +32,8 @@ while :; do
 		--sp_executable_file) shift; sp_executable_file=$1
 		;;
 		--op_executable_file) shift; op_executable_file=$1
+		;;
+		--conf_str) shift; overwrite_conf_str=$1
 		;;
 		"") break
 		;;
@@ -41,8 +45,7 @@ done
 
 run_stage="R"
 if [ -d ${train_dir} ]; then
-	echo "${train_dir} has existed: restart(r) / continue(c) / quit(q)."
-	read -n1 run_stage
+	read -n1 -p "${train_dir} has existed. (R)estart / (C)ontinue / (Q)uit? " run_stage
 	echo ""
 fi
 
@@ -52,9 +55,7 @@ if [[ ${run_stage,} == "r" ]]; then
 	rm -rf ${train_dir}
 
 	echo "create ${train_dir} ..."
-	mkdir ${train_dir}
-	mkdir ${train_dir}/model
-	mkdir ${train_dir}/sgf
+	mkdir -p ${train_dir}/model ${train_dir}/sgf
 	touch ${train_dir}/op.log
 	new_configure_file=$(echo ${train_dir} | awk -F "/" '{ print ($NF==""? $(NF-1): $NF)".cfg"; }')
 	cp ${configure_file} ${train_dir}/${new_configure_file}
@@ -67,13 +68,25 @@ elif [[ ${run_stage,} == "c" ]]; then
     new_configure_file=$(basename ${train_dir}/*.cfg)
 
 	# friendly notification if continuing training
-	yn="?"
-	echo "Continue training from iteration: ${zero_start_iteration}, model file: ${model_file}, configuration: ${train_dir}/${new_configure_file}. Sure? (y/n)"
-	read -n1 yn
-	[[ ${yn,} == "y" ]] || exit
+	read -n1 -p "Continue training from iteration: ${zero_start_iteration}, model file: ${model_file}, configuration: ${train_dir}/${new_configure_file}. Sure? (y/n) " yn
+	[[ ${yn,,} == "y" ]] || exit
+	echo ""
 else
 	exit
 fi
+
+# overwrite configuration file
+IFS=':' read -ra settings <<< "${overwrite_conf_str}"
+for setting in "${settings[@]}"
+do
+	IFS='=' read -r key value <<< "${setting}"
+	if grep -q "${key}=" ${train_dir}/${new_configure_file}; then
+		sed -i "s/^${key}.*/${key}=${value}/g" ${train_dir}/${new_configure_file}
+	else
+		echo "${key} doesn't exist in ${train_dir}/${new_configure_file}"
+		exit
+	fi
+done
 
 # run zero server
 conf_str="zero_training_directory=${train_dir}:zero_end_iteration=${end_iteration}:nn_file_name=${model_file}:zero_start_iteration=${zero_start_iteration}"
