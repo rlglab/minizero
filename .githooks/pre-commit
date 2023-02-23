@@ -33,6 +33,7 @@ for file in $(git diff --staged --name-only $against -- | grep -E '\.[ch](pp)?$'
 done
 
 # check python format, reference: https://github.com/hhatto/autopep8
+[ $(pip list | grep pycodestyle | wc -l) -eq 1 ] || pip install pycodestyle >/dev/null 2>/dev/null
 for file in $(git diff --staged --name-only $against -- | grep -E '\.py?$'); do
 	autopep8_output=$(python3 .githooks/autopep8.py -d -a -a --global-config .autopep8 $file 2>&1)
 	[[ ! -z "$autopep8_output" ]] && python3 .githooks/autopep8.py -d -a -a --global-config .autopep8 $file && format_warning=$(expr ${format_warning} + 1)
