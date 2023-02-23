@@ -37,7 +37,7 @@ class AtariEnv:
 def save_video(record, video_file_name=None):
     # collect frames
     seed = int(record.split("SD[")[1].split("]")[0])
-    env_name = record.split("GM[")[1].split("]")[0]
+    env_name = record.split("GM[")[1].split("]")[0].replace("atari_", "")
     env = AtariEnv(env_name, 'ALE/' + ''.join([w.capitalize() for w in env_name.split('_')]) + '-v5', seed)
     for action in record.split("B[")[1:]:
         action_id = int(action.split("|")[0])
