@@ -1,4 +1,3 @@
-import sys
 from .alphazero_network import AlphaZeroNetwork
 from .muzero_network import MuZeroNetwork
 from .muzero_atari_network import MuZeroAtariNetwork

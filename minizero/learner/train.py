@@ -54,10 +54,11 @@ class MinizeroDataset(IterableDataset):
                 yield features, actions, policy, value
 
 
-def load_model(training_dir, model_file, conf):
+def load_model(game_type, training_dir, model_file, conf):
     # training_step, network, device, optimizer, scheduler
     training_step = 0
-    network = create_network(conf.get_game_name(),
+    game_name = "atari" if game_type == "atari" else conf.get_game_name()
+    network = create_network(game_name,
                              conf.get_nn_num_input_channels(),
                              conf.get_nn_input_channel_height(),
                              conf.get_nn_input_channel_width(),
@@ -120,8 +121,8 @@ def calculate_accuracy(output, label, batch_size):
     return (max_output == max_label).sum() / batch_size
 
 
-def train(training_dir, conf_file_name, conf, model_file, start_iter, end_iter):
-    training_step, network, device, optimizer, scheduler = load_model(training_dir, model_file, conf)
+def train(game_type, training_dir, conf_file_name, conf, model_file, start_iter, end_iter):
+    training_step, network, device, optimizer, scheduler = load_model(game_type, training_dir, model_file, conf)
     network = nn.DataParallel(network)
 
     if start_iter == -1:
@@ -214,6 +215,6 @@ if __name__ == '__main__':
                 exit(0)
             eprint(f"[command] {command}")
             model_file, start_iter, end_iter = command.split()
-            train(training_dir, conf_file_name, conf, model_file.replace('"', ''), int(start_iter), int(end_iter))
+            train(game_type, training_dir, conf_file_name, conf, model_file.replace('"', ''), int(start_iter), int(end_iter))
         except (KeyboardInterrupt, EOFError) as e:
             break
