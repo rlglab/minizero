@@ -21,13 +21,14 @@ int ThreadSharedData::getAvailableActorIndex()
     return (actor_index_ < static_cast<int>(actors_.size()) ? actor_index_++ : actors_.size());
 }
 
-void ThreadSharedData::outputRecord(const std::shared_ptr<BaseActor>& actor)
+void ThreadSharedData::outputRecord(const std::shared_ptr<BaseActor>& actor, int data_length)
 {
     std::ostringstream oss;
     oss << "SelfPlay "
+        << data_length << " "                                                   // data length
         << actor->getEnvironment().getActionHistory().size() << " "             // game length
         << actor->getEnvironment().getEvalScore(!actor->isEnvTerminal()) << " " // return
-        << actor->getRecord();
+        << actor->getRecord({{"DLEN", std::to_string(data_length)}});
 
     std::lock_guard<std::mutex> lock(mutex_);
     std::cout << oss.str() << std::endl;
@@ -93,9 +94,22 @@ void SlaveThread::handleSearchDone(int actor_id)
     bool display_game = (actor_id == 0 && (config::actor_num_simulation >= 50 || (config::actor_num_simulation < 50 && is_endgame)));
     if (display_game) { std::cerr << actor->getEnvironment().toString() << actor->getSearchInfo() << std::endl; }
     if (is_endgame) {
-        getSharedData()->outputRecord(actor);
+        int game_length = actor->getEnvironment().getActionHistory().size();
+        int sequence_length = config::zero_actor_intermediate_sequence_length;
+        int data_length = (sequence_length == 0 ? game_length : game_length % sequence_length);
+        getSharedData()->outputRecord(actor, data_length);
         actor->reset();
     } else {
+        int game_length = actor->getEnvironment().getActionHistory().size();
+        int sequence_length = config::zero_actor_intermediate_sequence_length;
+        int overlap_length = config::zero_actor_sequence_overlap_length;
+        int n_step_length = config::learner_n_step_return - 1;
+        if (sequence_length > 0 && game_length > n_step_length && game_length % sequence_length == n_step_length) {
+            getSharedData()->outputRecord(actor, sequence_length);
+            // erase past action_info to reduce game record size
+            int start = std::max(0, game_length - overlap_length - n_step_length - sequence_length);
+            for (int i = start; i < start + sequence_length; ++i) { actor->getActionInfoHistory()[i].clear(); }
+        }
         actor->resetSearch();
     }
 }

@@ -38,6 +38,8 @@ int zero_start_iteration = 0;
 int zero_end_iteration = 100;
 int zero_replay_buffer = 20;
 float zero_disable_resign_ratio = 0.1;
+int zero_actor_intermediate_sequence_length = 0;
+int zero_actor_sequence_overlap_length = 0;
 std::string zero_actor_ignored_command = "reset_actors";
 bool zero_server_accept_different_model_games = true;
 
@@ -45,6 +47,7 @@ bool zero_server_accept_different_model_games = true;
 int learner_training_step = 500;
 int learner_training_display_step = 100;
 int learner_batch_size = 1024;
+int learner_n_step_return = 0;
 float learner_learning_rate = 0.02;
 float learner_momentum = 0.9;
 float learner_weight_decay = 0.0001;
@@ -122,6 +125,8 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("zero_end_iteration", zero_end_iteration, "", "Zero");
     cl.addParameter("zero_replay_buffer", zero_replay_buffer, "", "Zero");
     cl.addParameter("zero_disable_resign_ratio", zero_disable_resign_ratio, "", "Zero");
+    cl.addParameter("zero_actor_intermediate_sequence_length", zero_actor_intermediate_sequence_length, "board games: 0; atari: 200", "Zero");
+    cl.addParameter("zero_actor_sequence_overlap_length", zero_actor_sequence_overlap_length, "board games: 0, atari: 31", "Zero");
     cl.addParameter("zero_actor_ignored_command", zero_actor_ignored_command, "format: command1 command2 ...", "Zero");
     cl.addParameter("zero_server_accept_different_model_games", zero_server_accept_different_model_games, "", "Zero");
 
@@ -129,6 +134,7 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("learner_training_step", learner_training_step, "", "Learner");
     cl.addParameter("learner_training_display_step", learner_training_display_step, "", "Learner");
     cl.addParameter("learner_batch_size", learner_batch_size, "", "Learner");
+    cl.addParameter("learner_n_step_return", learner_n_step_return, "board games: 0, atari: 10", "Learner");
     cl.addParameter("learner_learning_rate", learner_learning_rate, "", "Learner");
     cl.addParameter("learner_momentum", learner_momentum, "", "Learner");
     cl.addParameter("learner_weight_decay", learner_weight_decay, "", "Learner");

@@ -31,6 +31,7 @@ private:
 
 class ZeroSelfPlayData {
 public:
+    int data_length_;
     int game_length_;
     float return_;
     std::string game_record_;

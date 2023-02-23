@@ -15,7 +15,7 @@ namespace minizero::actor {
 class ThreadSharedData : public utils::BaseSharedData {
 public:
     int getAvailableActorIndex();
-    void outputRecord(const std::shared_ptr<BaseActor>& actor);
+    void outputRecord(const std::shared_ptr<BaseActor>& actor, int data_length);
 
     bool do_cpu_job_;
     int actor_index_;

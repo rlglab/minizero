@@ -29,6 +29,8 @@ public:
     inline Environment& getEnvironment() { return env_; }
     inline const Environment& getEnvironment() const { return env_; }
     inline const int getNNEvaluationBatchIndex() const { return nn_evaluation_batch_id_; }
+    inline std::vector<std::unordered_map<std::string, std::string>>& getActionInfoHistory() { return action_info_history_; }
+    inline const std::vector<std::unordered_map<std::string, std::string>>& getActionInfoHistory() const { return action_info_history_; }
 
     virtual Action think(bool with_play = false, bool display_board = false) = 0;
     virtual void beforeNNEvaluation() = 0;

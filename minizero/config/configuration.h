@@ -40,6 +40,8 @@ extern int zero_start_iteration;
 extern int zero_end_iteration;
 extern int zero_replay_buffer;
 extern float zero_disable_resign_ratio;
+extern int zero_actor_intermediate_sequence_length;
+extern int zero_actor_sequence_overlap_length;
 extern std::string zero_actor_ignored_command;
 extern bool zero_server_accept_different_model_games;
 
@@ -47,6 +49,7 @@ extern bool zero_server_accept_different_model_games;
 extern int learner_training_step;
 extern int learner_training_display_step;
 extern int learner_batch_size;
+extern int learner_n_step_return;
 extern float learner_learning_rate;
 extern float learner_momentum;
 extern float learner_weight_decay;

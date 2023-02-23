@@ -36,6 +36,8 @@ ZeroSelfPlayData::ZeroSelfPlayData(std::string input_data)
 {
     // format: Selfplay [game_length] [return] [game_record]
     input_data = input_data.substr(input_data.find(" ") + 1); // remove Selfplay
+    data_length_ = std::stoi(input_data.substr(0, input_data.find(" ")));
+    input_data = input_data.substr(input_data.find(" ") + 1); // remove data_length
     game_length_ = std::stoi(input_data.substr(0, input_data.find(" ")));
     input_data = input_data.substr(input_data.find(" ") + 1); // remove game_length
     return_ = std::stof(input_data.substr(0, input_data.find(" ")));
@@ -162,7 +164,7 @@ void ZeroServer::selfPlay()
     shared_data_.logger_.addTrainingLog("[SelfPlay] Start " + std::to_string(shared_data_.getModelIetration()));
 
     float total_return = 0.0f;
-    int num_collect_game = 0, total_game_length = 0;
+    int num_collect_game = 0, total_data_length = 0, total_game_length = 0;
     while (num_collect_game < config::zero_num_games_per_iteration) {
         broadCastSelfPlayJob();
 
@@ -180,6 +182,7 @@ void ZeroServer::selfPlay()
         shared_data_.logger_.getSelfPlayFileStream() << sp_data.game_record_ << std::endl;
         ++num_collect_game;
         total_return += sp_data.return_;
+        total_data_length += sp_data.data_length_;
         total_game_length += sp_data.game_length_;
 
         // display progress
@@ -194,6 +197,7 @@ void ZeroServer::selfPlay()
     shared_data_.logger_.getSelfPlayFileStream().close();
     shared_data_.logger_.addTrainingLog("[SelfPlay] Finished.");
     shared_data_.logger_.addTrainingLog("[SelfPlay Avg. Returns] " + std::to_string(total_return * 1.0f / num_collect_game));
+    shared_data_.logger_.addTrainingLog("[SelfPlay Avg. Data Lengths] " + std::to_string(total_data_length * 1.0f / num_collect_game));
     shared_data_.logger_.addTrainingLog("[SelfPlay Avg. Game Lengths] " + std::to_string(total_game_length * 1.0f / num_collect_game));
 }
 
