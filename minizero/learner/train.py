@@ -55,8 +55,7 @@ class MinizeroDataset(IterableDataset):
 def load_model(game_type, training_dir, model_file, conf):
     # training_step, network, device, optimizer, scheduler
     training_step = 0
-    game_name = "atari" if game_type == "atari" else conf.get_game_name()
-    network = create_network(game_name,
+    network = create_network(conf.get_game_name(),
                              conf.get_nn_num_input_channels(),
                              conf.get_nn_input_channel_height(),
                              conf.get_nn_input_channel_width(),

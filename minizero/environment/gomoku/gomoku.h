@@ -43,7 +43,7 @@ public:
     std::vector<float> getFeatures(utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::vector<float> getActionFeatures(const GomokuAction& action, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::string toString() const override;
-    inline std::string name() const override { return kGomokuName; }
+    inline std::string name() const override { return kGomokuName + "_" + std::to_string(board_size_) + "x" + std::to_string(board_size_); }
     inline int getNumPlayer() const override { return kGomokuNumPlayer; }
 
 private:
@@ -60,7 +60,6 @@ class GomokuEnvLoader : public BaseEnvLoader<GomokuAction, GomokuEnv> {
 public:
     inline int getPolicySize() const override { return minizero::config::env_board_size * minizero::config::env_board_size; }
     inline int getRotatePosition(int position, utils::Rotation rotation) const override { return getPositionByRotating(rotation, position, minizero::config::env_board_size); }
-    inline std::string getEnvName() const override { return kGomokuName; }
 };
 
 } // namespace minizero::env::gomoku

@@ -62,7 +62,7 @@ public:
     std::string toString() const override;
     GoBitboard dilateBitboard(const GoBitboard& bitboard) const;
 
-    inline std::string name() const override { return kGoName; }
+    inline std::string name() const override { return kGoName + "_" + std::to_string(board_size_) + "x" + std::to_string(board_size_); }
     inline int getNumPlayer() const override { return kGoNumPlayer; }
     inline int getBoardSize() const { return board_size_; }
     inline float getKomi() const { return komi_; }
@@ -134,7 +134,6 @@ public:
     inline int getBoardSize() const { return std::stoi(getTag("SZ")); }
     inline int getPolicySize() const override { return getBoardSize() * getBoardSize() + 1; }
     inline int getRotatePosition(int position, utils::Rotation rotation) const override { return getPositionByRotating(rotation, position, getBoardSize()); }
-    inline std::string getEnvName() const { return kGoName; }
 };
 
 } // namespace minizero::env::go

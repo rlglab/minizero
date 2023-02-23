@@ -237,7 +237,6 @@ class ChessEnvLoader : public BaseEnvLoader<ChessAction, ChessEnv> {
 public:
     inline int getPolicySize() const override { return 4672; }
     inline int getRotatePosition(int position, utils::Rotation rotation) const override { return position; }
-    inline std::string getEnvName() const override { return kChessName; }
 };
 
 } // namespace minizero::env::chess

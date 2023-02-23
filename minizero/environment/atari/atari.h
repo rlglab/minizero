@@ -13,6 +13,7 @@
 
 namespace minizero::env::atari {
 
+const std::string kAtariName = "atari";
 const int kAtariNumPlayer = 1;
 const int kAtariActionSize = 18;
 const int kAtariFrameSkip = 4;
@@ -56,7 +57,7 @@ public:
     std::vector<float> getFeatures(utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::vector<float> getActionFeatures(const AtariAction& action, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::string toString() const override { return ""; }
-    inline std::string name() const override { return minizero::config::env_atari_name; }
+    inline std::string name() const override { return kAtariName + "_" + minizero::config::env_atari_name; }
     inline int getNumPlayer() const override { return kAtariNumPlayer; }
 
     // atari environment states & settings
@@ -86,7 +87,6 @@ public:
 
     inline int getPolicySize() const override { return kAtariActionSize; }
     inline int getRotatePosition(int position, utils::Rotation rotation) const override { return position; }
-    inline std::string getEnvName() const override { return minizero::config::env_atari_name; }
 };
 
 } // namespace minizero::env::atari

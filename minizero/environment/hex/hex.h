@@ -62,7 +62,7 @@ public:
     std::vector<float> getActionFeatures(const HexAction& action, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::string toString() const override;
     std::string toStringDebug() const;
-    inline std::string name() const override { return kHexName; }
+    inline std::string name() const override { return kHexName + "_" + std::to_string(board_size_) + "x" + std::to_string(board_size_); }
     inline int getNumPlayer() const override { return kHexNumPlayer; }
     inline Player getWinner() const { return winner_; }
     inline const std::vector<Cell>& getBoard() const { return board_; }
@@ -80,7 +80,6 @@ class HexEnvLoader : public BaseEnvLoader<HexAction, HexEnv> {
 public:
     inline int getPolicySize() const override { return minizero::config::env_board_size * minizero::config::env_board_size; }
     inline int getRotatePosition(int position, utils::Rotation rotation) const override { return position; }
-    inline std::string getEnvName() const override { return kHexName; }
 };
 
 } // namespace minizero::env::hex

@@ -15,6 +15,7 @@ ModeHandler::ModeHandler()
     RegisterFunction("console", this, &ModeHandler::runConsole);
     RegisterFunction("sp", this, &ModeHandler::runSelfPlay);
     RegisterFunction("zero_server", this, &ModeHandler::runZeroServer);
+    RegisterFunction("zero_training_name", this, &ModeHandler::runZeroTrainingName);
     RegisterFunction("env_test", this, &ModeHandler::runEnvTest);
 }
 
@@ -30,14 +31,14 @@ void ModeHandler::run(int argc, char* argv[])
     config::ConfigureLoader cl;
     setDefaultConfiguration(cl);
 
+    std::string gen_config = "";
     for (int i = 1; i < argc; i += 2) {
         std::string sCommand = std::string(argv[i]);
 
         if (sCommand == "-mode") {
             mode_string = argv[i + 1];
         } else if (sCommand == "-gen") {
-            genConfiguration(cl, argv[i + 1]);
-            exit(0);
+            gen_config = argv[i + 1];
         } else if (sCommand == "-conf_file") {
             config_file = argv[i + 1];
         } else if (sCommand == "-conf_str") {
@@ -50,8 +51,16 @@ void ModeHandler::run(int argc, char* argv[])
 
     if (!readConfiguration(cl, config_file, config_string)) { exit(-1); }
     utils::Random::seed(config::program_auto_seed ? static_cast<int>(time(NULL)) : config::program_seed); // setup random seed
-    if (!function_map_.count(mode_string)) { usage(); }
-    (*function_map_[mode_string])();
+
+    if (!gen_config.empty()) {
+        // generate configuration file after reading cfg file
+        genConfiguration(cl, gen_config);
+        exit(0);
+    } else {
+        // run mode
+        if (!function_map_.count(mode_string)) { usage(); }
+        (*function_map_[mode_string])();
+    }
 }
 
 void ModeHandler::usage()
@@ -133,6 +142,14 @@ void ModeHandler::runZeroServer()
 {
     zero::ZeroServer server;
     server.run();
+}
+
+void ModeHandler::runZeroTrainingName()
+{
+    std::cout << Environment().name()                                                           // name for environment
+              << "_" << (config::actor_use_gumbel ? "g" : "") << config::nn_type_name[0] << "z" // network & training algorithm
+              << "_" << config::nn_num_blocks << "b"                                            // number of blocks
+              << "_n" << config::actor_num_simulation << std::endl;                             // number of simulations
 }
 
 void ModeHandler::runEnvTest()

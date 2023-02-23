@@ -32,7 +32,7 @@ def create_network(game_name="tietactoe",
                                    action_size,
                                    num_value_hidden_channels)
     elif network_type_name == "muzero":
-        if game_name == "atari":
+        if "atari" in game_name:
             network = MuZeroAtariNetwork(game_name,
                                          num_input_channels,
                                          input_channel_height,

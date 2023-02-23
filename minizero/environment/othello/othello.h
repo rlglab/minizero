@@ -46,7 +46,7 @@ public:
     std::vector<float> getFeatures(utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::vector<float> getActionFeatures(const OthelloAction& action, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::string toString() const override;
-    inline std::string name() const override { return kOthelloName; }
+    inline std::string name() const override { return kOthelloName + "_" + std::to_string(board_size_) + "x" + std::to_string(board_size_); }
     inline int getNumPlayer() const override { return kOthelloNumPlayer; }
     inline bool isPassAction(const OthelloAction& action) const { return (action.getActionID() == board_size_ * board_size_); }
     inline int getBoardSize() const { return board_size_; }
@@ -87,7 +87,6 @@ public:
     inline int getBoardSize() const { return std::stoi(getTag("SZ")); }
     inline int getPolicySize() const override { return getBoardSize() * getBoardSize() + 1; }
     inline int getRotatePosition(int position, utils::Rotation rotation) const override { return getPositionByRotating(rotation, position, getBoardSize()); }
-    inline std::string getEnvName() const override { return kOthelloName; }
 };
 
 } // namespace minizero::env::othello

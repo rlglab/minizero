@@ -49,7 +49,6 @@ class TicTacToeEnvLoader : public BaseEnvLoader<TicTacToeAction, TicTacToeEnv> {
 public:
     inline int getPolicySize() const override { return kTicTacToeBoardSize * kTicTacToeBoardSize; }
     inline int getRotatePosition(int position, utils::Rotation rotation) const override { return getPositionByRotating(rotation, position, kTicTacToeBoardSize); }
-    inline std::string getEnvName() const override { return kTicTacToeName; }
 };
 
 } // namespace minizero::env::tictactoe

@@ -106,7 +106,7 @@ public:
         content_ = "";
         tags_.clear();
         action_pairs_.clear();
-        tags_.insert({"GM", getEnvName()});
+        tags_.insert({"GM", Env().name()});
         tags_.insert({"RE", "0"});
     }
 
@@ -198,7 +198,6 @@ public:
 
     virtual int getPolicySize() const = 0;
     virtual int getRotatePosition(int position, utils::Rotation rotation) const = 0;
-    virtual std::string getEnvName() const = 0;
 
     inline std::string getContent() const { return content_; }
     inline std::string getTag(const std::string& key) const { return tags_.count(key) ? tags_.at(key) : ""; }

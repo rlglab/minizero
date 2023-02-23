@@ -41,13 +41,8 @@ public:
             return -1.0f; // player2 wins
     }
 
-    inline std::string name() const override { return kKillAllGoName; }
+    inline std::string name() const override { return kKillAllGoName + "_" + std::to_string(board_size_) + "x" + std::to_string(board_size_); }
     inline int getNumPlayer() const override { return kKillAllGoNumPlayer; }
-};
-
-class KillAllGoEnvLoader : public go::GoEnvLoader {
-public:
-    inline std::string getEnvName() const { return kKillAllGoName; }
 };
 
 } // namespace minizero::env::killallgo

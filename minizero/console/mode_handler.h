@@ -45,6 +45,7 @@ protected:
     virtual void runConsole();
     virtual void runSelfPlay();
     virtual void runZeroServer();
+    virtual void runZeroTrainingName();
     virtual void runEnvTest();
 
     std::map<std::string, std::shared_ptr<BaseFunction>> function_map_;
