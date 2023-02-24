@@ -38,7 +38,6 @@ public:
 protected:
     std::pair<int, int> getEnvIDAndPosition(int index) const;
 
-    Environment env_;
     std::vector<std::pair<EnvironmentLoader, int>> env_loaders_;
 };
 

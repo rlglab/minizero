@@ -40,13 +40,13 @@ AlphaZeroData DataLoader::getAlphaZeroTrainingData()
 
     // replay the game until to the selected position
     const EnvironmentLoader& env_loader = env_loaders_[env_id].first;
-    env_.reset();
-    for (int i = 0; i < pos; ++i) { env_.act(env_loader.getActionPairs()[i].first); }
+    Environment env;
+    for (int i = 0; i < pos; ++i) { env.act(env_loader.getActionPairs()[i].first); }
 
     // calculate training data
     AlphaZeroData data;
     Rotation rotation = static_cast<Rotation>(Random::randInt() % static_cast<int>(Rotation::kRotateSize));
-    data.features_ = env_.getFeatures(rotation);
+    data.features_ = env.getFeatures(rotation);
     data.policy_ = env_loader.getPolicyDistribution(pos, rotation);
     data.value_ = env_loader.getReturn();
 
@@ -66,20 +66,20 @@ MuZeroData DataLoader::getMuZeroTrainingData(int unrolling_step)
 
     // replay the game until to the selected position
     const EnvironmentLoader& env_loader = env_loaders_[env_id].first;
-    env_.reset();
-    for (int i = 0; i < pos; ++i) { env_.act(env_loader.getActionPairs()[i].first); }
+    Environment env;
+    for (int i = 0; i < pos; ++i) { env.act(env_loader.getActionPairs()[i].first); }
 
     // calculate training data
     MuZeroData data;
     Rotation rotation = static_cast<Rotation>(Random::randInt() % static_cast<int>(Rotation::kRotateSize));
-    data.features_ = env_.getFeatures(rotation);
+    data.features_ = env.getFeatures(rotation);
     for (int step = 0; step <= unrolling_step; ++step) {
         const Action& action = env_loader.getActionPairs()[pos + step].first;
-        std::vector<float> action_features = env_.getActionFeatures(action, rotation);
+        std::vector<float> action_features = env.getActionFeatures(action, rotation);
         std::vector<float> policy = env_loader.getPolicyDistribution(pos + step, rotation);
         if (step < unrolling_step) { data.action_features_.insert(data.action_features_.end(), action_features.begin(), action_features.end()); }
         data.policy_.insert(data.policy_.end(), policy.begin(), policy.end());
-        env_.act(action);
+        env.act(action);
     }
     data.value_ = env_loader.getReturn();
     return data;
