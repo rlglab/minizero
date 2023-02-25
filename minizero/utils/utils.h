@@ -11,12 +11,26 @@
 
 namespace minizero::utils {
 
-inline std::vector<std::string> stringToVector(const std::string& s)
+inline std::vector<std::string> stringToVector(const std::string& s, const std::string& delim = " ", bool compress = true)
 {
-    std::string tmp;
-    std::stringstream parser(s);
     std::vector<std::string> args;
-    while (parser >> tmp) { args.push_back(tmp); }
+    if (delim.size()) {
+        std::string str = s;
+        std::string::size_type pos;
+        while ((pos = str.find(delim)) != std::string::npos) {
+            args.emplace_back(str.substr(0, pos));
+            str.erase(0, pos + delim.size());
+        }
+        args.emplace_back(str);
+    } else {
+        args.emplace_back();
+        for (char ch : s) { args.emplace_back(1, ch); }
+        args.emplace_back();
+    }
+    if (compress) {
+        auto it = args.begin();
+        while (it != args.end()) { it = it->size() ? it + 1 : args.erase(it); }
+    }
     return args;
 }
 
