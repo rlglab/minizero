@@ -5,7 +5,7 @@ namespace minizero::env::atari {
 
 std::string getAtariActionName(int action_id)
 {
-    assert(action.getActionID() >= 0 && action.getActionID() < kAtariActionSize);
+    assert(action_id >= 0 && action_id < kAtariActionSize);
     std::string action_name = ale::action_to_string(ale::Action(action_id));
     return action_name.substr(action_name.find_last_of("_") + 1);
 }

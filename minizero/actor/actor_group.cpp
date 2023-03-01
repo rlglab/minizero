@@ -86,7 +86,7 @@ void SlaveThread::doGPUJob()
 
 void SlaveThread::handleSearchDone(int actor_id)
 {
-    assert(actor_id >= 0 && actor_id < getSharedData()->actors_.size() && getSharedData()->actors_[actor_id]->isSearchDone());
+    assert(actor_id >= 0 && actor_id < static_cast<int>(getSharedData()->actors_.size()) && getSharedData()->actors_[actor_id]->isSearchDone());
 
     std::shared_ptr<BaseActor>& actor = getSharedData()->actors_[actor_id];
     if (!actor->isResign()) { actor->act(actor->getSearchAction(), actor->getActionInfo()); }
