@@ -22,8 +22,6 @@ const int kAtariFeatureHistorySize = 32;
 const float kAtariRepeatActionProbability = 0.0f;
 
 std::string getAtariActionName(int action_id);
-std::string encode_observation(const std::vector<float>& observation);
-std::vector<float> decode_observation(const std::string& s);
 
 class AtariAction : public BaseAction {
 public:
@@ -68,12 +66,14 @@ public:
     std::vector<float> getObservation(bool scale_01 = true) const;
 
 private:
+    std::string getObservationString() const;
+
     int seed_;
     float reward_;
     float total_reward_;
     ale::ALEInterface ale_;
     std::unordered_set<int> minimal_action_set_;
-    std::deque<std::vector<float>> observation_history_;
+    std::deque<std::vector<float>> feature_history_;
     std::deque<std::vector<float>> action_feature_history_;
 };
 

@@ -89,10 +89,12 @@ public:
 
     inline Player getTurn() const { return turn_; }
     inline const std::vector<Action>& getActionHistory() const { return actions_; }
+    inline const std::vector<std::string>& getObservationHistory() const { return observations_; }
 
 protected:
     Player turn_;
     std::vector<Action> actions_;
+    std::vector<std::string> observations_;
 };
 
 template <class Action, class Env>

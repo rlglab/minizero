@@ -30,7 +30,6 @@ public:
 
     void reset() override;
     void resetSearch() override;
-    std::unordered_map<std::string, std::string> getActionInfo() const override;
     Action think(bool with_play = false, bool display_board = false) override;
     void beforeNNEvaluation() override;
     void afterNNEvaluation(const std::shared_ptr<network::NetworkOutput>& network_output) override;

@@ -31,15 +31,6 @@ void ZeroActor::resetSearch()
     getMCTS()->getRootNode()->setAction(Action(-1, env::getPreviousPlayer(env_.getTurn(), env_.getNumPlayer())));
 }
 
-std::unordered_map<std::string, std::string> ZeroActor::getActionInfo() const
-{
-    std::unordered_map<std::string, std::string> action_info = BaseActor::getActionInfo();
-#if ATARI
-    action_info["OBS"] = env::atari::encode_observation(env_.getObservation(false));
-#endif
-    return action_info;
-}
-
 Action ZeroActor::think(bool with_play /*= false*/, bool display_board /*= false*/)
 {
     resetSearch();
