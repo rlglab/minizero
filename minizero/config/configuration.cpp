@@ -39,7 +39,6 @@ int zero_end_iteration = 100;
 int zero_replay_buffer = 20;
 float zero_disable_resign_ratio = 0.1;
 int zero_actor_intermediate_sequence_length = 0;
-int zero_actor_sequence_overlap_length = 0;
 std::string zero_actor_ignored_command = "reset_actors";
 bool zero_server_accept_different_model_games = true;
 
@@ -127,7 +126,6 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("zero_replay_buffer", zero_replay_buffer, "", "Zero");
     cl.addParameter("zero_disable_resign_ratio", zero_disable_resign_ratio, "", "Zero");
     cl.addParameter("zero_actor_intermediate_sequence_length", zero_actor_intermediate_sequence_length, "board games: 0; atari: 200", "Zero");
-    cl.addParameter("zero_actor_sequence_overlap_length", zero_actor_sequence_overlap_length, "board games: 0, atari: 31", "Zero");
     cl.addParameter("zero_actor_ignored_command", zero_actor_ignored_command, "format: command1 command2 ...", "Zero");
     cl.addParameter("zero_server_accept_different_model_games", zero_server_accept_different_model_games, "", "Zero");
 

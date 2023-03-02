@@ -41,7 +41,6 @@ extern int zero_end_iteration;
 extern int zero_replay_buffer;
 extern float zero_disable_resign_ratio;
 extern int zero_actor_intermediate_sequence_length;
-extern int zero_actor_sequence_overlap_length;
 extern std::string zero_actor_ignored_command;
 extern bool zero_server_accept_different_model_games;
 

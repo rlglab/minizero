@@ -102,7 +102,6 @@ void SlaveThread::handleSearchDone(int actor_id)
     } else {
         int game_length = actor->getEnvironment().getActionHistory().size();
         int sequence_length = config::zero_actor_intermediate_sequence_length;
-        int overlap_length = config::zero_actor_sequence_overlap_length;
         int n_step_length = config::learner_n_step_return - 1;
         if (sequence_length > 0 && game_length > n_step_length && game_length % sequence_length == n_step_length) {
             getSharedData()->outputRecord(actor, sequence_length);
