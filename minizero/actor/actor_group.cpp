@@ -21,17 +21,56 @@ int ThreadSharedData::getAvailableActorIndex()
     return (actor_index_ < static_cast<int>(actors_.size()) ? actor_index_++ : actors_.size());
 }
 
-void ThreadSharedData::outputRecord(const std::shared_ptr<BaseActor>& actor, int data_length)
+void ThreadSharedData::outputGame(const std::shared_ptr<BaseActor>& actor)
 {
+    int game_length = actor->getEnvironment().getActionHistory().size();
+    int sequence_length = config::zero_actor_intermediate_sequence_length;
+    int data_length = (sequence_length == 0 ? game_length
+                                            : (actor->getEnvironment().isTerminal() ? game_length % sequence_length : sequence_length));
+
     std::ostringstream oss;
     oss << "SelfPlay "
         << data_length << " "                                                   // data length
-        << actor->getEnvironment().getActionHistory().size() << " "             // game length
+        << game_length << " "                                                   // game length
         << actor->getEnvironment().getEvalScore(!actor->isEnvTerminal()) << " " // return
-        << actor->getRecord({{"DLEN", std::to_string(data_length)}});
+        << actor->getRecord({{"DLEN", std::to_string(data_length)}}) << " "     // game record
+        << getTrainingData(actor, data_length) << " "                           // training data
+        << "#";                                                                 // end mark for a valid game
 
     std::lock_guard<std::mutex> lock(mutex_);
     std::cout << oss.str() << std::endl;
+}
+
+std::string ThreadSharedData::getTrainingData(const std::shared_ptr<BaseActor>& actor, int data_length)
+{
+    const Environment& env = actor->getEnvironment();
+    int end = env.getActionHistory().size() - (actor->getEnvironment().isTerminal() ? 0 : std::max(0, config::learner_n_step_return - 1));
+    int start = end - data_length;
+#if ATARI
+    // TODO: how to remove #if ?
+    start = std::max(0, start - env::atari::kAtariFeatureHistorySize + 1);
+#endif
+    // format: string_length move_no [priority observation policy reward value]
+    std::string training_data = std::string(reinterpret_cast<const char*>(&start), sizeof(start));
+    EnvironmentLoader env_loader;
+    env_loader.loadFromEnvironment(env, actor->getActionInfoHistory());
+    for (int pos = start; pos < end; ++pos) {
+        float priority = env_loader.getPriority(pos);
+        const std::string& observation = (pos < static_cast<int>(actor->getEnvironment().getObservationHistory().size()) ? actor->getEnvironment().getObservationHistory()[pos] : "");
+        std::vector<float> policy = env_loader.getPolicy(pos);
+        float reward = env_loader.getReward(pos);
+        float value = env_loader.getValue(pos);
+
+        training_data += std::string(reinterpret_cast<const char*>(&priority), sizeof(priority));
+        training_data += observation;
+        for (auto& p : policy) { training_data += std::string(reinterpret_cast<const char*>(&p), sizeof(p)); }
+        training_data += std::string(reinterpret_cast<const char*>(&reward), sizeof(reward));
+        training_data += std::string(reinterpret_cast<const char*>(&value), sizeof(value));
+    }
+
+    int length = training_data.length();
+    training_data = std::string(reinterpret_cast<const char*>(&length), sizeof(length)) + training_data; // add length
+    return utils::compressString(training_data);
 }
 
 void SlaveThread::initialize()
@@ -94,21 +133,13 @@ void SlaveThread::handleSearchDone(int actor_id)
     bool display_game = (actor_id == 0 && (config::actor_num_simulation >= 50 || (config::actor_num_simulation < 50 && is_endgame)));
     if (display_game) { std::cerr << actor->getEnvironment().toString() << actor->getSearchInfo() << std::endl; }
     if (is_endgame) {
-        int game_length = actor->getEnvironment().getActionHistory().size();
-        int sequence_length = config::zero_actor_intermediate_sequence_length;
-        int data_length = (sequence_length == 0 ? game_length : game_length % sequence_length);
-        getSharedData()->outputRecord(actor, data_length);
+        getSharedData()->outputGame(actor);
         actor->reset();
     } else {
         int game_length = actor->getEnvironment().getActionHistory().size();
         int sequence_length = config::zero_actor_intermediate_sequence_length;
         int n_step_length = config::learner_n_step_return - 1;
-        if (sequence_length > 0 && game_length > n_step_length && game_length % sequence_length == n_step_length) {
-            getSharedData()->outputRecord(actor, sequence_length);
-            // erase past action_info to reduce game record size
-            int start = std::max(0, game_length - overlap_length - n_step_length - sequence_length);
-            for (int i = start; i < start + sequence_length; ++i) { actor->getActionInfoHistory()[i].clear(); }
-        }
+        if (sequence_length > 0 && game_length > n_step_length && game_length % sequence_length == n_step_length) { getSharedData()->outputGame(actor); }
         actor->resetSearch();
     }
 }

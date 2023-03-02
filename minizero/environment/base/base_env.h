@@ -171,22 +171,18 @@ public:
         return oss.str();
     }
 
-    std::vector<float> getPolicyDistribution(int id, utils::Rotation rotation = utils::Rotation::kRotationNone) const
+    virtual std::vector<float> getPolicy(int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const
     {
-        assert(id < static_cast<int>(action_pairs_.size()));
+        assert(pos < static_cast<int>(action_pairs_.size()));
 
+        const std::string policy_distribution = extractActionInfo(action_pairs_[pos].second, "P:");
         std::vector<float> policy(getPolicySize(), 0.0f);
-        std::string action_info = action_pairs_[id].second;
-        if (action_info.find("P:") == std::string::npos) {
-            policy[getRotatePosition(action_pairs_[id].first.getActionID(), rotation)] = 1.0f;
+        if (policy_distribution.empty()) {
+            policy[getRotatePosition(action_pairs_[pos].first.getActionID(), rotation)] = 1.0f;
         } else {
-            size_t start = action_info.find("P:") + std::string("P:").size();
-            size_t end = action_info.find(";", start);
-            std::string distribution = action_info.substr(start, end - start);
-
             std::string tmp;
             float total = 0.0f;
-            std::istringstream iss(distribution);
+            std::istringstream iss(policy_distribution);
             while (std::getline(iss, tmp, ',')) {
                 int position = getRotatePosition(std::stoi(tmp.substr(0, tmp.find(":"))), rotation);
                 float count = std::stoi(tmp.substr(tmp.find(":") + 1));
@@ -197,6 +193,10 @@ public:
         }
         return policy;
     }
+
+    virtual float getValue(const int pos) const { return std::stof(extractActionInfo(action_pairs_[pos].second, "V:")); }
+    virtual float getReward(const int pos) const { return std::stof(extractActionInfo(action_pairs_[pos].second, "R:")); }
+    virtual float getPriority(const int pos) const { return 1.0f; }
 
     virtual int getPolicySize() const = 0;
     virtual int getRotatePosition(int position, utils::Rotation rotation) const = 0;
@@ -210,6 +210,15 @@ public:
     inline void addTag(const std::string& key, const std::string& value) { tags_[key] = value; }
 
 protected:
+    inline std::string extractActionInfo(const std::string& action_info, const std::string& tag) const
+    {
+        if (action_info.find(tag) == std::string::npos) { return ""; }
+
+        size_t start = action_info.find(tag) + tag.size();
+        size_t end = action_info.find(";", start);
+        return action_info.substr(start, end - start);
+    }
+
     std::string content_;
     std::unordered_map<std::string, std::string> tags_;
     std::vector<std::pair<Action, std::string>> action_pairs_;

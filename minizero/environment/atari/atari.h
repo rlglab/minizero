@@ -63,9 +63,9 @@ public:
     inline int getLives() { return ale_.lives(); }
     inline int getFrameNumber() const { return ale_.getFrameNumber(); }
     inline int getEpisodeFrameNumber() const { return ale_.getEpisodeFrameNumber(); }
-    std::vector<float> getObservation(bool scale_01 = true) const;
 
 private:
+    std::vector<float> getObservation(bool scale_01 = true) const;
     std::string getObservationString() const;
 
     int seed_;
@@ -84,6 +84,9 @@ public:
         BaseEnvLoader<AtariAction, AtariEnv>::loadFromEnvironment(env, action_info_history);
         addTag("SD", std::to_string(env.getSeed()));
     }
+
+    float getValue(const int pos) const override;
+    float getPriority(const int pos) const override { return fabs(getValue(pos) - BaseEnvLoader::getValue(pos)); }
 
     inline int getPolicySize() const override { return kAtariActionSize; }
     inline int getRotatePosition(int position, utils::Rotation rotation) const override { return position; }

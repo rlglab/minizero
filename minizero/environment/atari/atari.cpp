@@ -123,4 +123,18 @@ std::string AtariEnv::getObservationString() const
     return obs_string;
 }
 
+float AtariEnvLoader::getValue(const int pos) const
+{
+    assert(pos < static_cast<int>(action_pairs_.size()));
+
+    // calculate n-step return
+    int n_step = std::min(pos + config::learner_n_step_return, static_cast<int>(action_pairs_.size()));
+    float value = 0.0f;
+    for (int step = 0; step < n_step; ++step) {
+        float reward = ((step == n_step - 1) ? BaseEnvLoader::getValue(step) : getReward(step));
+        value += std::pow(config::actor_mcts_reward_discount, step) * reward;
+    }
+    return value;
+}
+
 } // namespace minizero::env::atari

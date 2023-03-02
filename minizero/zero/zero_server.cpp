@@ -1,5 +1,6 @@
 #include "zero_server.h"
 #include "random.h"
+#include "utils.h"
 #include <algorithm>
 #include <boost/algorithm/string.hpp>
 #include <iostream>
@@ -34,7 +35,7 @@ void ZeroLogger::addLog(const std::string& log_str, std::fstream& log_file)
 
 ZeroSelfPlayData::ZeroSelfPlayData(std::string input_data)
 {
-    // format: Selfplay [game_length] [return] [game_record]
+    // format: Selfplay data_length game_length return game_record training_data
     input_data = input_data.substr(input_data.find(" ") + 1); // remove Selfplay
     data_length_ = std::stoi(input_data.substr(0, input_data.find(" ")));
     input_data = input_data.substr(input_data.find(" ") + 1); // remove data_length
@@ -42,7 +43,9 @@ ZeroSelfPlayData::ZeroSelfPlayData(std::string input_data)
     input_data = input_data.substr(input_data.find(" ") + 1); // remove game_length
     return_ = std::stof(input_data.substr(0, input_data.find(" ")));
     input_data = input_data.substr(input_data.find(" ") + 1); // remove return
-    game_record_ = input_data;
+    game_record_ = input_data.substr(0, input_data.find(" "));
+    input_data = input_data.substr(input_data.find(" ") + 1); // remove game_record
+    training_data_ = utils::hexToBinaryString(input_data.substr(0, input_data.find(" ")));
 }
 
 bool ZeroWorkerSharedData::getSelfPlayData(ZeroSelfPlayData& sp_data)
@@ -93,7 +96,7 @@ void ZeroWorkerHandler::handleReceivedMessage(const std::string& message)
         }
         is_idle_ = true;
     } else if (args[0] == "SelfPlay") {
-        if (message.find("SelfPlay", message.find("SelfPlay", 0) + 1) != std::string::npos || message.back() != ')') {
+        if (message.find("SelfPlay", message.find("SelfPlay", 0) + 1) != std::string::npos || message.back() != '#') {
             shared_data_.logger_.addWorkerLog("[Worker Error] Receive broken self-play games");
             return;
         }
@@ -159,7 +162,9 @@ void ZeroServer::selfPlay()
 {
     // setup
     std::string self_play_file_name = config::zero_training_directory + "/sgf/" + std::to_string(iteration_) + ".sgf";
+    std::string training_data_file_name = config::zero_training_directory + "/data/" + std::to_string(iteration_) + ".bin";
     shared_data_.logger_.getSelfPlayFileStream().open(self_play_file_name.c_str(), std::ios::out);
+    shared_data_.logger_.getTrainingDataFileStream().open(training_data_file_name.c_str(), std::ios::out);
     shared_data_.logger_.addTrainingLog("[Iteration] =====" + std::to_string(iteration_) + "=====");
     shared_data_.logger_.addTrainingLog("[SelfPlay] Start " + std::to_string(shared_data_.getModelIetration()));
 
@@ -180,6 +185,7 @@ void ZeroServer::selfPlay()
 
         // save record
         shared_data_.logger_.getSelfPlayFileStream() << sp_data.game_record_ << std::endl;
+        shared_data_.logger_.getTrainingDataFileStream() << sp_data.training_data_;
         ++num_collect_game;
         total_return += sp_data.return_;
         total_data_length += sp_data.data_length_;
@@ -195,6 +201,7 @@ void ZeroServer::selfPlay()
 
     stopJob("sp");
     shared_data_.logger_.getSelfPlayFileStream().close();
+    shared_data_.logger_.getTrainingDataFileStream().close();
     shared_data_.logger_.addTrainingLog("[SelfPlay] Finished.");
     shared_data_.logger_.addTrainingLog("[SelfPlay Avg. Returns] " + std::to_string(total_return * 1.0f / num_collect_game));
     shared_data_.logger_.addTrainingLog("[SelfPlay Avg. Data Lengths] " + std::to_string(total_data_length * 1.0f / num_collect_game));
