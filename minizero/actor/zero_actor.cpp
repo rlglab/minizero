@@ -36,7 +36,7 @@ Action ZeroActor::think(bool with_play /*= false*/, bool display_board /*= false
 {
     resetSearch();
     while (!isSearchDone()) { step(); }
-    if (with_play) { act(getSearchAction()); }
+    if (with_play) { act(getSearchAction(), getActionInfo()); }
     if (display_board) { std::cerr << env_.toString() << mcts_search_data_.search_info_ << std::endl; }
     return getSearchAction();
 }

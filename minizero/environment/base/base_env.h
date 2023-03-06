@@ -151,7 +151,9 @@ public:
         reset();
         for (size_t i = 0; i < env.getActionHistory().size(); ++i) {
             std::string action_info = "";
-            for (const auto& p : action_info_history[i]) { action_info += p.first + ":" + p.second + ";"; }
+            if (action_info_history.size() > i) {
+                for (const auto& p : action_info_history[i]) { action_info += p.first + ":" + p.second + ";"; }
+            }
             addActionPair(env.getActionHistory()[i], action_info);
         }
         addTag("RE", std::to_string(env.getEvalScore()));
