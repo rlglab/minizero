@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <memory>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace minizero::actor {
@@ -112,17 +113,30 @@ std::string ZeroActor::getEnvReward() const
 
 void ZeroActor::step()
 {
-    beforeNNEvaluation();
-    if (alphazero_network_) {
-        afterNNEvaluation(alphazero_network_->forward()[getNNEvaluationBatchIndex()]);
-    } else if (muzero_network_) {
-        if (getMCTS()->getNumSimulation() == 0) { // initial inference for root node
-            afterNNEvaluation(muzero_network_->initialInference()[getNNEvaluationBatchIndex()]);
-        } else { // for non-root nodes
-            afterNNEvaluation(muzero_network_->recurrentInference()[getNNEvaluationBatchIndex()]);
+    assert(alphazero_network_ || muzero_network_);
+    int num_simulation = getMCTS()->getNumSimulation();
+    int num_simulation_left = config::actor_num_simulation + 1 - num_simulation;
+    int batch_size = std::min(config::actor_mcts_think_batch_size,
+                              (alphazero_network_ || num_simulation > 0) ? num_simulation_left : 1 /* initial inference for root node */);
+    assert(batch_size > 0);
+    std::vector<std::pair<int, decltype(mcts_search_data_.node_path_)>> node_path_evaluated;
+    for (int batch_id = 0; batch_id < batch_size; batch_id++) {
+        beforeNNEvaluation();
+        assert(nn_evaluation_batch_id_ == batch_id);
+        if (mcts_search_data_.node_path_.back()->getVirtualLoss() == 0) {
+            node_path_evaluated.emplace_back(batch_id, std::move(mcts_search_data_.node_path_));
         }
-    } else {
-        assert(false);
+        for (auto node : mcts_search_data_.node_path_) { node->addVirtualLoss(); }
+    }
+    auto network_output = alphazero_network_ ? alphazero_network_->forward()
+                                             : num_simulation == 0 ? muzero_network_->initialInference() : muzero_network_->recurrentInference();
+    for (auto& evaluation : node_path_evaluated) {
+        nn_evaluation_batch_id_ = evaluation.first;
+        mcts_search_data_.node_path_ = std::move(evaluation.second);
+        afterNNEvaluation(network_output[nn_evaluation_batch_id_]);
+        auto virtual_loss = mcts_search_data_.node_path_.back()->getVirtualLoss();
+        assert(virtual_loss > 0);
+        for (auto node : mcts_search_data_.node_path_) { node->removeVirtualLoss(virtual_loss); }
     }
 }
 
