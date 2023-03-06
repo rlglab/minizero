@@ -47,6 +47,7 @@ private:
 
 class TicTacToeEnvLoader : public BaseEnvLoader<TicTacToeAction, TicTacToeEnv> {
 public:
+    inline std::string name() const override { return kTicTacToeName; }
     inline int getPolicySize() const override { return kTicTacToeBoardSize * kTicTacToeBoardSize; }
     inline int getRotatePosition(int position, utils::Rotation rotation) const override { return getPositionByRotating(rotation, position, kTicTacToeBoardSize); }
 };

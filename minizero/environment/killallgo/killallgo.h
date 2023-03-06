@@ -45,4 +45,9 @@ public:
     inline int getNumPlayer() const override { return kKillAllGoNumPlayer; }
 };
 
+class KillAllGoEnvLoader : public go::GoEnvLoader {
+public:
+    inline std::string name() const override { return kKillAllGoName + "_" + std::to_string(kKillAllGoBoardSize) + "x" + std::to_string(kKillAllGoBoardSize); }
+};
+
 } // namespace minizero::env::killallgo

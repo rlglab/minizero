@@ -108,7 +108,7 @@ public:
         content_ = "";
         tags_.clear();
         action_pairs_.clear();
-        tags_.insert({"GM", Env().name()});
+        tags_.insert({"GM", name()});
         tags_.insert({"RE", "0"});
     }
 
@@ -200,6 +200,7 @@ public:
     virtual float getReward(const int pos) const { return std::stof(extractActionInfo(action_pairs_[pos].second, "R:")); }
     virtual float getPriority(const int pos) const { return 1.0f; }
 
+    virtual std::string name() const = 0;
     virtual int getPolicySize() const = 0;
     virtual int getRotatePosition(int position, utils::Rotation rotation) const = 0;
 

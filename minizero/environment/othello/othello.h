@@ -84,7 +84,8 @@ public:
         BaseEnvLoader<OthelloAction, OthelloEnv>::loadFromEnvironment(env, action_info_history);
         addTag("SZ", std::to_string(env.getBoardSize()));
     }
-    inline int getBoardSize() const { return std::stoi(getTag("SZ")); }
+    inline int getBoardSize() const { return (tags_.count("SZ") ? std::stoi(getTag("SZ")) : config::env_board_size); }
+    inline std::string name() const override { return kOthelloName + "_" + std::to_string(getBoardSize()) + "x" + std::to_string(getBoardSize()); }
     inline int getPolicySize() const override { return getBoardSize() * getBoardSize() + 1; }
     inline int getRotatePosition(int position, utils::Rotation rotation) const override { return getPositionByRotating(rotation, position, getBoardSize()); }
 };

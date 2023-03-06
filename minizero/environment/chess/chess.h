@@ -235,6 +235,7 @@ private:
 };
 class ChessEnvLoader : public BaseEnvLoader<ChessAction, ChessEnv> {
 public:
+    inline std::string name() const override { return kChessName; }
     inline int getPolicySize() const override { return 4672; }
     inline int getRotatePosition(int position, utils::Rotation rotation) const override { return position; }
 };

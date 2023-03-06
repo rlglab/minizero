@@ -78,6 +78,8 @@ private:
 
 class HexEnvLoader : public BaseEnvLoader<HexAction, HexEnv> {
 public:
+    inline int getBoardSize() const { return (tags_.count("SZ") ? std::stoi(getTag("SZ")) : config::env_board_size); }
+    inline std::string name() const override { return kHexName + "_" + std::to_string(getBoardSize()) + "x" + std::to_string(getBoardSize()); }
     inline int getPolicySize() const override { return minizero::config::env_board_size * minizero::config::env_board_size; }
     inline int getRotatePosition(int position, utils::Rotation rotation) const override { return position; }
 };

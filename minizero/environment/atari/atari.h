@@ -88,6 +88,7 @@ public:
     float getValue(const int pos) const override;
     float getPriority(const int pos) const override { return fabs(getValue(pos) - BaseEnvLoader::getValue(pos)); }
 
+    inline std::string name() const override { return kAtariName + "_" + minizero::config::env_atari_name; }
     inline int getPolicySize() const override { return kAtariActionSize; }
     inline int getRotatePosition(int position, utils::Rotation rotation) const override { return position; }
 };
