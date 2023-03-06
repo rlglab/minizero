@@ -106,7 +106,7 @@ void ZeroWorkerHandler::handleReceivedMessage(const std::string& message)
         shared_data_.sp_data_queue_.push(sp_data);
 
         // print number of games if the queue already received many games in buffer
-        if (shared_data_.sp_data_queue_.size() % static_cast<int>(config::zero_num_games_per_iteration * 0.25) == 0) {
+        if (shared_data_.sp_data_queue_.size() % std::max(1, static_cast<int>(config::zero_num_games_per_iteration * 0.25)) == 0) {
             boost::lock_guard<boost::mutex> lock(shared_data_.worker_mutex_);
             shared_data_.logger_.addWorkerLog("[SelfPlay Game Buffer] " + std::to_string(shared_data_.sp_data_queue_.size()) + " games");
         }
@@ -192,7 +192,7 @@ void ZeroServer::selfPlay()
         total_game_length += sp_data.game_length_;
 
         // display progress
-        if (num_collect_game % static_cast<int>(config::zero_num_games_per_iteration * 0.25) == 0) {
+        if (num_collect_game % std::max(1, static_cast<int>(config::zero_num_games_per_iteration * 0.25)) == 0) {
             shared_data_.logger_.addTrainingLog("[SelfPlay Progress] " +
                                                 std::to_string(num_collect_game) + " / " +
                                                 std::to_string(config::zero_num_games_per_iteration));
