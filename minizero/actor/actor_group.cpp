@@ -9,6 +9,7 @@
 #include <memory>
 #include <string>
 #include <torch/cuda.h>
+#include <utility>
 
 namespace minizero::actor {
 
@@ -24,53 +25,34 @@ int ThreadSharedData::getAvailableActorIndex()
 void ThreadSharedData::outputGame(const std::shared_ptr<BaseActor>& actor)
 {
     int game_length = actor->getEnvironment().getActionHistory().size();
-    int sequence_length = config::zero_actor_intermediate_sequence_length;
-    int data_length = (sequence_length == 0 ? game_length
-                                            : (actor->getEnvironment().isTerminal() ? game_length % sequence_length : sequence_length));
+    std::pair<int, int> data_range = calculateTrainingDataRange(actor);
+
+    // merge all observation together
+    std::string observations;
+    for (const auto& obs : actor->getEnvironment().getObservationHistory()) { observations += obs; }
+    observations = utils::compressString(observations);
 
     std::ostringstream oss;
     oss << "SelfPlay "
-        << data_length << " "                                                   // data length
-        << game_length << " "                                                   // game length
-        << actor->getEnvironment().getEvalScore(!actor->isEnvTerminal()) << " " // return
-        << actor->getRecord({{"DLEN", std::to_string(data_length)}}) << " "     // game record
-        << getTrainingData(actor, data_length) << " "                           // training data
-        << "#";                                                                 // end mark for a valid game
+        << (data_range.second - data_range.first) << " "                                                                                            // data length
+        << game_length << " "                                                                                                                       // game length
+        << actor->getEnvironment().getEvalScore(!actor->isEnvTerminal()) << " "                                                                     // return
+        << actor->getRecord({{"OBS", observations}, {"DRANGE", std::to_string(data_range.first) + "-" + std::to_string(data_range.second)}}) << " " // game record
+        << "#";                                                                                                                                     // end mark for a valid game
 
     std::lock_guard<std::mutex> lock(mutex_);
     std::cout << oss.str() << std::endl;
 }
 
-std::string ThreadSharedData::getTrainingData(const std::shared_ptr<BaseActor>& actor, int data_length)
+std::pair<int, int> ThreadSharedData::calculateTrainingDataRange(const std::shared_ptr<BaseActor>& actor)
 {
-    const Environment& env = actor->getEnvironment();
-    int end = env.getActionHistory().size() - (actor->getEnvironment().isTerminal() ? 0 : std::max(0, config::learner_n_step_return - 1));
-    int start = end - data_length;
-#if ATARI
-    // TODO: how to remove #if ?
-    start = std::max(0, start - env::atari::kAtariFeatureHistorySize + 1);
-#endif
-    // format: string_length move_no [priority observation policy reward value]
-    std::string training_data = std::string(reinterpret_cast<const char*>(&start), sizeof(start));
-    EnvironmentLoader env_loader;
-    env_loader.loadFromEnvironment(env, actor->getActionInfoHistory());
-    for (int pos = start; pos < end; ++pos) {
-        float priority = env_loader.getPriority(pos);
-        const std::string& observation = (pos < static_cast<int>(actor->getEnvironment().getObservationHistory().size()) ? actor->getEnvironment().getObservationHistory()[pos] : "");
-        std::vector<float> policy = env_loader.getPolicy(pos);
-        float reward = env_loader.getReward(pos);
-        float value = env_loader.getValue(pos);
-
-        training_data += std::string(reinterpret_cast<const char*>(&priority), sizeof(priority));
-        training_data += observation;
-        for (auto& p : policy) { training_data += std::string(reinterpret_cast<const char*>(&p), sizeof(p)); }
-        training_data += std::string(reinterpret_cast<const char*>(&reward), sizeof(reward));
-        training_data += std::string(reinterpret_cast<const char*>(&value), sizeof(value));
+    int game_length = actor->getEnvironment().getActionHistory().size();
+    int data_start = 0, data_end = game_length - 1;
+    if (config::zero_actor_intermediate_sequence_length > 0) {
+        data_end = std::max(0, (actor->getEnvironment().isTerminal() ? data_end : game_length - (config::learner_n_step_return - 1)));
+        data_start = std::max(0, (actor->getEnvironment().isTerminal() ? data_end - data_end % config::zero_actor_intermediate_sequence_length : data_end + 1 - config::zero_actor_intermediate_sequence_length));
     }
-
-    int length = training_data.length();
-    training_data = std::string(reinterpret_cast<const char*>(&length), sizeof(length)) + training_data; // add length
-    return utils::compressString(training_data);
+    return {data_start, data_end};
 }
 
 void SlaveThread::initialize()
@@ -138,8 +120,7 @@ void SlaveThread::handleSearchDone(int actor_id)
     } else {
         int game_length = actor->getEnvironment().getActionHistory().size();
         int sequence_length = config::zero_actor_intermediate_sequence_length;
-        int n_step_length = config::learner_n_step_return - 1;
-        if (sequence_length > 0 && game_length > n_step_length && game_length % sequence_length == n_step_length) { getSharedData()->outputGame(actor); }
+        if (sequence_length > 0 && game_length > sequence_length && (game_length - config::learner_n_step_return + 1) % sequence_length == sequence_length - 1) { getSharedData()->outputGame(actor); }
         actor->resetSearch();
     }
 }

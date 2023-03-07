@@ -52,7 +52,6 @@ std::string BaseActor::getRecord(const std::unordered_map<std::string, std::stri
     EnvironmentLoader env_loader;
     env_loader.loadFromEnvironment(env_, action_info_history_);
     env_loader.addTag("EV", config::nn_file_name.substr(config::nn_file_name.find_last_of('/') + 1));
-    env_loader.addTag("LEN", std::to_string(env_loader.getActionPairs().size()));
 
     // if the game is not ended, then treat the game as a resign game, where the next player is the lose side
     if (!isEnvTerminal()) {

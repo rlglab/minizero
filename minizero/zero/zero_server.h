@@ -19,7 +19,6 @@ public:
 
     inline void addWorkerLog(const std::string& log_str) { addLog(log_str, worker_log_); }
     inline void addTrainingLog(const std::string& log_str) { addLog(log_str, training_log_); }
-    inline std::fstream& getTrainingDataFileStream() { return training_data_; }
     inline std::fstream& getSelfPlayFileStream() { return self_play_game_; }
 
 private:
@@ -27,7 +26,6 @@ private:
 
     std::fstream worker_log_;
     std::fstream training_log_;
-    std::fstream training_data_;
     std::fstream self_play_game_;
 };
 
@@ -37,7 +35,6 @@ public:
     int game_length_;
     float return_;
     std::string game_record_;
-    std::string training_data_;
 
     ZeroSelfPlayData() {}
     ZeroSelfPlayData(std::string input_data);

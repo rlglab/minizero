@@ -8,6 +8,7 @@
 #include <mutex>
 #include <string>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 namespace minizero::actor {
@@ -16,7 +17,7 @@ class ThreadSharedData : public utils::BaseSharedData {
 public:
     int getAvailableActorIndex();
     void outputGame(const std::shared_ptr<BaseActor>& actor);
-    std::string getTrainingData(const std::shared_ptr<BaseActor>& actor, int data_length);
+    std::pair<int, int> calculateTrainingDataRange(const std::shared_ptr<BaseActor>& actor);
 
     bool do_cpu_job_;
     int actor_index_;

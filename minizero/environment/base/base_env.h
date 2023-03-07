@@ -173,6 +173,16 @@ public:
         return oss.str();
     }
 
+    virtual std::vector<float> getFeatures(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const
+    {
+        // a slow but naive method which simply replays the game again to get features
+        assert(pos < static_cast<int>(action_pairs_.size()));
+
+        Env env;
+        for (int i = 0; i < pos; ++i) { env.act(action_pairs_[i].first); }
+        return env.getFeatures(rotation);
+    }
+
     virtual std::vector<float> getPolicy(int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const
     {
         assert(pos < static_cast<int>(action_pairs_.size()));

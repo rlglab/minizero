@@ -68,7 +68,7 @@ if [[ ${run_stage,} == "r" ]]; then
 	rm -rf ${train_dir}
 
 	echo "create ${train_dir} ..."
-	mkdir -p ${train_dir}/model ${train_dir}/sgf ${train_dir}/data
+	mkdir -p ${train_dir}/model ${train_dir}/sgf
 	touch ${train_dir}/op.log
 	new_configure_file=$(basename ${train_dir}).cfg
 	${sp_executable_file} -gen ${train_dir}/${new_configure_file} -conf_file ${configure_file} -conf_str "${overwrite_conf_str}" 2>/dev/null
