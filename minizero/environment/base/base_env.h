@@ -1,6 +1,7 @@
 #pragma once
 
 #include "rotation.h"
+#include "utils.h"
 #include <cassert>
 #include <fstream>
 #include <memory>
@@ -157,6 +158,11 @@ public:
             addActionPair(env.getActionHistory()[i], action_info);
         }
         addTag("RE", std::to_string(env.getEvalScore()));
+
+        // add observations
+        std::string observations;
+        for (const auto& obs : env.getObservationHistory()) { observations += obs; }
+        addTag("OBS", utils::compressString(observations));
     }
 
     inline std::string toString() const

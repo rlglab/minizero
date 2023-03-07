@@ -3,7 +3,6 @@
 #include "create_actor.h"
 #include "create_network.h"
 #include "random.h"
-#include "utils.h"
 #include <algorithm>
 #include <iostream>
 #include <memory>
@@ -27,18 +26,13 @@ void ThreadSharedData::outputGame(const std::shared_ptr<BaseActor>& actor)
     int game_length = actor->getEnvironment().getActionHistory().size();
     std::pair<int, int> data_range = calculateTrainingDataRange(actor);
 
-    // merge all observation together
-    std::string observations;
-    for (const auto& obs : actor->getEnvironment().getObservationHistory()) { observations += obs; }
-    observations = utils::compressString(observations);
-
     std::ostringstream oss;
     oss << "SelfPlay "
-        << (data_range.second - data_range.first) << " "                                                                                            // data length
-        << game_length << " "                                                                                                                       // game length
-        << actor->getEnvironment().getEvalScore(!actor->isEnvTerminal()) << " "                                                                     // return
-        << actor->getRecord({{"OBS", observations}, {"DRANGE", std::to_string(data_range.first) + "-" + std::to_string(data_range.second)}}) << " " // game record
-        << "#";                                                                                                                                     // end mark for a valid game
+        << (data_range.second - data_range.first) << " "                                                                   // data length
+        << game_length << " "                                                                                              // game length
+        << actor->getEnvironment().getEvalScore(!actor->isEnvTerminal()) << " "                                            // return
+        << actor->getRecord({{"DLEN", std::to_string(data_range.first) + "-" + std::to_string(data_range.second)}}) << " " // game record
+        << "#";                                                                                                            // end mark for a valid game
 
     std::lock_guard<std::mutex> lock(mutex_);
     std::cout << oss.str() << std::endl;
