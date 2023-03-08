@@ -1,6 +1,7 @@
 #include "data_loader.h"
 #include "configuration.h"
 #include "environment.h"
+#include "random.h"
 #include "rotation.h"
 #include <climits>
 #include <filesystem>
@@ -27,21 +28,31 @@ void DataLoader::loadDataFromFile(const std::string& file_name)
     for (std::string content; std::getline(fin, content);) {
         EnvironmentLoader env_loader;
         if (!env_loader.loadFromString(content)) { continue; }
-        int total_length = env_loaders_.empty() ? 0 : env_loaders_.back().second;
-        env_loaders_.push_back({env_loader, total_length + env_loader.getActionPairs().size()});
+
+        std::pair<int, int> data_range = {0, static_cast<int>(env_loader.getActionPairs().size()) - 1};
+        const std::string& dlen = env_loader.getTag("DLEN");
+        if (!dlen.empty()) { data_range = {std::stoi(dlen), std::stoi(dlen.substr(dlen.find("-") + 1))}; }
+        for (int i = data_range.first; i <= data_range.second; ++i) {
+            priorities_.push_back(env_loader.getPriority(i));
+            env_pos_index_.push_back({env_loaders_.size(), i});
+        }
+        env_loaders_.push_back(env_loader);
     }
+
+    // create distribution
+    distribution_ = std::discrete_distribution<>(priorities_.begin(), priorities_.end());
 }
 
-AlphaZeroData DataLoader::getAlphaZeroTrainingData()
+AlphaZeroData DataLoader::sampleAlphaZeroTrainingData()
 {
     // random pickup one position
-    std::pair<int, int> p = getEnvIDAndPosition(Random::randInt() % getDataSize());
+    const std::pair<int, int>& p = env_pos_index_[distribution_(Random::generator_)];
     int env_id = p.first, pos = p.second;
 
     // package AlphaZero training data
     AlphaZeroData data;
     Rotation rotation = static_cast<Rotation>(Random::randInt() % static_cast<int>(Rotation::kRotateSize));
-    const EnvironmentLoader& env_loader = env_loaders_[env_id].first;
+    const EnvironmentLoader& env_loader = env_loaders_[env_id];
     data.features_ = env_loader.getFeatures(pos, rotation);
     data.policy_ = env_loader.getPolicy(pos, rotation);
     data.value_ = env_loader.getReturn();
@@ -49,20 +60,20 @@ AlphaZeroData DataLoader::getAlphaZeroTrainingData()
     return data;
 }
 
-MuZeroData DataLoader::getMuZeroTrainingData(int unrolling_step)
+MuZeroData DataLoader::sampleMuZeroTrainingData(int unrolling_step)
 {
     // random pickup one position
-    std::pair<int, int> p = getEnvIDAndPosition(Random::randInt() % getDataSize());
+    const std::pair<int, int>& p = env_pos_index_[distribution_(Random::generator_)];
     int env_id = p.first, pos = p.second;
-    while (pos + unrolling_step >= static_cast<int>(env_loaders_[env_id].first.getActionPairs().size())) {
+    while (pos + unrolling_step >= static_cast<int>(env_loaders_[env_id].getActionPairs().size())) {
         // random again until we can unroll all steps
-        p = getEnvIDAndPosition(Random::randInt() % getDataSize());
+        const std::pair<int, int>& p = env_pos_index_[distribution_(Random::generator_)];
         env_id = p.first, pos = p.second;
     }
 
     // package MuZero training data
     MuZeroData data;
-    const EnvironmentLoader& env_loader = env_loaders_[env_id].first;
+    const EnvironmentLoader& env_loader = env_loaders_[env_id];
     Rotation rotation = static_cast<Rotation>(Random::randInt() % static_cast<int>(Rotation::kRotateSize));
     data.features_ = env_loader.getFeatures(pos, rotation);
     for (int step = 0; step <= unrolling_step; ++step) {
@@ -73,23 +84,6 @@ MuZeroData DataLoader::getMuZeroTrainingData(int unrolling_step)
     }
     data.value_ = env_loader.getReturn();
     return data;
-}
-
-std::pair<int, int> DataLoader::getEnvIDAndPosition(int index) const
-{
-    int left = 0, right = env_loaders_.size();
-    index %= env_loaders_.back().second;
-
-    while (left < right) {
-        int mid = left + (right - left) / 2;
-        if (index >= env_loaders_[mid].second) {
-            left = mid + 1;
-        } else {
-            right = mid;
-        }
-    }
-
-    return {left, (left == 0 ? index : index - env_loaders_[left - 1].second)};
 }
 
 } // namespace minizero::learner

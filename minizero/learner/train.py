@@ -31,7 +31,7 @@ class MinizeroDataset(IterableDataset):
         self.data_loader.seed(get_worker_info().id)
         while True:
             if self.conf.get_nn_type_name() == "alphazero":
-                result_dict = self.data_loader.get_alphazero_training_data()
+                result_dict = self.data_loader.sample_alphazero_training_data()
                 features = torch.FloatTensor(result_dict["features"]).view(self.conf.get_nn_num_input_channels(),
                                                                            self.conf.get_nn_input_channel_height(),
                                                                            self.conf.get_nn_input_channel_width())
@@ -39,7 +39,7 @@ class MinizeroDataset(IterableDataset):
                 value = torch.FloatTensor([result_dict["value"]])
                 yield features, policy, value
             elif self.conf.get_nn_type_name() == "muzero":
-                result_dict = self.data_loader.get_muzero_training_data(self.conf.get_muzero_unrolling_step())
+                result_dict = self.data_loader.sample_muzero_training_data(self.conf.get_muzero_unrolling_step())
                 features = torch.FloatTensor(result_dict["features"]).view(self.conf.get_nn_num_input_channels(),
                                                                            self.conf.get_nn_input_channel_height(),
                                                                            self.conf.get_nn_input_channel_width())

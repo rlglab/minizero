@@ -29,16 +29,16 @@ public:
     DataLoader(std::string conf_file_name);
 
     void loadDataFromFile(const std::string& file_name);
-    AlphaZeroData getAlphaZeroTrainingData();
-    MuZeroData getMuZeroTrainingData(int unrolling_step);
+    AlphaZeroData sampleAlphaZeroTrainingData();
+    MuZeroData sampleMuZeroTrainingData(int unrolling_step);
 
     inline void seed(int random_seed) { utils::Random::seed(random_seed); }
-    inline int getDataSize() const { return env_loaders_.back().second; }
 
 protected:
-    std::pair<int, int> getEnvIDAndPosition(int index) const;
-
-    std::vector<std::pair<EnvironmentLoader, int>> env_loaders_;
+    std::vector<float> priorities_;
+    std::vector<EnvironmentLoader> env_loaders_;
+    std::vector<std::pair<int, int>> env_pos_index_;
+    std::discrete_distribution<> distribution_;
 };
 
 } // namespace minizero::learner

@@ -76,16 +76,16 @@ PYBIND11_MODULE(minizero_py, m)
         .def(py::init<std::string>())
         .def("seed", &learner::DataLoader::seed)
         .def("load_data_from_file", &learner::DataLoader::loadDataFromFile)
-        .def("get_alphazero_training_data", [](learner::DataLoader& data_loader) {
-            learner::AlphaZeroData data = data_loader.getAlphaZeroTrainingData();
+        .def("sample_alphazero_training_data", [](learner::DataLoader& data_loader) {
+            learner::AlphaZeroData data = data_loader.sampleAlphaZeroTrainingData();
             py::dict res;
             res["features"] = py::cast(data.features_);
             res["policy"] = py::cast(data.policy_);
             res["value"] = data.value_;
             return res;
         })
-        .def("get_muzero_training_data", [](learner::DataLoader& data_loader, int unrolling_step) {
-            learner::MuZeroData data = data_loader.getMuZeroTrainingData(unrolling_step);
+        .def("sample_muzero_training_data", [](learner::DataLoader& data_loader, int unrolling_step) {
+            learner::MuZeroData data = data_loader.sampleMuZeroTrainingData(unrolling_step);
             py::dict res;
             res["features"] = py::cast(data.features_);
             res["actions"] = py::cast(data.action_features_);
