@@ -28,7 +28,7 @@ void ThreadSharedData::outputGame(const std::shared_ptr<BaseActor>& actor)
 
     std::ostringstream oss;
     oss << "SelfPlay "
-        << (data_range.second - data_range.first) << " "                                                                   // data length
+        << (data_range.second - data_range.first + 1) << " "                                                               // data length
         << game_length << " "                                                                                              // game length
         << actor->getEnvironment().getEvalScore(!actor->isEnvTerminal()) << " "                                            // return
         << actor->getRecord({{"DLEN", std::to_string(data_range.first) + "-" + std::to_string(data_range.second)}}) << " " // game record
