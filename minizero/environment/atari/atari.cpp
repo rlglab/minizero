@@ -1,5 +1,6 @@
 #include "atari.h"
 #include <opencv2/opencv.hpp>
+#include <utility>
 
 namespace minizero::env::atari {
 
@@ -31,6 +32,7 @@ void AtariEnv::reset(int seed)
     for (auto action_id : ale_.getMinimalActionSet()) { minimal_action_set_.insert(action_id); }
     actions_.clear();
     observations_.clear();
+    observations_.push_back(getObservationString()); // initial observation
     feature_history_.clear();
     feature_history_.resize(kAtariFeatureHistorySize, std::vector<float>(3 * config::nn_input_channel_height * config::nn_input_channel_width, 0.0f));
     feature_history_.push_back(getObservation()); // initial screen
@@ -74,7 +76,7 @@ std::vector<AtariAction> AtariEnv::getLegalActions() const
 std::vector<float> AtariEnv::getFeatures(utils::Rotation rotation /* = utils::Rotation::kRotationNone */) const
 {
     std::vector<float> features;
-    for (size_t i = 0; i < kAtariFeatureHistorySize; ++i) { // 1 for action; 3 for RGB, action first since the latest observation didn't have action yet
+    for (int i = 0; i < kAtariFeatureHistorySize; ++i) { // 1 for action; 3 for RGB, action first since the latest observation didn't have action yet
         features.insert(features.end(), action_feature_history_[i].begin(), action_feature_history_[i].end());
         features.insert(features.end(), feature_history_[i].begin(), feature_history_[i].end());
     }
@@ -123,6 +125,47 @@ std::string AtariEnv::getObservationString() const
     return obs_string;
 }
 
+void AtariEnvLoader::reset()
+{
+    BaseEnvLoader::reset();
+    observations_.clear();
+}
+
+bool AtariEnvLoader::loadFromString(const std::string& content)
+{
+    bool success = BaseEnvLoader::loadFromString(content);
+    addObservations(getTag("OBS"));
+    return success;
+}
+
+void AtariEnvLoader::loadFromEnvironment(const AtariEnv& env, const std::vector<std::unordered_map<std::string, std::string>>& action_info_history /* = {} */)
+{
+    BaseEnvLoader<AtariAction, AtariEnv>::loadFromEnvironment(env, action_info_history);
+    addTag("SD", std::to_string(env.getSeed()));
+}
+
+std::vector<float> AtariEnvLoader::getFeatures(const int pos, utils::Rotation rotation /* = utils::Rotation::kRotationNone */) const
+{
+    std::pair<int, int> data_range = {-1, -1};
+    const std::string& dlen = getTag("DLEN");
+    if (!dlen.empty()) { data_range = {std::stoi(dlen), std::stoi(dlen.substr(dlen.find("-") + 1))}; }
+    if (pos < data_range.first || pos > data_range.second) { return getFeaturesByReplay(pos, rotation); }
+
+    std::vector<float> features;
+    int start = pos - kAtariFeatureHistorySize + 1, end = pos;
+    for (int i = start; i <= end; ++i) { // 1 for action; 3 for RGB, action first since the latest observation didn't have action yet
+        std::vector<float> action_features(config::nn_input_channel_height * config::nn_input_channel_width, ((i - 1 >= 0) ? action_pairs_[i - 1].first.getActionID() * 1.0f / kAtariActionSize : 0.0f));
+        features.insert(features.end(), action_features.begin(), action_features.end());
+        if (i >= 0) {
+            for (const auto& o : observations_[i]) { features.push_back(static_cast<unsigned int>(static_cast<unsigned char>(o)) / 255.0f); }
+        } else {
+            std::vector<float> f(3 * kAtariResolution * kAtariResolution, 0.0f);
+            features.insert(features.end(), f.begin(), f.end());
+        }
+    }
+    return features;
+}
+
 float AtariEnvLoader::getValue(const int pos) const
 {
     assert(pos < static_cast<int>(action_pairs_.size()));
@@ -135,6 +178,30 @@ float AtariEnvLoader::getValue(const int pos) const
         value += std::pow(config::actor_mcts_reward_discount, step) * reward;
     }
     return value;
+}
+
+void AtariEnvLoader::addObservations(const std::string& compressed_obs)
+{
+    observations_.resize(action_pairs_.size() + 1, "");
+    if (compressed_obs.empty()) { return; }
+
+    int obs_length = 3 * kAtariResolution * kAtariResolution;
+    std::string observations_str = utils::decompressString(compressed_obs);
+    assert(observations_str.size() % obs_length == 0);
+
+    int index = observations_.size();
+    for (size_t end = observations_str.size(); end > 0; end -= obs_length) { observations_[--index] = observations_str.substr(end - obs_length, obs_length); }
+    assert(index >= 0);
+}
+
+std::vector<float> AtariEnvLoader::getFeaturesByReplay(const int pos, utils::Rotation rotation /* = utils::Rotation::kRotationNone */) const
+{
+    assert(pos <= static_cast<int>(action_pairs_.size()));
+
+    AtariEnv env;
+    env.reset(std::stoi(getTag("SD")));
+    for (int i = 0; i < pos; ++i) { env.act(action_pairs_[i].first); }
+    return env.getFeatures(rotation);
 }
 
 } // namespace minizero::env::atari

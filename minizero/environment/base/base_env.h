@@ -104,7 +104,7 @@ public:
     BaseEnvLoader() {}
     virtual ~BaseEnvLoader() = default;
 
-    inline void reset()
+    virtual void reset()
     {
         content_ = "";
         tags_.clear();
@@ -113,7 +113,7 @@ public:
         tags_.insert({"RE", "0"});
     }
 
-    inline bool loadFromFile(const std::string& file_name)
+    virtual bool loadFromFile(const std::string& file_name)
     {
         std::ifstream fin(file_name.c_str());
         if (!fin) { return false; }
@@ -123,7 +123,7 @@ public:
         return loadFromString(buffer.str());
     }
 
-    inline bool loadFromString(const std::string& content)
+    virtual bool loadFromString(const std::string& content)
     {
         reset();
         content_ = content;
@@ -147,7 +147,7 @@ public:
         return true;
     }
 
-    inline void loadFromEnvironment(const Env& env, const std::vector<std::unordered_map<std::string, std::string>>& action_info_history = {})
+    virtual void loadFromEnvironment(const Env& env, const std::vector<std::unordered_map<std::string, std::string>>& action_info_history = {})
     {
         reset();
         for (size_t i = 0; i < env.getActionHistory().size(); ++i) {
@@ -163,9 +163,10 @@ public:
         std::string observations;
         for (const auto& obs : env.getObservationHistory()) { observations += obs; }
         addTag("OBS", utils::compressString(observations));
+        assert(observations == utils::decompressString(getTag("OBS")));
     }
 
-    inline std::string toString() const
+    virtual std::string toString() const
     {
         std::ostringstream oss;
         oss << "(";
@@ -182,7 +183,7 @@ public:
     virtual std::vector<float> getFeatures(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const
     {
         // a slow but naive method which simply replays the game again to get features
-        assert(pos < static_cast<int>(action_pairs_.size()));
+        assert(pos <= static_cast<int>(action_pairs_.size()));
 
         Env env;
         for (int i = 0; i < pos; ++i) { env.act(action_pairs_[i].first); }

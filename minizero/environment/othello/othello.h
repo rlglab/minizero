@@ -79,7 +79,7 @@ private:
 
 class OthelloEnvLoader : public BaseEnvLoader<OthelloAction, OthelloEnv> {
 public:
-    void loadFromEnvironment(const OthelloEnv& env, const std::vector<std::unordered_map<std::string, std::string>>& action_info_history = {})
+    void loadFromEnvironment(const OthelloEnv& env, const std::vector<std::unordered_map<std::string, std::string>>& action_info_history = {}) override
     {
         BaseEnvLoader<OthelloAction, OthelloEnv>::loadFromEnvironment(env, action_info_history);
         addTag("SZ", std::to_string(env.getBoardSize()));

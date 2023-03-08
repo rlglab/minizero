@@ -124,7 +124,7 @@ protected:
 
 class GoEnvLoader : public BaseEnvLoader<GoAction, GoEnv> {
 public:
-    void loadFromEnvironment(const GoEnv& env, const std::vector<std::unordered_map<std::string, std::string>>& action_info_history = {})
+    void loadFromEnvironment(const GoEnv& env, const std::vector<std::unordered_map<std::string, std::string>>& action_info_history = {}) override
     {
         BaseEnvLoader<GoAction, GoEnv>::loadFromEnvironment(env, action_info_history);
         addTag("KM", std::to_string(env.getKomi()));

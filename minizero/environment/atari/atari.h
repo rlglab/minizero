@@ -79,18 +79,22 @@ private:
 
 class AtariEnvLoader : public BaseEnvLoader<AtariAction, AtariEnv> {
 public:
-    void loadFromEnvironment(const AtariEnv& env, const std::vector<std::unordered_map<std::string, std::string>>& action_info_history = {})
-    {
-        BaseEnvLoader<AtariAction, AtariEnv>::loadFromEnvironment(env, action_info_history);
-        addTag("SD", std::to_string(env.getSeed()));
-    }
-
+    void reset() override;
+    bool loadFromString(const std::string& content) override;
+    void loadFromEnvironment(const AtariEnv& env, const std::vector<std::unordered_map<std::string, std::string>>& action_info_history = {}) override;
+    std::vector<float> getFeatures(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     float getValue(const int pos) const override;
     float getPriority(const int pos) const override { return fabs(getValue(pos) - BaseEnvLoader::getValue(pos)); }
 
     inline std::string name() const override { return kAtariName + "_" + minizero::config::env_atari_name; }
     inline int getPolicySize() const override { return kAtariActionSize; }
     inline int getRotatePosition(int position, utils::Rotation rotation) const override { return position; }
+
+private:
+    void addObservations(const std::string& compressed_obs);
+    std::vector<float> getFeaturesByReplay(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const;
+
+    std::vector<std::string> observations_;
 };
 
 } // namespace minizero::env::atari
