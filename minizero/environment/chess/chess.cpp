@@ -1309,4 +1309,12 @@ Player ChessEnv::eval() const
     }
     return Player::kPlayerNone;
 }
+
+std::vector<float> ChessEnvLoader::getActionFeatures(const int pos, utils::Rotation rotation /* = utils::Rotation::kRotationNone */) const
+{
+    assert(pos < static_cast<int>(action_pairs_.size()));
+    // TODO
+    return {};
+}
+
 } // namespace minizero::env::chess

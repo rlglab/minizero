@@ -177,4 +177,13 @@ std::string GomokuEnv::getCoordinateString() const
     return getColorText(oss.str(), TextType::kBold, TextColor::kBlack, TextColor::kYellow);
 }
 
+std::vector<float> GomokuEnvLoader::getActionFeatures(const int pos, utils::Rotation rotation /* = utils::Rotation::kRotationNone */) const
+{
+    assert(pos < static_cast<int>(action_pairs_.size()));
+    const GomokuAction& action = action_pairs_[pos].first;
+    std::vector<float> action_features(getBoardSize() * getBoardSize(), 0.0f);
+    action_features[getPositionByRotating(rotation, action.getActionID(), getBoardSize())] = 1.0f;
+    return action_features;
+}
+
 } // namespace minizero::env::gomoku

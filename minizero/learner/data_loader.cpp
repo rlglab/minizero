@@ -38,15 +38,11 @@ AlphaZeroData DataLoader::getAlphaZeroTrainingData()
     std::pair<int, int> p = getEnvIDAndPosition(Random::randInt() % getDataSize());
     int env_id = p.first, pos = p.second;
 
-    // replay the game until to the selected position
-    const EnvironmentLoader& env_loader = env_loaders_[env_id].first;
-    Environment env;
-    for (int i = 0; i < pos; ++i) { env.act(env_loader.getActionPairs()[i].first); }
-
-    // calculate training data
+    // package AlphaZero training data
     AlphaZeroData data;
     Rotation rotation = static_cast<Rotation>(Random::randInt() % static_cast<int>(Rotation::kRotateSize));
-    data.features_ = env.getFeatures(rotation);
+    const EnvironmentLoader& env_loader = env_loaders_[env_id].first;
+    data.features_ = env_loader.getFeatures(pos, rotation);
     data.policy_ = env_loader.getPolicy(pos, rotation);
     data.value_ = env_loader.getReturn();
 
@@ -64,22 +60,16 @@ MuZeroData DataLoader::getMuZeroTrainingData(int unrolling_step)
         env_id = p.first, pos = p.second;
     }
 
-    // replay the game until to the selected position
-    const EnvironmentLoader& env_loader = env_loaders_[env_id].first;
-    Environment env;
-    for (int i = 0; i < pos; ++i) { env.act(env_loader.getActionPairs()[i].first); }
-
-    // calculate training data
+    // package MuZero training data
     MuZeroData data;
+    const EnvironmentLoader& env_loader = env_loaders_[env_id].first;
     Rotation rotation = static_cast<Rotation>(Random::randInt() % static_cast<int>(Rotation::kRotateSize));
-    data.features_ = env.getFeatures(rotation);
+    data.features_ = env_loader.getFeatures(pos, rotation);
     for (int step = 0; step <= unrolling_step; ++step) {
-        const Action& action = env_loader.getActionPairs()[pos + step].first;
-        std::vector<float> action_features = env.getActionFeatures(action, rotation);
+        std::vector<float> action_features = env_loader.getActionFeatures(pos + step, rotation);
         std::vector<float> policy = env_loader.getPolicy(pos + step, rotation);
         if (step < unrolling_step) { data.action_features_.insert(data.action_features_.end(), action_features.begin(), action_features.end()); }
         data.policy_.insert(data.policy_.end(), policy.begin(), policy.end());
-        env.act(action);
     }
     data.value_ = env_loader.getReturn();
     return data;

@@ -260,12 +260,20 @@ std::vector<float> OthelloEnv::getFeatures(utils::Rotation rotation) const
     }
     return vFeatures;
 }
+
 std::vector<float> OthelloEnv::getActionFeatures(const OthelloAction& action, utils::Rotation rotation /*= utils::Rotation::kRotationNone*/) const
 {
     std::vector<float> action_features(board_size_ * board_size_, 0.0f);
-    if (!isPassAction(action)) {
-        action_features[getPositionByRotating(rotation, action.getActionID(), board_size_)] = 1.0f;
-    }
+    if (!isPassAction(action)) { action_features[getPositionByRotating(rotation, action.getActionID(), board_size_)] = 1.0f; }
+    return action_features;
+}
+
+std::vector<float> OthelloEnvLoader::getActionFeatures(const int pos, utils::Rotation rotation /* = utils::Rotation::kRotationNone */) const
+{
+    assert(pos < static_cast<int>(action_pairs_.size()));
+    const OthelloAction& action = action_pairs_[pos].first;
+    std::vector<float> action_features(getBoardSize() * getBoardSize(), 0.0f);
+    if (!isPassAction(action)) { action_features[getPositionByRotating(rotation, action.getActionID(), getBoardSize())] = 1.0f; }
     return action_features;
 }
 

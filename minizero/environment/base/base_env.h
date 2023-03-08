@@ -190,6 +190,16 @@ public:
         return env.getFeatures(rotation);
     }
 
+    virtual std::vector<float> getActionFeatures(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const
+    {
+        // a slow but naive method which simply replays the game again to get action features
+        assert(pos < static_cast<int>(action_pairs_.size()));
+
+        Env env;
+        for (int i = 0; i < pos; ++i) { env.act(action_pairs_[i].first); }
+        return env.getActionFeatures(action_pairs_[pos].first, rotation);
+    }
+
     virtual std::vector<float> getPolicy(int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const
     {
         assert(pos < static_cast<int>(action_pairs_.size()));

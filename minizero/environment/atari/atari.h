@@ -83,6 +83,7 @@ public:
     bool loadFromString(const std::string& content) override;
     void loadFromEnvironment(const AtariEnv& env, const std::vector<std::unordered_map<std::string, std::string>>& action_info_history = {}) override;
     std::vector<float> getFeatures(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
+    std::vector<float> getActionFeatures(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     float getValue(const int pos) const override;
     float getPriority(const int pos) const override { return fabs(getValue(pos) - BaseEnvLoader::getValue(pos)); }
 

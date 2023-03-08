@@ -407,4 +407,13 @@ Player HexEnv::updateWinner(int actionID)
     return Player::kPlayerNone;
 }
 
+std::vector<float> HexEnvLoader::getActionFeatures(const int pos, utils::Rotation rotation /* = utils::Rotation::kRotationNone */) const
+{
+    assert(pos < static_cast<int>(action_pairs_.size()));
+    const HexAction& action = action_pairs_[pos].first;
+    std::vector<float> action_features(getBoardSize() * getBoardSize(), 0.0f);
+    action_features[action.getActionID()] = 1.0f;
+    return action_features;
+}
+
 } // namespace minizero::env::hex

@@ -729,4 +729,13 @@ GamePair<float> GoEnv::calculateTrompTaylorTerritory() const
     return territory;
 }
 
+std::vector<float> GoEnvLoader::getActionFeatures(const int pos, utils::Rotation rotation /* = utils::Rotation::kRotationNone */) const
+{
+    assert(pos < static_cast<int>(action_pairs_.size()));
+    const GoAction& action = action_pairs_[pos].first;
+    std::vector<float> action_features(getBoardSize() * getBoardSize(), 0.0f);
+    if (!isPassAction(action)) { action_features[getPositionByRotating(rotation, action.getActionID(), getBoardSize())] = 1.0f; }
+    return action_features;
+}
+
 } // namespace minizero::env::go

@@ -47,6 +47,7 @@ private:
 
 class TicTacToeEnvLoader : public BaseEnvLoader<TicTacToeAction, TicTacToeEnv> {
 public:
+    std::vector<float> getActionFeatures(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     inline std::string name() const override { return kTicTacToeName; }
     inline int getPolicySize() const override { return kTicTacToeBoardSize * kTicTacToeBoardSize; }
     inline int getRotatePosition(int position, utils::Rotation rotation) const override { return getPositionByRotating(rotation, position, kTicTacToeBoardSize); }

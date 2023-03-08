@@ -152,4 +152,13 @@ Player TicTacToeEnv::eval() const
     return Player::kPlayerNone;
 }
 
+std::vector<float> TicTacToeEnvLoader::getActionFeatures(const int pos, utils::Rotation rotation /* = utils::Rotation::kRotationNone */) const
+{
+    assert(pos < static_cast<int>(action_pairs_.size()));
+    const TicTacToeAction& action = action_pairs_[pos].first;
+    std::vector<float> action_features(kTicTacToeBoardSize * kTicTacToeBoardSize, 0.0f);
+    action_features[getPositionByRotating(rotation, action.getActionID(), kTicTacToeBoardSize)] = 1.0f;
+    return action_features;
+}
+
 } // namespace minizero::env::tictactoe

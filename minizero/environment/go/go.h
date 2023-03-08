@@ -131,6 +131,8 @@ public:
         addTag("SZ", std::to_string(env.getBoardSize()));
     }
 
+    std::vector<float> getActionFeatures(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
+    inline bool isPassAction(const GoAction& action) const { return (action.getActionID() == getBoardSize() * getBoardSize()); }
     inline int getBoardSize() const { return (tags_.count("SZ") ? std::stoi(getTag("SZ")) : config::env_board_size); }
     inline std::string name() const override { return kGoName + "_" + std::to_string(getBoardSize()) + "x" + std::to_string(getBoardSize()); }
     inline int getPolicySize() const override { return getBoardSize() * getBoardSize() + 1; }
