@@ -36,6 +36,8 @@ inline std::vector<std::string> stringToVector(const std::string& s, const std::
 
 inline std::string compressToBinaryString(const std::string& s)
 {
+    if (s.empty()) { return s; }
+
     // use gzip to compress string
     std::stringstream compressed;
     boost::iostreams::filtering_streambuf<boost::iostreams::output> out;
@@ -68,6 +70,8 @@ inline std::string hexToBinaryString(const std::string& s)
 
 inline std::string decompressBinaryString(const std::string& s)
 {
+    if (s.empty()) { return s; }
+
     // use gzip to decompress binary string
     boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
     in.push(boost::iostreams::gzip_decompressor());
