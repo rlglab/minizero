@@ -36,7 +36,7 @@ class MinizeroDataset(IterableDataset):
                                                                            self.conf.get_nn_input_channel_height(),
                                                                            self.conf.get_nn_input_channel_width())
                 policy = torch.FloatTensor(result_dict["policy"])
-                value = torch.FloatTensor([result_dict["value"]])
+                value = torch.FloatTensor(result_dict["value"])
                 yield features, policy, value
             elif self.conf.get_nn_type_name() == "muzero":
                 result_dict = self.data_loader.sample_muzero_training_data(self.conf.get_muzero_unrolling_step())
@@ -48,7 +48,7 @@ class MinizeroDataset(IterableDataset):
                                                                          self.conf.get_nn_hidden_channel_height(),
                                                                          self.conf.get_nn_hidden_channel_width())
                 policy = torch.FloatTensor(result_dict["policy"]).view(-1, self.conf.get_nn_action_size())
-                value = torch.FloatTensor([result_dict["value"]])
+                value = torch.FloatTensor(result_dict["value"])
                 yield features, actions, policy, value
 
 

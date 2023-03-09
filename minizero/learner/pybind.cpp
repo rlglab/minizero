@@ -81,7 +81,7 @@ PYBIND11_MODULE(minizero_py, m)
             py::dict res;
             res["features"] = py::cast(data.features_);
             res["policy"] = py::cast(data.policy_);
-            res["value"] = data.value_;
+            res["value"] = py::cast(data.value_);
             return res;
         })
         .def("sample_muzero_training_data", [](learner::DataLoader& data_loader, int unrolling_step) {
@@ -90,7 +90,8 @@ PYBIND11_MODULE(minizero_py, m)
             res["features"] = py::cast(data.features_);
             res["actions"] = py::cast(data.action_features_);
             res["policy"] = py::cast(data.policy_);
-            res["value"] = data.value_;
+            res["value"] = py::cast(data.value_);
+            res["reward"] = py::cast(data.reward_);
             return res;
         });
 }

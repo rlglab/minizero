@@ -176,20 +176,6 @@ std::vector<float> AtariEnvLoader::getActionFeatures(const int pos, utils::Rotat
     return action_features;
 }
 
-float AtariEnvLoader::getValue(const int pos) const
-{
-    assert(pos < static_cast<int>(action_pairs_.size()));
-
-    // calculate n-step return
-    int n_step = std::min(pos + config::learner_n_step_return, static_cast<int>(action_pairs_.size()));
-    float value = 0.0f;
-    for (int step = 0; step < n_step; ++step) {
-        float reward = ((step == n_step - 1) ? BaseEnvLoader::getValue(step) : getReward(step));
-        value += std::pow(config::actor_mcts_reward_discount, step) * reward;
-    }
-    return value;
-}
-
 void AtariEnvLoader::addObservations(const std::string& compressed_obs)
 {
     observations_.resize(action_pairs_.size() + 1, "");
@@ -212,6 +198,43 @@ std::vector<float> AtariEnvLoader::getFeaturesByReplay(const int pos, utils::Rot
     env.reset(std::stoi(getTag("SD")));
     for (int i = 0; i < pos; ++i) { env.act(action_pairs_[i].first); }
     return env.getFeatures(rotation);
+}
+
+float AtariEnvLoader::calculateNStepValue(const int pos) const
+{
+    assert(pos < static_cast<int>(action_pairs_.size()));
+
+    // calculate n-step return
+    int n_step = std::min(pos + config::learner_n_step_return, static_cast<int>(action_pairs_.size()));
+    float value = 0.0f;
+    for (int step = 0; step < n_step; ++step) {
+        float reward = ((step == n_step - 1) ? BaseEnvLoader::getValue(pos + step)[0] : BaseEnvLoader::getReward(pos + step)[0]);
+        value += std::pow(config::actor_mcts_reward_discount, step) * reward;
+    }
+    return value;
+}
+
+float AtariEnvLoader::transformValue(float value) const
+{
+    const float epsilon = 0.001;
+    const float sign_value = (value > 0.0f ? 1.0f : (value == 0.0f ? 0.0f : -1.0f));
+    value = sign_value * (sqrt(fabs(value) + 1) - 1) + epsilon * value;
+    return value;
+}
+
+std::vector<float> AtariEnvLoader::toDiscreteValue(float value) const
+{
+    std::vector<float> discrete_value(config::nn_discrete_value_size, 0.0f);
+    int value_floor = floor(value);
+    int value_ceil = ceil(value);
+    int shift = config::nn_discrete_value_size / 2;
+    if (value_floor == value_ceil) {
+        discrete_value[value_floor + shift] = 1.0f;
+    } else {
+        discrete_value[value_floor + shift] = value_ceil - value;
+        discrete_value[value_ceil + shift] = value - value_floor;
+    }
+    return discrete_value;
 }
 
 } // namespace minizero::env::atari

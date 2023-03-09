@@ -223,8 +223,8 @@ public:
         return policy;
     }
 
-    virtual float getValue(const int pos) const { return std::stof(extractActionInfo(action_pairs_[pos].second, "V:")); }
-    virtual float getReward(const int pos) const { return std::stof(extractActionInfo(action_pairs_[pos].second, "R:")); }
+    virtual std::vector<float> getValue(const int pos) const { return {std::stof(extractActionInfo(action_pairs_[pos].second, "V:"))}; }
+    virtual std::vector<float> getReward(const int pos) const { return {std::stof(extractActionInfo(action_pairs_[pos].second, "R:"))}; }
     virtual float getPriority(const int pos) const { return 1.0f; }
 
     virtual std::string name() const = 0;

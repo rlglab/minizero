@@ -55,7 +55,7 @@ AlphaZeroData DataLoader::sampleAlphaZeroTrainingData()
     const EnvironmentLoader& env_loader = env_loaders_[env_id];
     data.features_ = env_loader.getFeatures(pos, rotation);
     data.policy_ = env_loader.getPolicy(pos, rotation);
-    data.value_ = env_loader.getReturn();
+    data.value_ = env_loader.getValue(pos);
 
     return data;
 }
@@ -77,12 +77,22 @@ MuZeroData DataLoader::sampleMuZeroTrainingData(int unrolling_step)
     Rotation rotation = static_cast<Rotation>(Random::randInt() % static_cast<int>(Rotation::kRotateSize));
     data.features_ = env_loader.getFeatures(pos, rotation);
     for (int step = 0; step <= unrolling_step; ++step) {
+        // action features
         std::vector<float> action_features = env_loader.getActionFeatures(pos + step, rotation);
-        std::vector<float> policy = env_loader.getPolicy(pos + step, rotation);
         if (step < unrolling_step) { data.action_features_.insert(data.action_features_.end(), action_features.begin(), action_features.end()); }
+
+        // policy
+        std::vector<float> policy = env_loader.getPolicy(pos + step, rotation);
         data.policy_.insert(data.policy_.end(), policy.begin(), policy.end());
+
+        // value
+        std::vector<float> value = env_loader.getValue(pos + step);
+        data.value_.insert(data.value_.end(), value.begin(), value.end());
+
+        // reward
+        std::vector<float> reward = env_loader.getReward(pos + step);
+        data.reward_.insert(data.reward_.end(), reward.begin(), reward.end());
     }
-    data.value_ = env_loader.getReturn();
     return data;
 }
 

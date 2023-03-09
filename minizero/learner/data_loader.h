@@ -13,7 +13,7 @@ class AlphaZeroData {
 public:
     std::vector<float> features_;
     std::vector<float> policy_;
-    float value_;
+    std::vector<float> value_;
 };
 
 class MuZeroData {
@@ -21,7 +21,8 @@ public:
     std::vector<float> features_;
     std::vector<float> action_features_;
     std::vector<float> policy_;
-    float value_;
+    std::vector<float> value_;
+    std::vector<float> reward_;
 };
 
 class DataLoader {
