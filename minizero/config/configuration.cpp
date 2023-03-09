@@ -67,7 +67,7 @@ int nn_num_blocks = 1;
 int nn_num_action_channels = 1;
 int nn_action_size = 9;
 int nn_num_value_hidden_channels = 256;
-int nn_discrete_value_size = 601;
+int nn_discrete_value_size = 1;
 std::string nn_type_name = "alphazero";
 
 // environment parameters
@@ -155,7 +155,7 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("nn_num_action_channels", nn_num_action_channels, "", "Network");
     cl.addParameter("nn_action_size", nn_action_size, "", "Network");
     cl.addParameter("nn_num_value_hidden_channels", nn_num_value_hidden_channels, "", "Network");
-    cl.addParameter("nn_discrete_value_size", nn_discrete_value_size, "", "Network");
+    cl.addParameter("nn_discrete_value_size", nn_discrete_value_size, "board games: 1, atari: 601", "Network");
     cl.addParameter("nn_type_name", nn_type_name, "alphazero/muzero", "Network");
 
     // environment parameters
