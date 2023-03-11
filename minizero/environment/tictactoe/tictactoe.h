@@ -21,7 +21,7 @@ public:
     inline std::string toConsoleString() const override { return minizero::utils::SGFLoader::actionIDToBoardCoordinateString(getActionID(), kTicTacToeBoardSize); }
 };
 
-class TicTacToeEnv : public BaseEnv<TicTacToeAction> {
+class TicTacToeEnv : public BaseBoardEnv<TicTacToeAction> {
 public:
     TicTacToeEnv() { reset(); }
 
@@ -45,7 +45,7 @@ private:
     std::vector<Player> board_;
 };
 
-class TicTacToeEnvLoader : public BaseEnvLoader<TicTacToeAction, TicTacToeEnv> {
+class TicTacToeEnvLoader : public BaseBoardEnvLoader<TicTacToeAction, TicTacToeEnv> {
 public:
     std::vector<float> getActionFeatures(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     inline std::vector<float> getValue(const int pos) const { return {getReturn()}; }

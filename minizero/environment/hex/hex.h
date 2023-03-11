@@ -41,12 +41,11 @@ struct Cell {
     Flag flags;
 };
 
-class HexEnv : public BaseEnv<HexAction> {
+class HexEnv : public BaseBoardEnv<HexAction> {
 public:
     HexEnv()
-        : board_size_(minizero::config::env_board_size)
     {
-        assert(board_size_ > 0 && board_size_ <= kMaxHexBoardSize);
+        assert(getBoardSize() <= kMaxHexBoardSize);
         reset();
     }
 
@@ -62,7 +61,7 @@ public:
     std::vector<float> getActionFeatures(const HexAction& action, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::string toString() const override;
     std::string toStringDebug() const;
-    inline std::string name() const override { return kHexName + "_" + std::to_string(board_size_) + "x" + std::to_string(board_size_); }
+    inline std::string name() const override { return kHexName + "_" + std::to_string(getBoardSize()) + "x" + std::to_string(getBoardSize()); }
     inline int getNumPlayer() const override { return kHexNumPlayer; }
     inline Player getWinner() const { return winner_; }
     inline const std::vector<Cell>& getBoard() const { return board_; }
@@ -71,15 +70,13 @@ public:
 private:
     Player updateWinner(int actionID);
 
-    int board_size_;
     Player winner_;
     std::vector<Cell> board_;
 };
 
-class HexEnvLoader : public BaseEnvLoader<HexAction, HexEnv> {
+class HexEnvLoader : public BaseBoardEnvLoader<HexAction, HexEnv> {
 public:
     std::vector<float> getActionFeatures(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
-    inline int getBoardSize() const { return (tags_.count("SZ") ? std::stoi(getTag("SZ")) : config::env_board_size); }
     inline std::vector<float> getValue(const int pos) const { return {getReturn()}; }
     inline std::string name() const override { return kHexName + "_" + std::to_string(getBoardSize()) + "x" + std::to_string(getBoardSize()); }
     inline int getPolicySize() const override { return getBoardSize() * getBoardSize(); }

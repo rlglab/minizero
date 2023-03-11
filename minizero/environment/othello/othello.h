@@ -26,12 +26,11 @@ public:
     inline std::string toConsoleString() const override { return minizero::utils::SGFLoader::actionIDToBoardCoordinateString(getActionID(), minizero::config::env_board_size); }
 };
 
-class OthelloEnv : public BaseEnv<OthelloAction> {
+class OthelloEnv : public BaseBoardEnv<OthelloAction> {
 public:
     OthelloEnv()
-        : board_size_(minizero::config::env_board_size)
     {
-        assert(board_size_ > 0 && board_size_ <= kMaxOthelloBoardSize);
+        assert(getBoardSize() <= kMaxOthelloBoardSize);
         reset();
     }
 
@@ -46,10 +45,9 @@ public:
     std::vector<float> getFeatures(utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::vector<float> getActionFeatures(const OthelloAction& action, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::string toString() const override;
-    inline std::string name() const override { return kOthelloName + "_" + std::to_string(board_size_) + "x" + std::to_string(board_size_); }
+    inline std::string name() const override { return kOthelloName + "_" + std::to_string(getBoardSize()) + "x" + std::to_string(getBoardSize()); }
     inline int getNumPlayer() const override { return kOthelloNumPlayer; }
-    inline bool isPassAction(const OthelloAction& action) const { return (action.getActionID() == board_size_ * board_size_); }
-    inline int getBoardSize() const { return board_size_; }
+    inline bool isPassAction(const OthelloAction& action) const { return (action.getActionID() == getBoardSize() * getBoardSize()); }
 
 private:
     Player eval() const;
@@ -68,7 +66,6 @@ private:
     OthelloBitboard getCandidateAlongDirectionBoard(int direction, OthelloBitboard candidate);
     std::string getCoordinateString() const;
 
-    int board_size_;
     int dir_step_[8]; // 8 directions
     OthelloBitboard one_board_;
     OthelloBitboard mask_[8];               // 8 directions
@@ -77,17 +74,10 @@ private:
     GamePair<OthelloBitboard> board_;       // store black/white board
 };
 
-class OthelloEnvLoader : public BaseEnvLoader<OthelloAction, OthelloEnv> {
+class OthelloEnvLoader : public BaseBoardEnvLoader<OthelloAction, OthelloEnv> {
 public:
-    void loadFromEnvironment(const OthelloEnv& env, const std::vector<std::unordered_map<std::string, std::string>>& action_info_history = {}) override
-    {
-        BaseEnvLoader<OthelloAction, OthelloEnv>::loadFromEnvironment(env, action_info_history);
-        addTag("SZ", std::to_string(env.getBoardSize()));
-    }
-
     std::vector<float> getActionFeatures(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     inline bool isPassAction(const OthelloAction& action) const { return (action.getActionID() == getBoardSize() * getBoardSize()); }
-    inline int getBoardSize() const { return (tags_.count("SZ") ? std::stoi(getTag("SZ")) : config::env_board_size); }
     inline std::vector<float> getValue(const int pos) const { return {getReturn()}; }
     inline std::string name() const override { return kOthelloName + "_" + std::to_string(getBoardSize()) + "x" + std::to_string(getBoardSize()); }
     inline int getPolicySize() const override { return getBoardSize() * getBoardSize() + 1; }

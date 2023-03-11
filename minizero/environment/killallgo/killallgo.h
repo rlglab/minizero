@@ -13,9 +13,9 @@ typedef go::GoAction KillAllGoAction;
 
 class KillAllGoEnv : public go::GoEnv {
 public:
-    KillAllGoEnv()
-        : go::GoEnv(minizero::config::env_board_size = kKillAllGoBoardSize)
+    KillAllGoEnv() : go::GoEnv()
     {
+        assert(kKillAllGoBoardSize == minizero::config::env_board_size);
     }
 
     bool isLegalAction(const KillAllGoAction& action) const override
@@ -47,7 +47,7 @@ public:
 
 class KillAllGoEnvLoader : public go::GoEnvLoader {
 public:
-    inline std::string name() const override { return kKillAllGoName + "_" + std::to_string(kKillAllGoBoardSize) + "x" + std::to_string(kKillAllGoBoardSize); }
+    inline std::string name() const override { return kKillAllGoName + "_" + std::to_string(getBoardSize()) + "x" + std::to_string(getBoardSize()); }
 };
 
 } // namespace minizero::env::killallgo

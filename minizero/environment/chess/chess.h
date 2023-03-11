@@ -77,9 +77,9 @@ private:
 #define ID00 11
 #define ID000 15
 
-class ChessEnv : public BaseEnv<ChessAction> {
+class ChessEnv : public BaseBoardEnv<ChessAction> {
 public:
-    ChessEnv()
+    ChessEnv() : BaseBoardEnv<ChessAction>(kChessBoardSize)
     {
         initialize();
         reset();
@@ -233,7 +233,7 @@ private:
     std::bitset<64> king_attacked_info_;
     std::bitset<4672> legal_actions_;
 };
-class ChessEnvLoader : public BaseEnvLoader<ChessAction, ChessEnv> {
+class ChessEnvLoader : public BaseBoardEnvLoader<ChessAction, ChessEnv> {
 public:
     std::vector<float> getActionFeatures(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     inline std::vector<float> getValue(const int pos) const { return {getReturn()}; }

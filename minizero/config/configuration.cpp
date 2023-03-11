@@ -83,6 +83,10 @@ int env_board_size = 7;
 int env_board_size = 8;
 #elif GOMOKU
 int env_board_size = 15;
+#elif CHESS
+int env_board_size = 8;
+#elif TICTACTOE
+int env_board_size = 3;
 #else
 int env_board_size = 0;
 #endif

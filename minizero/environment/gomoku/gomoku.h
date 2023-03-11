@@ -23,12 +23,11 @@ public:
     inline std::string toConsoleString() const override { return minizero::utils::SGFLoader::actionIDToBoardCoordinateString(getActionID(), minizero::config::env_board_size); }
 };
 
-class GomokuEnv : public BaseEnv<GomokuAction> {
+class GomokuEnv : public BaseBoardEnv<GomokuAction> {
 public:
     GomokuEnv()
-        : board_size_(minizero::config::env_board_size)
     {
-        assert(board_size_ > 0 && board_size_ <= kMaxGomokuBoardSize);
+        assert(getBoardSize() <= kMaxGomokuBoardSize);
         reset();
     }
 
@@ -43,7 +42,7 @@ public:
     std::vector<float> getFeatures(utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::vector<float> getActionFeatures(const GomokuAction& action, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::string toString() const override;
-    inline std::string name() const override { return kGomokuName + "_" + std::to_string(board_size_) + "x" + std::to_string(board_size_); }
+    inline std::string name() const override { return kGomokuName + "_" + std::to_string(getBoardSize()) + "x" + std::to_string(getBoardSize()); }
     inline int getNumPlayer() const override { return kGomokuNumPlayer; }
 
 private:
@@ -51,15 +50,13 @@ private:
     int calculateNumberOfConnection(int start_pos, std::pair<int, int> direction);
     std::string getCoordinateString() const;
 
-    int board_size_;
     Player winner_;
     std::vector<Player> board_;
 };
 
-class GomokuEnvLoader : public BaseEnvLoader<GomokuAction, GomokuEnv> {
+class GomokuEnvLoader : public BaseBoardEnvLoader<GomokuAction, GomokuEnv> {
 public:
     std::vector<float> getActionFeatures(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
-    inline int getBoardSize() const { return (tags_.count("SZ") ? std::stoi(getTag("SZ")) : config::env_board_size); }
     inline std::vector<float> getValue(const int pos) const { return {getReturn()}; }
     inline std::string name() const override { return kGomokuName + "_" + std::to_string(getBoardSize()) + "x" + std::to_string(getBoardSize()); }
     inline int getPolicySize() const override { return getBoardSize() * getBoardSize(); }

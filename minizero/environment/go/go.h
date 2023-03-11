@@ -35,14 +35,13 @@ public:
     inline std::string toConsoleString() const override { return minizero::utils::SGFLoader::actionIDToBoardCoordinateString(getActionID(), minizero::config::env_board_size); }
 };
 
-class GoEnv : public BaseEnv<GoAction> {
+class GoEnv : public BaseBoardEnv<GoAction> {
 public:
     friend class GoBenson;
 
     GoEnv()
-        : board_size_(minizero::config::env_board_size)
     {
-        assert(board_size_ > 0 && board_size_ <= kMaxGoBoardSize);
+        assert(getBoardSize() <= kMaxGoBoardSize);
         initialize();
         reset();
     }
@@ -62,9 +61,8 @@ public:
     std::string toString() const override;
     GoBitboard dilateBitboard(const GoBitboard& bitboard) const;
 
-    inline std::string name() const override { return kGoName + "_" + std::to_string(board_size_) + "x" + std::to_string(board_size_); }
+    inline std::string name() const override { return kGoName + "_" + std::to_string(getBoardSize()) + "x" + std::to_string(getBoardSize()); }
     inline int getNumPlayer() const override { return kGoNumPlayer; }
-    inline int getBoardSize() const { return board_size_; }
     inline float getKomi() const { return komi_; }
     inline GoHashKey getHashKey() const { return hash_key_; }
     inline const GoBitboard& getBoardMaskBitboard() const { return board_mask_bitboard_; }
@@ -75,7 +73,7 @@ public:
     inline const GoGrid& getGrid(int id) const { return grids_[id]; }
     inline const GoArea& getArea(int id) const { return areas_[id]; }
     inline const GoBlock& getBlock(int id) const { return blocks_[id]; }
-    inline bool isPassAction(const GoAction& action) const { return (action.getActionID() == board_size_ * board_size_); }
+    inline bool isPassAction(const GoAction& action) const { return (action.getActionID() == getBoardSize() * getBoardSize()); }
     inline const std::vector<GoHashKey>& getHashKeyHistory() const { return hashkey_history_; }
     inline const std::unordered_set<GoHashKey>& getHashTable() const { return hash_table_; }
 
@@ -103,7 +101,6 @@ protected:
     bool checkAreaDataStructure() const;
     bool checkBensonDataStructure() const;
 
-    int board_size_;
     float komi_;
     GoHashKey hash_key_;
     GoBitboard board_mask_bitboard_;
@@ -122,18 +119,16 @@ protected:
     std::unordered_set<GoHashKey> hash_table_;
 };
 
-class GoEnvLoader : public BaseEnvLoader<GoAction, GoEnv> {
+class GoEnvLoader : public BaseBoardEnvLoader<GoAction, GoEnv> {
 public:
     void loadFromEnvironment(const GoEnv& env, const std::vector<std::unordered_map<std::string, std::string>>& action_info_history = {}) override
     {
-        BaseEnvLoader<GoAction, GoEnv>::loadFromEnvironment(env, action_info_history);
+        BaseBoardEnvLoader<GoAction, GoEnv>::loadFromEnvironment(env, action_info_history);
         addTag("KM", std::to_string(env.getKomi()));
-        addTag("SZ", std::to_string(env.getBoardSize()));
     }
 
     std::vector<float> getActionFeatures(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     inline bool isPassAction(const GoAction& action) const { return (action.getActionID() == getBoardSize() * getBoardSize()); }
-    inline int getBoardSize() const { return (tags_.count("SZ") ? std::stoi(getTag("SZ")) : config::env_board_size); }
     inline std::vector<float> getValue(const int pos) const { return {getReturn()}; }
     inline std::string name() const override { return kGoName + "_" + std::to_string(getBoardSize()) + "x" + std::to_string(getBoardSize()); }
     inline int getPolicySize() const override { return getBoardSize() * getBoardSize() + 1; }

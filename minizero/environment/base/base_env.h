@@ -1,5 +1,6 @@
 #pragma once
 
+#include "configuration.h"
 #include "rotation.h"
 #include "utils.h"
 #include <algorithm>
@@ -244,6 +245,34 @@ protected:
     std::string content_;
     std::unordered_map<std::string, std::string> tags_;
     std::vector<std::pair<Action, std::string>> action_pairs_;
+};
+
+template <class Action>
+class BaseBoardEnv : public BaseEnv<Action> {
+public:
+    BaseBoardEnv(int board_size = minizero::config::env_board_size) : board_size_(board_size) { assert(board_size_ > 0); }
+    virtual ~BaseBoardEnv() = default;
+
+    inline int getBoardSize() const { return board_size_; }
+
+protected:
+    int board_size_;
+};
+
+template <class Action, class Env>
+class BaseBoardEnvLoader : public BaseEnvLoader<Action, Env> {
+public:
+    void loadFromEnvironment(const Env& env, const std::vector<std::unordered_map<std::string, std::string>>& action_info_history = {}) override
+    {
+        BaseEnvLoader<Action, Env>::loadFromEnvironment(env, action_info_history);
+        BaseEnvLoader<Action, Env>::addTag("SZ", std::to_string(env.getBoardSize()));
+    }
+
+    inline int getBoardSize() const
+    {
+        std::string size = BaseEnvLoader<Action, Env>::getTag("SZ");
+        return size.size() ? std::stoi(size) : minizero::config::env_board_size;
+    }
 };
 
 } // namespace minizero::env
