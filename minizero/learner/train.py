@@ -6,9 +6,6 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
-from torch.utils.data import DataLoader
-from torch.utils.data import IterableDataset
-from torch.utils.data import get_worker_info
 from minizero.network.py.create_network import create_network
 
 
@@ -16,7 +13,7 @@ def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs, flush=True)
 
 
-class MinizeroDataset(IterableDataset):
+class MinizeroDadaLoader:
     def __init__(self, training_dir, start_iter, end_iter, conf, conf_file_name):
         self.training_dir = training_dir
         self.start_iter = start_iter
@@ -27,29 +24,28 @@ class MinizeroDataset(IterableDataset):
         for i in range(self.start_iter, self.end_iter + 1):
             self.data_loader.load_data_from_file(f"{self.training_dir}/sgf/{i}.sgf")
 
-    def __iter__(self):
-        self.data_loader.seed(get_worker_info().id)
-        while True:
-            if self.conf.get_nn_type_name() == "alphazero":
-                result_dict = self.data_loader.sample_alphazero_training_data()
-                features = torch.FloatTensor(result_dict["features"]).view(self.conf.get_nn_num_input_channels(),
-                                                                           self.conf.get_nn_input_channel_height(),
-                                                                           self.conf.get_nn_input_channel_width())
-                policy = torch.FloatTensor(result_dict["policy"])
-                value = torch.FloatTensor(result_dict["value"])
-                yield features, policy, value
-            elif self.conf.get_nn_type_name() == "muzero":
-                result_dict = self.data_loader.sample_muzero_training_data(self.conf.get_muzero_unrolling_step())
-                features = torch.FloatTensor(result_dict["features"]).view(self.conf.get_nn_num_input_channels(),
-                                                                           self.conf.get_nn_input_channel_height(),
-                                                                           self.conf.get_nn_input_channel_width())
-                actions = torch.FloatTensor(result_dict["actions"]).view(self.conf.get_muzero_unrolling_step(),
-                                                                         self.conf.get_nn_num_action_feature_channels(),
-                                                                         self.conf.get_nn_hidden_channel_height(),
-                                                                         self.conf.get_nn_hidden_channel_width())
-                policy = torch.FloatTensor(result_dict["policy"]).view(-1, self.conf.get_nn_action_size())
-                value = torch.FloatTensor(result_dict["value"])
-                yield features, actions, policy, value
+    def sample_data(self):
+        result_dict = self.data_loader.sample_data()
+
+        features = torch.FloatTensor(result_dict["features"]).view(self.conf.get_batch_size(),
+                                                                   self.conf.get_nn_num_input_channels(),
+                                                                   self.conf.get_nn_input_channel_height(),
+                                                                   self.conf.get_nn_input_channel_width())
+        policy = torch.FloatTensor(result_dict["policy"]).view(self.conf.get_batch_size(), -1, self.conf.get_nn_action_size())
+        value = torch.FloatTensor(result_dict["value"]).view(self.conf.get_batch_size(), -1, self.conf.get_nn_discrete_value_size())
+
+        action_features = None
+        if result_dict["action_features"]:
+            action_features = torch.FloatTensor(result_dict["action_features"]).view(self.conf.get_batch_size(),
+                                                                                     -1,
+                                                                                     self.conf.get_nn_num_action_feature_channels(),
+                                                                                     self.conf.get_nn_hidden_channel_height(),
+                                                                                     self.conf.get_nn_hidden_channel_width())
+        reward = None
+        if result_dict["reward"]:
+            reward = torch.FloatTensor(result_dict["reward"]).view(self.conf.get_batch_size(), -1, self.conf.get_nn_discrete_value_size())
+
+        return features, action_features, policy, value, reward
 
 
 def load_model(game_type, training_dir, model_file, conf):
@@ -97,12 +93,12 @@ def save_model(training_step, network, optimizer, scheduler, training_dir):
     torch.jit.script(network.module).save(f"{training_dir}/model/weight_iter_{training_step}.pt")
 
 
-def calculate_loss(conf, output_policy_logit, output_value, label_policy, label_value):
+def calculate_loss(conf, network_output, label_policy, label_value):
     if conf.use_gumbel():
-        loss_policy = nn.functional.kl_div(nn.functional.log_softmax(output_policy_logit, dim=1), label_policy, reduction='batchmean')
+        loss_policy = nn.functional.kl_div(nn.functional.log_softmax(network_output["policy_logit"], dim=1), label_policy, reduction='batchmean')
     else:
-        loss_policy = -(label_policy * nn.functional.log_softmax(output_policy_logit, dim=1)).sum() / output_policy_logit.shape[0]
-    loss_value = torch.nn.functional.mse_loss(output_value, label_value)
+        loss_policy = -(label_policy * nn.functional.log_softmax(network_output["policy_logit"], dim=1)).sum() / network_output["policy_logit"].shape[0]
+    loss_value = torch.nn.functional.mse_loss(network_output["value"], label_value)
     return loss_policy, loss_value
 
 
@@ -126,42 +122,36 @@ def train(game_type, training_dir, conf_file_name, conf, model_file, start_iter,
         save_model(training_step, network, optimizer, scheduler, training_dir)
         return
 
-    # create dataset & dataloader
-    dataset = MinizeroDataset(training_dir, start_iter, end_iter, conf, conf_file_name)
-    data_loader = DataLoader(dataset, batch_size=conf.get_batch_size(), num_workers=conf.get_num_process())
-    data_loader_iterator = iter(data_loader)
+    # create dataloader
+    data_loader = MinizeroDadaLoader(training_dir, start_iter, end_iter, conf, conf_file_name)
 
     training_info = {}
     for i in range(1, conf.get_training_step() + 1):
         optimizer.zero_grad()
+        features, action_features, label_policy, label_value, label_reward = data_loader.sample_data()
 
         if conf.get_nn_type_name() == "alphazero":
-            features, label_policy, label_value = next(data_loader_iterator)
             network_output = network(features.to(device))
-            output_policy_logit, output_value = network_output["policy_logit"], network_output["value"]
-            loss_policy, loss_value = calculate_loss(conf, output_policy_logit, output_value, label_policy.to(device), label_value.to(device))
+            loss_policy, loss_value = calculate_loss(conf, network_output, label_policy[:, 0].to(device), label_value[:, 0].to(device))
             loss = loss_policy + loss_value
 
             # record training info
             add_training_info(training_info, 'loss_policy', loss_policy.item())
-            add_training_info(training_info, 'accuracy_policy', calculate_accuracy(output_policy_logit, label_policy, conf.get_batch_size()))
+            add_training_info(training_info, 'accuracy_policy', calculate_accuracy(network_output["policy_logit"], label_policy[:, 0], conf.get_batch_size()))
             add_training_info(training_info, 'loss_value', loss_value.item())
         elif conf.get_nn_type_name() == "muzero":
-            features, actions, label_policy, label_value = next(data_loader_iterator)
             network_output = network(features.to(device))
-            output_policy_logit, output_value = network_output["policy_logit"], network_output["value"]
-            loss_step_policy, loss_step_value = calculate_loss(conf, output_policy_logit, output_value, label_policy[:, 0].to(device), label_value.to(device))
+            loss_step_policy, loss_step_value = calculate_loss(conf, network_output, label_policy[:, 0].to(device), label_value[:, 0].to(device))
             add_training_info(training_info, 'loss_policy_0', loss_step_policy.item())
-            add_training_info(training_info, 'accuracy_policy_0', calculate_accuracy(output_policy_logit, label_policy[:, 0], conf.get_batch_size()))
+            add_training_info(training_info, 'accuracy_policy_0', calculate_accuracy(network_output["policy_logit"], label_policy[:, 0], conf.get_batch_size()))
             add_training_info(training_info, 'loss_value_0', loss_step_value.item())
             loss_policy = loss_step_policy
             loss_value = loss_step_value
             for i in range(conf.get_muzero_unrolling_step()):
-                network_output = network(network_output["hidden_state"], actions[:, i].to(device))
-                output_policy_logit, output_value = network_output["policy_logit"], network_output["value"]
-                loss_step_policy, loss_step_value = calculate_loss(conf, output_policy_logit, output_value, label_policy[:, i + 1].to(device), label_value.to(device))
+                network_output = network(network_output["hidden_state"], action_features[:, i].to(device))
+                loss_step_policy, loss_step_value = calculate_loss(conf, network_output, label_policy[:, i + 1].to(device), label_value[:, i + 1].to(device))
                 add_training_info(training_info, f'loss_policy_{i+1}', loss_step_policy.item() / conf.get_muzero_unrolling_step())
-                add_training_info(training_info, f'accuracy_policy_{i+1}', calculate_accuracy(output_policy_logit, label_policy[:, i + 1], conf.get_batch_size()))
+                add_training_info(training_info, f'accuracy_policy_{i+1}', calculate_accuracy(network_output["policy_logit"], label_policy[:, i + 1], conf.get_batch_size()))
                 add_training_info(training_info, f'loss_value_{i+1}', loss_step_value.item() / conf.get_muzero_unrolling_step())
                 loss_policy += loss_step_policy / conf.get_muzero_unrolling_step()
                 loss_value += loss_step_value / conf.get_muzero_unrolling_step()

@@ -26,7 +26,6 @@ public:
     inline float getLearningRate() const { return config::learner_learning_rate; }
     inline float getMomentum() const { return config::learner_momentum; }
     inline float getWeightDecay() const { return config::learner_weight_decay; }
-    inline int getNumProcess() const { return config::learner_num_process; }
     inline std::string getGameName() const { return Environment().name(); }
     inline int getNNNumInputChannels() const { return config::nn_num_input_channels; }
     inline int getNNInputChannelHeight() const { return config::nn_input_channel_height; }
@@ -56,7 +55,6 @@ PYBIND11_MODULE(minizero_py, m)
         .def("get_learning_rate", &Conf::getLearningRate)
         .def("get_momentum", &Conf::getMomentum)
         .def("get_weight_decay", &Conf::getWeightDecay)
-        .def("get_num_process", &Conf::getNumProcess)
         .def("get_game_name", &Conf::getGameName)
         .def("get_nn_num_input_channels", &Conf::getNNNumInputChannels)
         .def("get_nn_input_channel_height", &Conf::getNNInputChannelHeight)
@@ -74,24 +72,17 @@ PYBIND11_MODULE(minizero_py, m)
 
     py::class_<learner::DataLoader>(m, "DataLoader")
         .def(py::init<std::string>())
-        .def("seed", &learner::DataLoader::seed)
-        .def("load_data_from_file", &learner::DataLoader::loadDataFromFile)
-        .def("sample_alphazero_training_data", [](learner::DataLoader& data_loader) {
-            learner::AlphaZeroData data = data_loader.sampleAlphaZeroTrainingData();
-            py::dict res;
-            res["features"] = py::cast(data.features_);
-            res["policy"] = py::cast(data.policy_);
-            res["value"] = py::cast(data.value_);
-            return res;
-        })
-        .def("sample_muzero_training_data", [](learner::DataLoader& data_loader, int unrolling_step) {
-            learner::MuZeroData data = data_loader.sampleMuZeroTrainingData(unrolling_step);
-            py::dict res;
-            res["features"] = py::cast(data.features_);
-            res["actions"] = py::cast(data.action_features_);
-            res["policy"] = py::cast(data.policy_);
-            res["value"] = py::cast(data.value_);
-            res["reward"] = py::cast(data.reward_);
-            return res;
-        });
+        .def("load_data_from_file", &learner::DataLoader::loadDataFromFile, py::call_guard<py::gil_scoped_release>())
+        .def(
+            "sample_data", [](learner::DataLoader& data_loader) {
+                learner::Data data = data_loader.sampleData();
+                py::dict res;
+                res["features"] = py::cast(data.features_);
+                res["action_features"] = py::cast(data.action_features_);
+                res["policy"] = py::cast(data.policy_);
+                res["value"] = py::cast(data.value_);
+                res["reward"] = py::cast(data.reward_);
+                return res;
+            },
+            py::call_guard<py::gil_scoped_release>());
 }

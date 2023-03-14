@@ -54,7 +54,7 @@ extern int learner_n_step_return;
 extern float learner_learning_rate;
 extern float learner_momentum;
 extern float learner_weight_decay;
-extern int learner_num_process;
+extern int learner_num_thread;
 
 // network parameters
 extern std::string nn_file_name;
