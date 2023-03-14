@@ -81,4 +81,6 @@ extern std::string env_go_ko_rule;
 
 void setConfiguration(ConfigureLoader& cl);
 
+void setDefaultBoardSize(ConfigureLoader& cl);
+
 } // namespace minizero::config
