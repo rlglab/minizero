@@ -3,8 +3,7 @@
 #include "environment.h"
 #include "random.h"
 #include "rotation.h"
-#include <climits>
-#include <filesystem>
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <utility>
@@ -14,28 +13,25 @@ namespace minizero::learner {
 using namespace minizero;
 using namespace minizero::utils;
 
-void Data::clear()
+void DataPtr::copyData(int batch_index, const Data& data)
 {
-    features_.clear();
-    action_features_.clear();
-    policy_.clear();
-    value_.clear();
-    reward_.clear();
-}
-
-void Data::concatData(const Data& data)
-{
-    features_.insert(features_.end(), data.features_.begin(), data.features_.end());
-    action_features_.insert(action_features_.end(), data.action_features_.begin(), data.action_features_.end());
-    policy_.insert(policy_.end(), data.policy_.begin(), data.policy_.end());
-    value_.insert(value_.end(), data.value_.begin(), data.value_.end());
-    reward_.insert(reward_.end(), data.reward_.begin(), data.reward_.end());
+    std::copy(data.features_.begin(), data.features_.end(), features_ + data.features_.size() * batch_index);
+    std::copy(data.action_features_.begin(), data.action_features_.end(), action_features_ + data.action_features_.size() * batch_index);
+    std::copy(data.policy_.begin(), data.policy_.end(), policy_ + data.policy_.size() * batch_index);
+    std::copy(data.value_.begin(), data.value_.end(), value_ + data.value_.size() * batch_index);
+    std::copy(data.reward_.begin(), data.reward_.end(), reward_ + data.reward_.size() * batch_index);
 }
 
 int DataLoaderSharedData::getNextEnvIndex()
 {
     std::lock_guard<std::mutex> lock(mutex_);
     return (env_index_ < static_cast<int>(env_strings_.size()) ? env_index_++ : env_strings_.size());
+}
+
+int DataLoaderSharedData::getNextBatchIndex()
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    return (batch_index_ < config::learner_batch_size ? batch_index_++ : config::learner_batch_size);
 }
 
 void DataLoaderThread::initialize()
@@ -49,13 +45,7 @@ void DataLoaderThread::runJob()
     if (!getSharedData()->env_strings_.empty()) {
         while (addEnvironmentLoader()) {}
     } else {
-        if (config::nn_type_name == "alphazero") {
-            while (sampleAlphaZeroTrainingData()) {}
-        } else if (config::nn_type_name == "muzero") {
-            while (sampleMuZeroTrainingData()) {}
-        } else {
-            assert(false); // should not be here
-        }
+        while (sampleData()) {}
     }
 }
 
@@ -81,7 +71,23 @@ bool DataLoaderThread::addEnvironmentLoader()
     return true;
 }
 
-bool DataLoaderThread::sampleAlphaZeroTrainingData()
+bool DataLoaderThread::sampleData()
+{
+    int batch_index = getSharedData()->getNextBatchIndex();
+    if (batch_index >= config::learner_batch_size) { return false; }
+
+    if (config::nn_type_name == "alphazero") {
+        getSharedData()->data_ptr_.copyData(batch_index, sampleAlphaZeroTrainingData());
+    } else if (config::nn_type_name == "muzero") {
+        getSharedData()->data_ptr_.copyData(batch_index, sampleMuZeroTrainingData());
+    } else {
+        return false; // should not be here
+    }
+
+    return true;
+}
+
+Data DataLoaderThread::sampleAlphaZeroTrainingData()
 {
     // random pickup one position
     int sampled_index = getSharedData()->distribution_(Random::generator_);
@@ -95,15 +101,10 @@ bool DataLoaderThread::sampleAlphaZeroTrainingData()
     data.features_ = env_loader.getFeatures(pos, rotation);
     data.policy_ = env_loader.getPolicy(pos, rotation);
     data.value_ = env_loader.getValue(pos);
-
-    std::lock_guard<std::mutex> lock(getSharedData()->mutex_);
-    if (getSharedData()->batch_size_ >= config::learner_batch_size) { return false; }
-    getSharedData()->data_.concatData(data);
-    ++getSharedData()->batch_size_;
-    return true;
+    return data;
 }
 
-bool DataLoaderThread::sampleMuZeroTrainingData()
+Data DataLoaderThread::sampleMuZeroTrainingData()
 {
     // random pickup one position
     int sampled_index = getSharedData()->distribution_(Random::generator_);
@@ -138,12 +139,7 @@ bool DataLoaderThread::sampleMuZeroTrainingData()
         std::vector<float> reward = env_loader.getReward(pos + step);
         if (step < config::learner_muzero_unrolling_step) { data.reward_.insert(data.reward_.end(), reward.begin(), reward.end()); }
     }
-
-    std::lock_guard<std::mutex> lock(getSharedData()->mutex_);
-    if (getSharedData()->batch_size_ >= config::learner_batch_size) { return false; }
-    getSharedData()->data_.concatData(data);
-    ++getSharedData()->batch_size_;
-    return true;
+    return data;
 }
 
 DataLoader::DataLoader(const std::string& conf_file_name)
@@ -174,13 +170,11 @@ void DataLoader::loadDataFromFile(const std::string& file_name)
     getSharedData()->distribution_ = std::discrete_distribution<>(getSharedData()->priorities_.begin(), getSharedData()->priorities_.end());
 }
 
-Data DataLoader::sampleData()
+void DataLoader::sampleData()
 {
-    getSharedData()->data_.clear();
-    getSharedData()->batch_size_ = 0;
+    getSharedData()->batch_index_ = 0;
     for (auto& t : slave_threads_) { t->start(); }
     for (auto& t : slave_threads_) { t->finish(); }
-    return getSharedData()->data_;
 }
 
 } // namespace minizero::learner

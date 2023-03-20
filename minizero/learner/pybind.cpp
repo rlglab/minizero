@@ -1,5 +1,6 @@
 #include "configuration.h"
 #include "data_loader.h"
+#include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <string>
@@ -74,15 +75,13 @@ PYBIND11_MODULE(minizero_py, m)
         .def(py::init<std::string>())
         .def("load_data_from_file", &learner::DataLoader::loadDataFromFile, py::call_guard<py::gil_scoped_release>())
         .def(
-            "sample_data", [](learner::DataLoader& data_loader) {
-                learner::Data data = data_loader.sampleData();
-                py::dict res;
-                res["features"] = py::cast(data.features_);
-                res["action_features"] = py::cast(data.action_features_);
-                res["policy"] = py::cast(data.policy_);
-                res["value"] = py::cast(data.value_);
-                res["reward"] = py::cast(data.reward_);
-                return res;
+            "sample_data", [](learner::DataLoader& data_loader, py::array_t<float>& features, py::array_t<float>& action_features, py::array_t<float>& policy, py::array_t<float>& value, py::array_t<float>& reward) {
+                data_loader.getSharedData()->data_ptr_.features_ = static_cast<float*>(features.request().ptr);
+                data_loader.getSharedData()->data_ptr_.action_features_ = static_cast<float*>(action_features.request().ptr);
+                data_loader.getSharedData()->data_ptr_.policy_ = static_cast<float*>(policy.request().ptr);
+                data_loader.getSharedData()->data_ptr_.value_ = static_cast<float*>(value.request().ptr);
+                data_loader.getSharedData()->data_ptr_.reward_ = static_cast<float*>(reward.request().ptr);
+                data_loader.sampleData();
             },
             py::call_guard<py::gil_scoped_release>());
 }

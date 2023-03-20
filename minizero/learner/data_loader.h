@@ -14,9 +14,6 @@ namespace minizero::learner {
 
 class Data {
 public:
-    void clear();
-    void concatData(const Data& data);
-
     std::vector<float> features_;
     std::vector<float> action_features_;
     std::vector<float> policy_;
@@ -24,16 +21,28 @@ public:
     std::vector<float> reward_;
 };
 
+class DataPtr {
+public:
+    void copyData(int batch_index, const Data& data);
+
+    float* features_;
+    float* action_features_;
+    float* policy_;
+    float* value_;
+    float* reward_;
+};
+
 class DataLoaderSharedData : public utils::BaseSharedData {
 public:
     int getNextEnvIndex();
+    int getNextBatchIndex();
 
     int env_index_;
     std::mutex mutex_;
     std::vector<std::string> env_strings_;
 
-    Data data_;
-    int batch_size_;
+    int batch_index_;
+    DataPtr data_ptr_;
     std::vector<float> priorities_;
     std::vector<EnvironmentLoader> env_loaders_;
     std::vector<std::pair<int, int>> env_pos_index_;
@@ -51,8 +60,10 @@ public:
 
 protected:
     virtual bool addEnvironmentLoader();
-    bool sampleAlphaZeroTrainingData();
-    bool sampleMuZeroTrainingData();
+    bool sampleData();
+
+    Data sampleAlphaZeroTrainingData();
+    Data sampleMuZeroTrainingData();
 
     inline std::shared_ptr<DataLoaderSharedData> getSharedData() { return std::static_pointer_cast<DataLoaderSharedData>(shared_data_); }
 };
@@ -64,7 +75,7 @@ public:
     void initialize() override;
     void summarize() override {}
     virtual void loadDataFromFile(const std::string& file_name);
-    virtual Data sampleData();
+    virtual void sampleData();
 
     void createSharedData() override { shared_data_ = std::make_shared<DataLoaderSharedData>(); }
     std::shared_ptr<utils::BaseSlaveThread> newSlaveThread(int id) override { return std::make_shared<DataLoaderThread>(id, shared_data_); }

@@ -14,36 +14,44 @@ def eprint(*args, **kwargs):
 
 
 class MinizeroDadaLoader:
-    def __init__(self, training_dir, start_iter, end_iter, conf, conf_file_name):
+    def __init__(self, training_dir, start_iter, end_iter, conf_file_name):
         self.training_dir = training_dir
         self.start_iter = start_iter
         self.end_iter = end_iter
-        self.conf = conf
         self.conf_file_name = conf_file_name
         self.data_loader = minizero_py.DataLoader(self.conf_file_name)
         for i in range(self.start_iter, self.end_iter + 1):
             self.data_loader.load_data_from_file(f"{self.training_dir}/sgf/{i}.sgf")
 
-    def sample_data(self):
-        result_dict = self.data_loader.sample_data()
+        # allocate memory
+        if conf.get_nn_type_name() == "alphazero":
+            self.features = np.zeros(conf.get_batch_size() * conf.get_nn_num_input_channels() * conf.get_nn_input_channel_height() * conf.get_nn_input_channel_width(), dtype=np.float32)
+            self.action_features = None
+            self.policy = np.zeros(conf.get_batch_size() * conf.get_nn_action_size(), dtype=np.float32)
+            self.value = np.zeros(conf.get_batch_size() * conf.get_nn_discrete_value_size(), dtype=np.float32)
+            self.reward = None
+        else:
+            self.features = np.zeros(conf.get_batch_size() * conf.get_nn_num_input_channels() * conf.get_nn_input_channel_height() * conf.get_nn_input_channel_width(), dtype=np.float32)
+            self.action_features = np.zeros(conf.get_batch_size() * conf.get_muzero_unrolling_step() * conf.get_nn_num_action_feature_channels()
+                                            * conf.get_nn_hidden_channel_height() * conf.get_nn_hidden_channel_width(), dtype=np.float32)
+            self.policy = np.zeros(conf.get_batch_size() * (conf.get_muzero_unrolling_step() + 1) * conf.get_nn_action_size(), dtype=np.float32)
+            self.value = np.zeros(conf.get_batch_size() * (conf.get_muzero_unrolling_step() + 1) * conf.get_nn_discrete_value_size(), dtype=np.float32)
+            self.reward = np.zeros(conf.get_batch_size() * conf.get_muzero_unrolling_step() * conf.get_nn_discrete_value_size(), dtype=np.float32) if "atari" in conf.get_game_name() else None
 
-        features = torch.FloatTensor(result_dict["features"]).view(self.conf.get_batch_size(),
-                                                                   self.conf.get_nn_num_input_channels(),
-                                                                   self.conf.get_nn_input_channel_height(),
-                                                                   self.conf.get_nn_input_channel_width())
-        policy = torch.FloatTensor(result_dict["policy"]).view(self.conf.get_batch_size(), -1, self.conf.get_nn_action_size())
-        value = torch.FloatTensor(result_dict["value"]).view(self.conf.get_batch_size(), -1, self.conf.get_nn_discrete_value_size())
-
-        action_features = None
-        if result_dict["action_features"]:
-            action_features = torch.FloatTensor(result_dict["action_features"]).view(self.conf.get_batch_size(),
-                                                                                     -1,
-                                                                                     self.conf.get_nn_num_action_feature_channels(),
-                                                                                     self.conf.get_nn_hidden_channel_height(),
-                                                                                     self.conf.get_nn_hidden_channel_width())
-        reward = None
-        if result_dict["reward"]:
-            reward = torch.FloatTensor(result_dict["reward"]).view(self.conf.get_batch_size(), -1, self.conf.get_nn_discrete_value_size())
+    def sample_data(self, conf):
+        self.data_loader.sample_data(self.features, self.action_features, self.policy, self.value, self.reward)
+        features = torch.FloatTensor(self.features).view(conf.get_batch_size(),
+                                                         conf.get_nn_num_input_channels(),
+                                                         conf.get_nn_input_channel_height(),
+                                                         conf.get_nn_input_channel_width())
+        action_features = None if self.action_features is None else torch.FloatTensor(self.action_features).view(conf.get_batch_size(),
+                                                                                                                 -1,
+                                                                                                                 conf.get_nn_num_action_feature_channels(),
+                                                                                                                 conf.get_nn_hidden_channel_height(),
+                                                                                                                 conf.get_nn_hidden_channel_width())
+        policy = torch.FloatTensor(self.policy).view(conf.get_batch_size(), -1, conf.get_nn_action_size())
+        value = torch.FloatTensor(self.value).view(conf.get_batch_size(), -1, conf.get_nn_discrete_value_size())
+        reward = None if self.reward is None else torch.FloatTensor(self.reward).view(conf.get_batch_size(), -1, conf.get_nn_discrete_value_size())
 
         return features, action_features, policy, value, reward
 
@@ -123,12 +131,12 @@ def train(game_type, training_dir, conf_file_name, conf, model_file, start_iter,
         return
 
     # create dataloader
-    data_loader = MinizeroDadaLoader(training_dir, start_iter, end_iter, conf, conf_file_name)
+    data_loader = MinizeroDadaLoader(training_dir, start_iter, end_iter, conf_file_name)
 
     training_info = {}
     for i in range(1, conf.get_training_step() + 1):
         optimizer.zero_grad()
-        features, action_features, label_policy, label_value, label_reward = data_loader.sample_data()
+        features, action_features, label_policy, label_value, label_reward = data_loader.sample_data(conf)
 
         if conf.get_nn_type_name() == "alphazero":
             network_output = network(features.to(device))
