@@ -2,7 +2,6 @@
 
 #include "base_env.h"
 #include "configuration.h"
-#include "sgf_loader.h"
 #include <string>
 #include <utility>
 #include <vector>
@@ -13,15 +12,7 @@ const std::string kGomokuName = "gomoku";
 const int kGomokuNumPlayer = 2;
 const int kMaxGomokuBoardSize = 19;
 
-class GomokuAction : public BaseAction {
-public:
-    GomokuAction() : BaseAction() {}
-    GomokuAction(int action_id, Player player) : BaseAction(action_id, player) {}
-    GomokuAction(const std::vector<std::string>& action_string_args);
-
-    inline Player nextPlayer() const override { return getNextPlayer(player_, kGomokuNumPlayer); }
-    inline std::string toConsoleString() const override { return minizero::utils::SGFLoader::actionIDToBoardCoordinateString(getActionID(), minizero::config::env_board_size); }
-};
+typedef BaseBoardAction<kGomokuNumPlayer> GomokuAction;
 
 class GomokuEnv : public BaseBoardEnv<GomokuAction> {
 public:

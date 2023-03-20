@@ -2,7 +2,6 @@
 
 #include "base_env.h"
 #include "bitboard.h"
-#include "sgf_loader.h"
 #include <bitset>
 #include <iostream>
 #include <random>
@@ -52,14 +51,13 @@ static const std::pair<int, int> kActionIdDirections64[] = {
 static const std::pair<int, Pieces> kActionIdDirections73[] = {
     {-1, Pieces::rook}, {-1, Pieces::bishop}, {-1, Pieces::knight}, {0, Pieces::rook}, {0, Pieces::bishop}, {0, Pieces::knight}, {1, Pieces::rook}, {1, Pieces::bishop}, {1, Pieces::knight}};
 
-class ChessAction : public BaseAction {
+class ChessAction : public BaseBoardAction<kChessNumPlayer> {
 public:
-    ChessAction() : BaseAction() {}
-    ChessAction(int action_id, Player player) : BaseAction(action_id, player) { pawnmove_ = false; }
+    ChessAction() : BaseBoardAction() {}
+    ChessAction(int action_id, Player player) : BaseBoardAction(action_id, player) { pawnmove_ = false; }
     ChessAction(const std::vector<std::string>& action_string_args);
     std::string getActionString() const;
     void isPawnMove() { pawnmove_ = true; }
-    inline Player nextPlayer() const override { return getNextPlayer(player_, kChessNumPlayer); }
     inline std::string toConsoleString() const override { return getActionString(); };
 
 private:

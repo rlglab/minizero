@@ -11,14 +11,6 @@ namespace minizero::env::gomoku {
 
 using namespace minizero::utils;
 
-GomokuAction::GomokuAction(const std::vector<std::string>& action_string_args)
-{
-    assert(action_string_args.size() == 2);
-    assert(action_string_args[0].size() == 1 && (charToPlayer(action_string_args[0][0]) == Player::kPlayer1 || charToPlayer(action_string_args[0][0]) == Player::kPlayer2));
-    player_ = charToPlayer(action_string_args[0][0]);
-    action_id_ = SGFLoader::boardCoordinateStringToActionID(action_string_args[1], minizero::config::env_board_size);
-}
-
 void GomokuEnv::reset()
 {
     winner_ = Player::kPlayerNone;

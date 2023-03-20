@@ -6,7 +6,6 @@
 #include "go_block.h"
 #include "go_grid.h"
 #include "go_unit.h"
-#include "sgf_loader.h"
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -25,15 +24,7 @@ GoHashKey getGoEmptyHashKey(int position);
 GoHashKey getGoGridHashKey(int position, Player p);
 GoHashKey getGoSequenceHashKey(int move, int position, Player p);
 
-class GoAction : public BaseAction {
-public:
-    GoAction() : BaseAction() {}
-    GoAction(int action_id, Player player) : BaseAction(action_id, player) {}
-    GoAction(const std::vector<std::string>& action_string_args, int board_size);
-
-    inline Player nextPlayer() const override { return getNextPlayer(player_, kGoNumPlayer); }
-    inline std::string toConsoleString() const override { return minizero::utils::SGFLoader::actionIDToBoardCoordinateString(getActionID(), minizero::config::env_board_size); }
-};
+typedef BaseBoardAction<kGoNumPlayer> GoAction;
 
 class GoEnv : public BaseBoardEnv<GoAction> {
 public:

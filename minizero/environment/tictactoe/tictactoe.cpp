@@ -8,14 +8,6 @@ namespace minizero::env::tictactoe {
 
 using namespace minizero::utils;
 
-TicTacToeAction::TicTacToeAction(const std::vector<std::string>& action_string_args)
-{
-    assert(action_string_args.size() == 2);
-    assert(action_string_args[0].size() == 1 && (charToPlayer(action_string_args[0][0]) == Player::kPlayer1 || charToPlayer(action_string_args[0][0]) == Player::kPlayer2));
-    player_ = charToPlayer(action_string_args[0][0]);
-    action_id_ = SGFLoader::boardCoordinateStringToActionID(action_string_args[1], kTicTacToeBoardSize);
-}
-
 void TicTacToeEnv::reset()
 {
     turn_ = Player::kPlayer1;

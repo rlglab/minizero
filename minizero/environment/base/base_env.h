@@ -2,6 +2,7 @@
 
 #include "configuration.h"
 #include "rotation.h"
+#include "sgf_loader.h"
 #include "utils.h"
 #include <algorithm>
 #include <cassert>
@@ -245,6 +246,24 @@ protected:
     std::string content_;
     std::unordered_map<std::string, std::string> tags_;
     std::vector<std::pair<Action, std::string>> action_pairs_;
+};
+
+template <int kNumPlayer = 2>
+class BaseBoardAction : public BaseAction {
+public:
+    BaseBoardAction() : BaseAction() {}
+    BaseBoardAction(int action_id, Player player) : BaseAction(action_id, player) {}
+    BaseBoardAction(const std::vector<std::string>& action_string_args, int board_size = minizero::config::env_board_size)
+    {
+        assert(action_string_args.size() == 2);
+        assert(action_string_args[0].size() == 1);
+        player_ = charToPlayer(action_string_args[0][0]);
+        assert(static_cast<int>(player_) > 0 && static_cast<int>(player_) <= kNumPlayer); // assume kPlayer1 == 1, kPlayer2 == 2, ...
+        action_id_ = minizero::utils::SGFLoader::boardCoordinateStringToActionID(action_string_args[1], board_size);
+    }
+
+    inline Player nextPlayer() const override { return getNextPlayer(getPlayer(), kNumPlayer); }
+    inline std::string toConsoleString() const override { return minizero::utils::SGFLoader::actionIDToBoardCoordinateString(getActionID(), minizero::config::env_board_size); }
 };
 
 template <class Action>

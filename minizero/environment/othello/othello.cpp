@@ -10,14 +10,6 @@
 namespace minizero::env::othello {
 using namespace minizero::utils;
 
-OthelloAction::OthelloAction(const std::vector<std::string>& action_string_args, int board_size)
-{
-    assert(action_string_args.size() == 2);
-    assert(action_string_args[0].size() == 1 && (charToPlayer(action_string_args[0][0]) == Player::kPlayer1 || charToPlayer(action_string_args[0][0]) == Player::kPlayer2));
-    player_ = charToPlayer(action_string_args[0][0]);
-    action_id_ = SGFLoader::boardCoordinateStringToActionID(action_string_args[1], board_size);
-}
-
 void OthelloEnv::reset()
 {
     turn_ = Player::kPlayer1;

@@ -2,7 +2,6 @@
 
 #include "base_env.h"
 #include "configuration.h"
-#include "sgf_loader.h"
 #include <algorithm>
 #include <bitset>
 #include <string>
@@ -16,15 +15,7 @@ const int kOthelloNumPlayer = 2;
 const int kMaxOthelloBoardSize = 16;
 typedef std::bitset<kMaxOthelloBoardSize * kMaxOthelloBoardSize> OthelloBitboard;
 
-class OthelloAction : public BaseAction {
-public:
-    OthelloAction() : BaseAction() {}
-    OthelloAction(int action_id, Player player) : BaseAction(action_id, player) {}
-    OthelloAction(const std::vector<std::string>& action_string_args, int board_size);
-
-    inline Player nextPlayer() const override { return getNextPlayer(player_, kOthelloNumPlayer); }
-    inline std::string toConsoleString() const override { return minizero::utils::SGFLoader::actionIDToBoardCoordinateString(getActionID(), minizero::config::env_board_size); }
-};
+typedef BaseBoardAction<kOthelloNumPlayer> OthelloAction;
 
 class OthelloEnv : public BaseBoardEnv<OthelloAction> {
 public:

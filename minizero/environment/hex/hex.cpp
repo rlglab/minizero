@@ -10,29 +10,6 @@ namespace minizero::env::hex {
 
 using namespace minizero::utils;
 
-HexAction::HexAction(const std::vector<std::string>& action_string_args, int board_size /* = minizero::config::env_board_size */)
-{
-    // play b d5 => {"b", "d5"}
-    if (action_string_args.size() != 2) {
-        throw std::string{
-            "Number of actions must be exactly two."} +
-            " Length of argument was " + std::to_string(action_string_args.size());
-    }
-    size_t action_size{action_string_args[1].size()};
-    if ((action_size < 2) || (action_size > 4)) {
-        throw std::string{
-            "Number of letters in action must be exactly 2. For example \"d5\"."} +
-            " Length of argument was " + std::to_string(action_string_args[1].size());
-    }
-    action_id_ = SGFLoader::boardCoordinateStringToActionID(action_string_args[1], board_size);
-
-    // Player.
-    assert((action_string_args[0].size() == 1) && "First argument must be of size 1.");
-    assert((charToPlayer(action_string_args[0].at(0)) != Player::kPlayerSize) && "Error in formatting of player");
-
-    player_ = charToPlayer(action_string_args[0].at(0));
-}
-
 void HexEnv::reset()
 {
     winner_ = Player::kPlayerNone;

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "base_env.h"
-#include "sgf_loader.h"
 #include <string>
 #include <vector>
 
@@ -11,15 +10,7 @@ const std::string kTicTacToeName = "tictactoe";
 const int kTicTacToeNumPlayer = 2;
 const int kTicTacToeBoardSize = 3;
 
-class TicTacToeAction : public BaseAction {
-public:
-    TicTacToeAction() : BaseAction() {}
-    TicTacToeAction(int action_id, Player player) : BaseAction(action_id, player) {}
-    TicTacToeAction(const std::vector<std::string>& action_string_args);
-
-    inline Player nextPlayer() const override { return getNextPlayer(player_, kTicTacToeNumPlayer); }
-    inline std::string toConsoleString() const override { return minizero::utils::SGFLoader::actionIDToBoardCoordinateString(getActionID(), kTicTacToeBoardSize); }
-};
+typedef BaseBoardAction<kTicTacToeNumPlayer> TicTacToeAction;
 
 class TicTacToeEnv : public BaseBoardEnv<TicTacToeAction> {
 public:

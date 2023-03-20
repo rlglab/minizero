@@ -69,14 +69,6 @@ GoHashKey getGoSequenceHashKey(int move, int position, Player p)
     return sequence_hash_key[move][position].get(p);
 }
 
-GoAction::GoAction(const std::vector<std::string>& action_string_args, int board_size)
-{
-    assert(action_string_args.size() == 2);
-    assert(action_string_args[0].size() == 1 && (charToPlayer(action_string_args[0][0]) == Player::kPlayer1 || charToPlayer(action_string_args[0][0]) == Player::kPlayer2));
-    player_ = charToPlayer(action_string_args[0][0]);
-    action_id_ = SGFLoader::boardCoordinateStringToActionID(action_string_args[1], board_size);
-}
-
 GoEnv& GoEnv::operator=(const GoEnv& env)
 {
     board_size_ = env.board_size_;
