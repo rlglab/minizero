@@ -48,7 +48,12 @@ protected:
 class BaseParalleler {
 public:
     BaseParalleler() {}
-    virtual ~BaseParalleler() = default;
+
+    virtual ~BaseParalleler()
+    {
+        thread_groups_.interrupt_all();
+        thread_groups_.join_all();
+    }
 
     void run()
     {
