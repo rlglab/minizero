@@ -5,10 +5,11 @@
 #include "random.h"
 #include "search.h"
 #include "tree.h"
+#include <algorithm>
 #include <cmath>
 #include <limits>
-#include <map>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace minizero::actor {
@@ -52,14 +53,12 @@ public:
         }
     }
 
-    virtual float getNormalizedMean(const std::map<float, int>& tree_value_map) const
+    virtual float getNormalizedMean(const std::pair<float, float>& tree_value_bound) const
     {
-        float value = mean_;
+        float value = reward_ + config::actor_mcts_reward_discount * mean_;
         if (config::actor_mcts_value_rescale) {
-            if (tree_value_map.size() < 2) { return 1.0f; }
-            const float value_lower_bound = tree_value_map.begin()->first;
-            const float value_upper_bound = tree_value_map.rbegin()->first;
-            value = (mean_ - value_lower_bound) / (value_upper_bound - value_lower_bound);
+            if (tree_value_bound.first == tree_value_bound.second) { return 1.0f; }
+            value = (value - tree_value_bound.first) / (tree_value_bound.second - tree_value_bound.first);
             value = fmin(1, fmax(-1, 2 * value - 1)); // normalize to [-1, 1]
         }
         value = (action_.getPlayer() == env::Player::kPlayer1 ? value : -value); // flip value according to player
@@ -67,11 +66,11 @@ public:
         return value;
     }
 
-    virtual float getNormalizedPUCTScore(int total_simulation, const std::map<float, int>& tree_value_map, float init_q_value = -1.0f) const
+    virtual float getNormalizedPUCTScore(int total_simulation, const std::pair<float, float>& tree_value_bound, float init_q_value = -1.0f) const
     {
         float puct_bias = config::actor_mcts_puct_init + log((1 + total_simulation + config::actor_mcts_puct_base) / config::actor_mcts_puct_base);
         float value_u = (puct_bias * getPolicy() * sqrt(total_simulation)) / (1 + getCountWithVirtualLoss());
-        float value_q = (getCountWithVirtualLoss() == 0 ? init_q_value : getNormalizedMean(tree_value_map));
+        float value_q = (getCountWithVirtualLoss() == 0 ? init_q_value : getNormalizedMean(tree_value_bound));
         return value_u + value_q;
     }
 
@@ -155,14 +154,14 @@ public:
     {
         Tree::reset();
         tree_hidden_state_data_.reset();
-        tree_value_map_.clear();
+        tree_value_bound_ = {0, 0};
     }
 
     virtual bool isResign(const MCTSNode* selected_node) const
     {
         const Action& action = selected_node->getAction();
-        float root_win_rate = getRootNode()->getNormalizedMean(tree_value_map_);
-        float action_win_rate = selected_node->getNormalizedMean(tree_value_map_);
+        float root_win_rate = getRootNode()->getNormalizedMean(tree_value_bound_);
+        float action_win_rate = selected_node->getNormalizedMean(tree_value_bound_);
         return (-root_win_rate < config::actor_resign_threshold && action_win_rate < config::actor_resign_threshold);
     }
 
@@ -186,12 +185,12 @@ public:
         assert(node && !node->isLeaf());
         MCTSNode* selected = nullptr;
         MCTSNode* best_child = selectChildByMaxCount(node);
-        float best_mean = best_child->getNormalizedMean(tree_value_map_);
+        float best_mean = best_child->getNormalizedMean(tree_value_bound_);
         float sum = 0.0f;
         for (int i = 0; i < node->getNumChildren(); ++i) {
             MCTSNode* child = node->getChild(i);
             float count = std::pow(child->getCount(), 1 / temperature);
-            float mean = child->getNormalizedMean(tree_value_map_);
+            float mean = child->getNormalizedMean(tree_value_bound_);
             if (count == 0 || (mean < best_mean - value_threshold)) { continue; }
             sum += count;
             float rand = utils::Random::randReal(sum);
@@ -251,9 +250,8 @@ public:
         node_path.back()->setReward(reward);
         for (int i = static_cast<int>(node_path.size() - 1); i >= 0; --i) {
             MCTSNode* node = node_path[i];
-            float old_mean = node->getMean();
             node->add(updated_value);
-            updateTreeValueMap(old_mean, node->getMean());
+            updateTreeValueBound(node->getReward() + config::actor_mcts_reward_discount * node->getMean());
             updated_value = node->getReward() + config::actor_mcts_reward_discount * updated_value;
         }
     }
@@ -265,8 +263,8 @@ public:
     inline const MCTSNode* getRootNode() const { return static_cast<const MCTSNode*>(Tree::getRootNode()); }
     inline TreeHiddenStateData& getTreeHiddenStateData() { return tree_hidden_state_data_; }
     inline const TreeHiddenStateData& getTreeHiddenStateData() const { return tree_hidden_state_data_; }
-    inline std::map<float, int>& getTreeValueMap() { return tree_value_map_; }
-    inline const std::map<float, int>& getTreeValueMap() const { return tree_value_map_; }
+    inline std::pair<float, float>& getTreeValueBound() { return tree_value_bound_; }
+    inline const std::pair<float, float>& getTreeValueBound() const { return tree_value_bound_; }
 
 protected:
     TreeNode* createTreeNodes(uint64_t tree_node_size) override { return new MCTSNode[tree_node_size]; }
@@ -281,7 +279,7 @@ protected:
         float best_score = -std::numeric_limits<float>::max();
         for (int i = 0; i < node->getNumChildren(); ++i) {
             MCTSNode* child = node->getChild(i);
-            float score = child->getNormalizedPUCTScore(total_simulation, tree_value_map_, init_q_value);
+            float score = child->getNormalizedPUCTScore(total_simulation, tree_value_bound_, init_q_value);
             if (score <= best_score) { continue; }
             best_score = score;
             selected = child;
@@ -298,25 +296,20 @@ protected:
         for (int i = 0; i < node->getNumChildren(); ++i) {
             MCTSNode* child = node->getChild(i);
             if (child->getCountWithVirtualLoss() == 0) { continue; }
-            sum_of_win += child->getNormalizedMean(tree_value_map_);
+            sum_of_win += child->getNormalizedMean(tree_value_bound_);
             sum += 1;
         }
         return (sum_of_win - 1) / (sum + 1);
     }
 
-    virtual void updateTreeValueMap(float old_value, float new_value)
+    virtual void updateTreeValueBound(float value)
     {
-        if (!config::actor_mcts_value_rescale) { return; }
-        if (tree_value_map_.count(old_value)) {
-            assert(tree_value_map_[old_value] > 0);
-            --tree_value_map_[old_value];
-            if (tree_value_map_[old_value] == 0) { tree_value_map_.erase(old_value); }
-        }
-        ++tree_value_map_[new_value];
+        tree_value_bound_.first = std::min(tree_value_bound_.first, value);
+        tree_value_bound_.second = std::max(tree_value_bound_.second, value);
     }
 
+    std::pair<float, float> tree_value_bound_;
     TreeHiddenStateData tree_hidden_state_data_;
-    std::map<float, int> tree_value_map_;
 };
 
 } // namespace minizero::actor
