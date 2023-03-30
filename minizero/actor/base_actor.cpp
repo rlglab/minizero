@@ -18,33 +18,24 @@ void BaseActor::resetSearch()
     search_->reset();
 }
 
-bool BaseActor::act(const Action& action, const std::unordered_map<std::string, std::string>& action_info /* = {} */)
+bool BaseActor::act(const Action& action)
 {
     bool can_act = env_.act(action);
     if (can_act) {
         action_info_history_.resize(env_.getActionHistory().size());
-        action_info_history_.back() = action_info;
+        action_info_history_.back() = getActionInfo();
     }
     return can_act;
 }
 
-bool BaseActor::act(const std::vector<std::string>& action_string_args, const std::unordered_map<std::string, std::string>& action_info /* = {} */)
+bool BaseActor::act(const std::vector<std::string>& action_string_args)
 {
     bool can_act = env_.act(action_string_args);
     if (can_act) {
         action_info_history_.resize(env_.getActionHistory().size());
-        action_info_history_.back() = action_info;
+        action_info_history_.back() = getActionInfo();
     }
     return can_act;
-}
-
-std::unordered_map<std::string, std::string> BaseActor::getActionInfo() const
-{
-    std::unordered_map<std::string, std::string> action_info;
-    action_info.insert({"P", getMCTSPolicy()});
-    action_info.insert({"V", getMCTSValue()});
-    action_info.insert({"R", getEnvReward()});
-    return action_info;
 }
 
 std::string BaseActor::getRecord(const std::unordered_map<std::string, std::string>& tags /* = {} */) const
@@ -62,6 +53,15 @@ std::string BaseActor::getRecord(const std::unordered_map<std::string, std::stri
     }
     for (auto tag : tags) { env_loader.addTag(tag.first, tag.second); }
     return env_loader.toString();
+}
+
+std::unordered_map<std::string, std::string> BaseActor::getActionInfo() const
+{
+    std::unordered_map<std::string, std::string> action_info;
+    action_info.insert({"P", getMCTSPolicy()});
+    action_info.insert({"V", getMCTSValue()});
+    action_info.insert({"R", getEnvReward()});
+    return action_info;
 }
 
 } // namespace minizero::actor

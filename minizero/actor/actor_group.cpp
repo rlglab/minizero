@@ -104,7 +104,7 @@ void SlaveThread::handleSearchDone(int actor_id)
     assert(actor_id >= 0 && actor_id < static_cast<int>(getSharedData()->actors_.size()) && getSharedData()->actors_[actor_id]->isSearchDone());
 
     std::shared_ptr<BaseActor>& actor = getSharedData()->actors_[actor_id];
-    if (!actor->isResign()) { actor->act(actor->getSearchAction(), actor->getActionInfo()); }
+    if (!actor->isResign()) { actor->act(actor->getSearchAction()); }
     bool is_endgame = (actor->isResign() || actor->isEnvTerminal());
     bool display_game = (actor_id == 0 && (config::actor_num_simulation >= 50 || (config::actor_num_simulation < 50 && is_endgame)));
     if (display_game) { std::cerr << actor->getEnvironment().toString() << actor->getSearchInfo() << std::endl; }

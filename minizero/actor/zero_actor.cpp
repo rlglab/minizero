@@ -36,7 +36,7 @@ Action ZeroActor::think(bool with_play /*= false*/, bool display_board /*= false
 {
     resetSearch();
     while (!isSearchDone()) { step(); }
-    if (with_play) { act(getSearchAction(), getActionInfo()); }
+    if (with_play) { act(getSearchAction()); }
     if (display_board) { std::cerr << env_.toString() << mcts_search_data_.search_info_ << std::endl; }
     return getSearchAction();
 }
@@ -129,7 +129,7 @@ void ZeroActor::step()
         for (auto node : mcts_search_data_.node_path_) { node->addVirtualLoss(); }
     }
     auto network_output = alphazero_network_ ? alphazero_network_->forward()
-                                             : num_simulation == 0 ? muzero_network_->initialInference() : muzero_network_->recurrentInference();
+                                             : (num_simulation == 0 ? muzero_network_->initialInference() : muzero_network_->recurrentInference());
     for (auto& evaluation : node_path_evaluated) {
         nn_evaluation_batch_id_ = evaluation.first;
         mcts_search_data_.node_path_ = std::move(evaluation.second);

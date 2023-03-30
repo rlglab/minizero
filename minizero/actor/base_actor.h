@@ -19,9 +19,8 @@ public:
 
     virtual void reset();
     virtual void resetSearch();
-    bool act(const Action& action, const std::unordered_map<std::string, std::string>& action_info = {});
-    bool act(const std::vector<std::string>& action_string_args, const std::unordered_map<std::string, std::string>& action_info = {});
-    virtual std::unordered_map<std::string, std::string> getActionInfo() const;
+    bool act(const Action& action);
+    bool act(const std::vector<std::string>& action_string_args);
     virtual std::string getRecord(const std::unordered_map<std::string, std::string>& tags = {}) const;
 
     inline bool isEnvTerminal() const { return env_.isTerminal(); }
@@ -43,6 +42,7 @@ public:
     virtual std::shared_ptr<Search> createSearch() = 0;
 
 protected:
+    virtual std::unordered_map<std::string, std::string> getActionInfo() const;
     virtual std::string getMCTSPolicy() const = 0;
     virtual std::string getMCTSValue() const = 0;
     virtual std::string getEnvReward() const = 0;
