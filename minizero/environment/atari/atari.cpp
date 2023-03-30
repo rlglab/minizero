@@ -205,11 +205,13 @@ float AtariEnvLoader::calculateNStepValue(const int pos) const
     assert(pos < static_cast<int>(action_pairs_.size()));
 
     // calculate n-step return
-    float value = 0.0f;
-    int n_step = std::min(config::learner_n_step_return, static_cast<int>(action_pairs_.size()) - pos);
-    for (int step = 0; step < n_step; ++step) {
-        float reward = ((step == n_step - 1) ? BaseEnvLoader::getValue(pos + step)[0] : BaseEnvLoader::getReward(pos + step)[0]);
-        value += std::pow(config::actor_mcts_reward_discount, step) * reward;
+    const int n_step = config::learner_n_step_return;
+    const float discount = config::actor_mcts_reward_discount;
+    size_t bootstrap_index = pos + n_step;
+    float value = (bootstrap_index - 1 < action_pairs_.size() ? std::pow(discount, n_step) * BaseEnvLoader::getValue(bootstrap_index - 1)[0] : 0.0f);
+    for (size_t index = pos; index < std::min(bootstrap_index, action_pairs_.size()); ++index) {
+        float reward = BaseEnvLoader::getReward(index)[0];
+        value += std::pow(discount, index - pos) * reward;
     }
     return value;
 }
