@@ -20,6 +20,19 @@ void DataPtr::copyData(int batch_index, const Data& data)
     std::copy(data.policy_.begin(), data.policy_.end(), policy_ + data.policy_.size() * batch_index);
     std::copy(data.value_.begin(), data.value_.end(), value_ + data.value_.size() * batch_index);
     std::copy(data.reward_.begin(), data.reward_.end(), reward_ + data.reward_.size() * batch_index);
+    std::copy(data.loss_scale_.begin(), data.loss_scale_.end(), loss_scale_ + data.loss_scale_.size() * batch_index);
+}
+
+void DataLoaderSharedData::clear()
+{
+    env_index_ = 0;
+    env_strings_.clear();
+    batch_index_ = 0;
+    num_data_ = 0;
+    game_priority_sum_ = 0.0f;
+    game_priorities_.clear();
+    position_priorities_.clear();
+    env_loaders_.clear();
 }
 
 int DataLoaderSharedData::getNextEnvIndex()
@@ -32,6 +45,19 @@ int DataLoaderSharedData::getNextBatchIndex()
 {
     std::lock_guard<std::mutex> lock(mutex_);
     return (batch_index_ < config::learner_batch_size ? batch_index_++ : config::learner_batch_size);
+}
+
+std::pair<int, int> DataLoaderSharedData::sampleEnvAndPos()
+{
+    int env_id = sampleIndex(game_priorities_);
+    int pos_id = sampleIndex(position_priorities_[env_id]);
+    return {env_id, pos_id};
+}
+
+int DataLoaderSharedData::sampleIndex(const std::vector<float>& weight)
+{
+    std::discrete_distribution<> dis(weight.begin(), weight.end());
+    return dis(Random::generator_);
 }
 
 void DataLoaderThread::initialize()
@@ -62,11 +88,14 @@ bool DataLoaderThread::addEnvironmentLoader()
     const std::string& dlen = env_loader.getTag("DLEN");
     if (!dlen.empty()) { data_range = {std::stoi(dlen), std::stoi(dlen.substr(dlen.find("-") + 1))}; }
 
+    std::vector<float> position_priorities(data_range.second + 1, 0.0f);
+    for (int i = data_range.first; i <= data_range.second; ++i) { position_priorities[i] = env_loader.getPriority(i); }
+
     std::lock_guard<std::mutex> lock(getSharedData()->mutex_);
-    for (int i = data_range.first; i <= data_range.second; ++i) {
-        getSharedData()->priorities_.push_back(env_loader.getPriority(i));
-        getSharedData()->env_pos_index_.push_back({getSharedData()->env_loaders_.size(), i});
-    }
+    getSharedData()->position_priorities_.push_back(position_priorities);
+    getSharedData()->num_data_ += data_range.second - data_range.first + 1;
+    getSharedData()->game_priorities_.push_back(*std::max_element(position_priorities.begin(), position_priorities.end()));
+    getSharedData()->game_priority_sum_ += getSharedData()->game_priorities_.back();
     getSharedData()->env_loaders_.push_back(env_loader);
     return true;
 }
@@ -90,12 +119,12 @@ bool DataLoaderThread::sampleData()
 Data DataLoaderThread::sampleAlphaZeroTrainingData()
 {
     // random pickup one position
-    int sampled_index = getSharedData()->distribution_(Random::generator_);
-    const std::pair<int, int>& p = getSharedData()->env_pos_index_[sampled_index];
+    std::pair<int, int> p = getSharedData()->sampleEnvAndPos();
     int env_id = p.first, pos = p.second;
 
     // AlphaZero training data
     Data data;
+    data.loss_scale_.push_back(1.0f);
     const EnvironmentLoader& env_loader = getSharedData()->env_loaders_[env_id];
     Rotation rotation = static_cast<Rotation>(Random::randInt() % static_cast<int>(Rotation::kRotateSize));
     data.features_ = env_loader.getFeatures(pos, rotation);
@@ -107,20 +136,20 @@ Data DataLoaderThread::sampleAlphaZeroTrainingData()
 Data DataLoaderThread::sampleMuZeroTrainingData()
 {
     // random pickup one position
-    int sampled_index = getSharedData()->distribution_(Random::generator_);
-    const std::pair<int, int>& p = getSharedData()->env_pos_index_[sampled_index];
+    std::pair<int, int> p = getSharedData()->sampleEnvAndPos();
     int env_id = p.first, pos = p.second;
-    while (pos + config::learner_muzero_unrolling_step >= static_cast<int>(getSharedData()->env_loaders_[env_id].getActionPairs().size())) {
-        // random again until we can unroll all steps
-        sampled_index = getSharedData()->distribution_(Random::generator_);
-        const std::pair<int, int>& p = getSharedData()->env_pos_index_[sampled_index];
-        env_id = p.first, pos = p.second;
-    }
 
     // MuZero training data
     Data data;
     const EnvironmentLoader& env_loader = getSharedData()->env_loaders_[env_id];
     Rotation rotation = static_cast<Rotation>(Random::randInt() % static_cast<int>(Rotation::kRotateSize));
+    if (env_loader.name().find("atari") != std::string::npos) { // importance sampling for atari games
+        float game_prob = getSharedData()->game_priorities_[env_id] / getSharedData()->game_priority_sum_;
+        float pos_prob = getSharedData()->position_priorities_[env_id][pos] / std::accumulate(getSharedData()->position_priorities_[env_id].begin(), getSharedData()->position_priorities_[env_id].end(), 0.0f);
+        data.loss_scale_.push_back(1.0f / (getSharedData()->num_data_ * game_prob * pos_prob));
+    } else {
+        data.loss_scale_.push_back(1.0f);
+    }
     data.features_ = env_loader.getFeatures(pos, rotation);
     for (int step = 0; step <= config::learner_muzero_unrolling_step; ++step) {
         // action features
@@ -165,9 +194,6 @@ void DataLoader::loadDataFromFile(const std::string& file_name)
     for (auto& t : slave_threads_) { t->start(); }
     for (auto& t : slave_threads_) { t->finish(); }
     getSharedData()->env_strings_.clear();
-
-    // create distribution
-    getSharedData()->distribution_ = std::discrete_distribution<>(getSharedData()->priorities_.begin(), getSharedData()->priorities_.end());
 }
 
 void DataLoader::sampleData()

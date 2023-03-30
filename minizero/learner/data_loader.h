@@ -2,8 +2,6 @@
 
 #include "environment.h"
 #include "paralleler.h"
-#include "random.h"
-#include <map>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -19,6 +17,7 @@ public:
     std::vector<float> policy_;
     std::vector<float> value_;
     std::vector<float> reward_;
+    std::vector<float> loss_scale_;
 };
 
 class DataPtr {
@@ -30,12 +29,16 @@ public:
     float* policy_;
     float* value_;
     float* reward_;
+    float* loss_scale_;
 };
 
 class DataLoaderSharedData : public utils::BaseSharedData {
 public:
+    void clear();
     int getNextEnvIndex();
     int getNextBatchIndex();
+    std::pair<int, int> sampleEnvAndPos();
+    int sampleIndex(const std::vector<float>& weight);
 
     int env_index_;
     std::mutex mutex_;
@@ -43,10 +46,11 @@ public:
 
     int batch_index_;
     DataPtr data_ptr_;
-    std::vector<float> priorities_;
+    int num_data_;
+    float game_priority_sum_;
+    std::vector<float> game_priorities_;
+    std::vector<std::vector<float>> position_priorities_;
     std::vector<EnvironmentLoader> env_loaders_;
-    std::vector<std::pair<int, int>> env_pos_index_;
-    std::discrete_distribution<> distribution_;
 };
 
 class DataLoaderThread : public utils::BaseSlaveThread {
@@ -60,10 +64,10 @@ public:
 
 protected:
     virtual bool addEnvironmentLoader();
-    bool sampleData();
+    virtual bool sampleData();
 
-    Data sampleAlphaZeroTrainingData();
-    Data sampleMuZeroTrainingData();
+    virtual Data sampleAlphaZeroTrainingData();
+    virtual Data sampleMuZeroTrainingData();
 
     inline std::shared_ptr<DataLoaderSharedData> getSharedData() { return std::static_pointer_cast<DataLoaderSharedData>(shared_data_); }
 };
@@ -80,6 +84,7 @@ public:
     void createSharedData() override { shared_data_ = std::make_shared<DataLoaderSharedData>(); }
     std::shared_ptr<utils::BaseSlaveThread> newSlaveThread(int id) override { return std::make_shared<DataLoaderThread>(id, shared_data_); }
     inline std::shared_ptr<DataLoaderSharedData> getSharedData() { return std::static_pointer_cast<DataLoaderSharedData>(shared_data_); }
+    inline void clearData() { getSharedData()->clear(); }
 };
 
 } // namespace minizero::learner

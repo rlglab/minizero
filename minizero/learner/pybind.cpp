@@ -73,14 +73,16 @@ PYBIND11_MODULE(minizero_py, m)
 
     py::class_<learner::DataLoader>(m, "DataLoader")
         .def(py::init<std::string>())
+        .def("clear_data", &learner::DataLoader::clearData)
         .def("load_data_from_file", &learner::DataLoader::loadDataFromFile, py::call_guard<py::gil_scoped_release>())
         .def(
-            "sample_data", [](learner::DataLoader& data_loader, py::array_t<float>& features, py::array_t<float>& action_features, py::array_t<float>& policy, py::array_t<float>& value, py::array_t<float>& reward) {
+            "sample_data", [](learner::DataLoader& data_loader, py::array_t<float>& features, py::array_t<float>& action_features, py::array_t<float>& policy, py::array_t<float>& value, py::array_t<float>& reward, py::array_t<float>& loss_scale) {
                 data_loader.getSharedData()->data_ptr_.features_ = static_cast<float*>(features.request().ptr);
                 data_loader.getSharedData()->data_ptr_.action_features_ = static_cast<float*>(action_features.request().ptr);
                 data_loader.getSharedData()->data_ptr_.policy_ = static_cast<float*>(policy.request().ptr);
                 data_loader.getSharedData()->data_ptr_.value_ = static_cast<float*>(value.request().ptr);
                 data_loader.getSharedData()->data_ptr_.reward_ = static_cast<float*>(reward.request().ptr);
+                data_loader.getSharedData()->data_ptr_.loss_scale_ = static_cast<float*>(loss_scale.request().ptr);
                 data_loader.sampleData();
             },
             py::call_guard<py::gil_scoped_release>());

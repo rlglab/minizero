@@ -14,14 +14,9 @@ def eprint(*args, **kwargs):
 
 
 class MinizeroDadaLoader:
-    def __init__(self, training_dir, start_iter, end_iter, conf_file_name):
-        self.training_dir = training_dir
-        self.start_iter = start_iter
-        self.end_iter = end_iter
+    def __init__(self, conf_file_name):
         self.conf_file_name = conf_file_name
         self.data_loader = minizero_py.DataLoader(self.conf_file_name)
-        for i in range(self.start_iter, self.end_iter + 1):
-            self.data_loader.load_data_from_file(f"{self.training_dir}/sgf/{i}.sgf")
 
         # allocate memory
         if conf.get_nn_type_name() == "alphazero":
@@ -30,16 +25,25 @@ class MinizeroDadaLoader:
             self.policy = np.zeros(conf.get_batch_size() * conf.get_nn_action_size(), dtype=np.float32)
             self.value = np.zeros(conf.get_batch_size() * conf.get_nn_discrete_value_size(), dtype=np.float32)
             self.reward = None
+            self.loss_scale = np.zeros(conf.get_batch_size(), dtype=np.float32)
         else:
             self.features = np.zeros(conf.get_batch_size() * conf.get_nn_num_input_channels() * conf.get_nn_input_channel_height() * conf.get_nn_input_channel_width(), dtype=np.float32)
             self.action_features = np.zeros(conf.get_batch_size() * conf.get_muzero_unrolling_step() * conf.get_nn_num_action_feature_channels()
                                             * conf.get_nn_hidden_channel_height() * conf.get_nn_hidden_channel_width(), dtype=np.float32)
             self.policy = np.zeros(conf.get_batch_size() * (conf.get_muzero_unrolling_step() + 1) * conf.get_nn_action_size(), dtype=np.float32)
             self.value = np.zeros(conf.get_batch_size() * (conf.get_muzero_unrolling_step() + 1) * conf.get_nn_discrete_value_size(), dtype=np.float32)
-            self.reward = np.zeros(conf.get_batch_size() * conf.get_muzero_unrolling_step() * conf.get_nn_discrete_value_size(), dtype=np.float32) if "atari" in conf.get_game_name() else None
+            self.reward = np.zeros(conf.get_batch_size() * conf.get_muzero_unrolling_step() * conf.get_nn_discrete_value_size(), dtype=np.float32)
+            self.loss_scale = np.zeros(conf.get_batch_size(), dtype=np.float32)
+
+    def clear_data(self):
+        self.data_loader.clear_data()
+
+    def load_data(self, training_dir, start_iter, end_iter):
+        for i in range(start_iter, end_iter + 1):
+            self.data_loader.load_data_from_file(f"{training_dir}/sgf/{i}.sgf")
 
     def sample_data(self, conf):
-        self.data_loader.sample_data(self.features, self.action_features, self.policy, self.value, self.reward)
+        self.data_loader.sample_data(self.features, self.action_features, self.policy, self.value, self.reward, self.loss_scale)
         features = torch.FloatTensor(self.features).view(conf.get_batch_size(),
                                                          conf.get_nn_num_input_channels(),
                                                          conf.get_nn_input_channel_height(),
@@ -52,8 +56,9 @@ class MinizeroDadaLoader:
         policy = torch.FloatTensor(self.policy).view(conf.get_batch_size(), -1, conf.get_nn_action_size())
         value = torch.FloatTensor(self.value).view(conf.get_batch_size(), -1, conf.get_nn_discrete_value_size())
         reward = None if self.reward is None else torch.FloatTensor(self.reward).view(conf.get_batch_size(), -1, conf.get_nn_discrete_value_size())
+        loss_scale = torch.FloatTensor(self.loss_scale / np.amax(self.loss_scale))
 
-        return features, action_features, policy, value, reward
+        return features, action_features, policy, value, reward, loss_scale
 
 
 def load_model(game_type, training_dir, model_file, conf):
@@ -101,13 +106,25 @@ def save_model(training_step, network, optimizer, scheduler, training_dir):
     torch.jit.script(network.module).save(f"{training_dir}/model/weight_iter_{training_step}.pt")
 
 
-def calculate_loss(conf, network_output, label_policy, label_value):
+def calculate_loss(conf, network_output, label_policy, label_value, label_reward, loss_scale):
+    # policy
     if conf.use_gumbel():
         loss_policy = nn.functional.kl_div(nn.functional.log_softmax(network_output["policy_logit"], dim=1), label_policy, reduction='batchmean')
     else:
-        loss_policy = -(label_policy * nn.functional.log_softmax(network_output["policy_logit"], dim=1)).sum() / network_output["policy_logit"].shape[0]
-    loss_value = torch.nn.functional.mse_loss(network_output["value"], label_value)
-    return loss_policy, loss_value
+        loss_policy = -((label_policy * nn.functional.log_softmax(network_output["policy_logit"], dim=1)).sum(dim=1) * loss_scale).mean()
+
+    # value
+    if conf.get_nn_discrete_value_size() == 1:
+        loss_value = (nn.functional.mse_loss(network_output["value"], label_value, reduction='none') * loss_scale).mean()
+    else:
+        loss_value = -((label_value * nn.functional.log_softmax(network_output["value_logit"], dim=1)).sum(dim=1) * loss_scale).mean()
+
+    # reward
+    loss_reward = 0
+    if label_reward is not None and "reward_logit" in network_output:
+        loss_reward = -((label_reward * nn.functional.log_softmax(network_output["reward_logit"], dim=1)).sum(dim=1) * loss_scale).mean()
+
+    return loss_policy, loss_value, loss_reward
 
 
 def add_training_info(training_info, key, value):
@@ -122,7 +139,7 @@ def calculate_accuracy(output, label, batch_size):
     return (max_output == max_label).sum() / batch_size
 
 
-def train(game_type, training_dir, conf_file_name, conf, model_file, start_iter, end_iter):
+def train(game_type, training_dir, conf, model_file, data_loader, start_iter, end_iter):
     training_step, network, device, optimizer, scheduler = load_model(game_type, training_dir, model_file, conf)
     network = nn.DataParallel(network)
 
@@ -130,17 +147,18 @@ def train(game_type, training_dir, conf_file_name, conf, model_file, start_iter,
         save_model(training_step, network, optimizer, scheduler, training_dir)
         return
 
-    # create dataloader
-    data_loader = MinizeroDadaLoader(training_dir, start_iter, end_iter, conf_file_name)
+    # load data
+    data_loader.clear_data()
+    data_loader.load_data(training_dir, start_iter, end_iter)
 
     training_info = {}
     for i in range(1, conf.get_training_step() + 1):
         optimizer.zero_grad()
-        features, action_features, label_policy, label_value, label_reward = data_loader.sample_data(conf)
+        features, action_features, label_policy, label_value, label_reward, loss_scale = data_loader.sample_data(conf)
 
         if conf.get_nn_type_name() == "alphazero":
             network_output = network(features.to(device))
-            loss_policy, loss_value = calculate_loss(conf, network_output, label_policy[:, 0].to(device), label_value[:, 0].to(device))
+            loss_policy, loss_value, _ = calculate_loss(conf, network_output, label_policy[:, 0].to(device), label_value[:, 0].to(device), None, loss_scale.to(device))
             loss = loss_policy + loss_value
 
             # record training info
@@ -149,25 +167,32 @@ def train(game_type, training_dir, conf_file_name, conf, model_file, start_iter,
             add_training_info(training_info, 'loss_value', loss_value.item())
         elif conf.get_nn_type_name() == "muzero":
             network_output = network(features.to(device))
-            loss_step_policy, loss_step_value = calculate_loss(conf, network_output, label_policy[:, 0].to(device), label_value[:, 0].to(device))
+            loss_step_policy, loss_step_value, loss_step_reward = calculate_loss(conf, network_output, label_policy[:, 0].to(device), label_value[:, 0].to(device), None, loss_scale.to(device))
             add_training_info(training_info, 'loss_policy_0', loss_step_policy.item())
             add_training_info(training_info, 'accuracy_policy_0', calculate_accuracy(network_output["policy_logit"], label_policy[:, 0], conf.get_batch_size()))
             add_training_info(training_info, 'loss_value_0', loss_step_value.item())
             loss_policy = loss_step_policy
             loss_value = loss_step_value
+            loss_reward = loss_step_reward
             for i in range(conf.get_muzero_unrolling_step()):
                 network_output = network(network_output["hidden_state"], action_features[:, i].to(device))
-                loss_step_policy, loss_step_value = calculate_loss(conf, network_output, label_policy[:, i + 1].to(device), label_value[:, i + 1].to(device))
+                loss_step_policy, loss_step_value, loss_step_reward = calculate_loss(
+                    conf, network_output, label_policy[:, i + 1].to(device), label_value[:, i + 1].to(device), label_reward[:, i].to(device), loss_scale.to(device))
                 add_training_info(training_info, f'loss_policy_{i+1}', loss_step_policy.item() / conf.get_muzero_unrolling_step())
                 add_training_info(training_info, f'accuracy_policy_{i+1}', calculate_accuracy(network_output["policy_logit"], label_policy[:, i + 1], conf.get_batch_size()))
                 add_training_info(training_info, f'loss_value_{i+1}', loss_step_value.item() / conf.get_muzero_unrolling_step())
+                if "reward_logit" in network_output:
+                    add_training_info(training_info, f'loss_reward_{i+1}', loss_step_reward.item() / conf.get_muzero_unrolling_step())
                 loss_policy += loss_step_policy / conf.get_muzero_unrolling_step()
                 loss_value += loss_step_value / conf.get_muzero_unrolling_step()
+                loss_reward += loss_step_reward / conf.get_muzero_unrolling_step()
                 network_output["hidden_state"].register_hook(lambda grad: grad / 2)
-            loss = loss_policy + loss_value
+            loss = loss_policy + loss_value + loss_reward
 
             add_training_info(training_info, 'loss_policy', loss_policy.item())
             add_training_info(training_info, 'loss_value', loss_value.item())
+            if "reward_logit" in network_output:
+                add_training_info(training_info, 'loss_reward', loss_reward.item())
 
         loss.backward()
         optimizer.step()
@@ -199,6 +224,7 @@ if __name__ == '__main__':
         exit(0)
 
     conf = minizero_py.Conf(conf_file_name)
+    data_loader = MinizeroDadaLoader(conf_file_name)
 
     while True:
         try:
@@ -210,6 +236,6 @@ if __name__ == '__main__':
                 exit(0)
             eprint(f"[command] {command}")
             model_file, start_iter, end_iter = command.split()
-            train(game_type, training_dir, conf_file_name, conf, model_file.replace('"', ''), int(start_iter), int(end_iter))
+            train(game_type, training_dir, conf, model_file.replace('"', ''), data_loader, int(start_iter), int(end_iter))
         except (KeyboardInterrupt, EOFError) as e:
             break
