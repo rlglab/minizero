@@ -1,4 +1,4 @@
-import torch
+import math
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -70,16 +70,17 @@ class DiscreteValueNetwork(nn.Module):
         super(DiscreteValueNetwork, self).__init__()
         self.channel_height = channel_height
         self.channel_width = channel_width
-        self.conv = nn.Conv2d(num_channels, 1, kernel_size=1)
-        self.bn = nn.BatchNorm2d(1)
-        self.fc1 = nn.Linear(channel_height * channel_width, num_value_hidden_channels)
+        self.hidden_channels = math.ceil(value_size / (channel_height * channel_width))
+        self.conv = nn.Conv2d(num_channels, self.hidden_channels, kernel_size=1)
+        self.bn = nn.BatchNorm2d(self.hidden_channels)
+        self.fc1 = nn.Linear(channel_height * channel_width * self.hidden_channels, num_value_hidden_channels)
         self.fc2 = nn.Linear(num_value_hidden_channels, value_size)
 
     def forward(self, x):
         x = self.conv(x)
         x = self.bn(x)
         x = F.relu(x)
-        x = x.view(-1, self.channel_height * self.channel_width)
+        x = x.view(-1, self.channel_height * self.channel_width * self.hidden_channels)
         x = self.fc1(x)
         x = F.relu(x)
         x = self.fc2(x)
