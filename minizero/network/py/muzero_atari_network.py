@@ -5,7 +5,7 @@ from .network_unit import ResidualBlock, PolicyNetwork, DiscreteValueNetwork
 
 
 class MuZeroRepresentationNetwork(nn.Module):
-    def __init__(self, num_input_channels, num_output_channels):
+    def __init__(self, num_input_channels, num_output_channels, num_blocks):
         super(MuZeroRepresentationNetwork, self).__init__()
         self.conv1 = nn.Conv2d(num_input_channels, num_output_channels // 2, kernel_size=3, stride=2, padding=1)
         self.residual_blocks1 = nn.ModuleList([ResidualBlock(num_output_channels // 2) for _ in range(2)])
@@ -14,6 +14,10 @@ class MuZeroRepresentationNetwork(nn.Module):
         self.avg_pooling1 = nn.AvgPool2d(kernel_size=3, stride=2, padding=1)
         self.residual_blocks3 = nn.ModuleList([ResidualBlock(num_output_channels) for _ in range(3)])
         self.avg_pooling2 = nn.AvgPool2d(kernel_size=3, stride=2, padding=1)
+
+        self.conv = nn.Conv2d(num_output_channels, num_output_channels, kernel_size=3, padding=1)
+        self.bn = nn.BatchNorm2d(num_output_channels)
+        self.residual_blocks = nn.ModuleList([ResidualBlock(num_output_channels) for _ in range(num_blocks)])
 
     def forward(self, state):
         x = self.conv1(state)
@@ -26,6 +30,12 @@ class MuZeroRepresentationNetwork(nn.Module):
         for residual_block in self.residual_blocks3:
             x = residual_block(x)
         x = self.avg_pooling2(x)
+
+        x = self.conv(x)
+        x = self.bn(x)
+        x = F.relu(x)
+        for residual_block in self.residual_blocks:
+            x = residual_block(x)
         return x
 
 
@@ -99,7 +109,7 @@ class MuZeroAtariNetwork(nn.Module):
         self.num_value_hidden_channels = num_value_hidden_channels
         self.discrete_value_size = discrete_value_size
 
-        self.representation_network = MuZeroRepresentationNetwork(num_input_channels, num_hidden_channels)
+        self.representation_network = MuZeroRepresentationNetwork(num_input_channels, num_hidden_channels, num_blocks)
         self.dynamics_network = MuZeroDynamicsNetwork(num_hidden_channels, hidden_channel_height, hidden_channel_height, num_action_feature_channels, num_blocks, discrete_value_size)
         self.prediction_network = MuZeroPredictionNetwork(num_hidden_channels, hidden_channel_height, hidden_channel_width, num_blocks,
                                                           num_action_channels, action_size, num_value_hidden_channels, discrete_value_size)
@@ -193,12 +203,14 @@ class MuZeroAtariNetwork(nn.Module):
 
     def scale_hidden_state(self, hidden_state):
         # scale hidden state to range [0, 1] for each feature plane
-        batch_size, channel, _, _ = hidden_state.shape
-        min_val = hidden_state.min(-1).values.min(-1).values.view(batch_size, channel, 1, 1)
-        max_val = hidden_state.max(-1).values.max(-1).values.view(batch_size, channel, 1, 1)
+        batch_size, channel, w, h = hidden_state.shape
+        hidden_state = hidden_state.view(batch_size, -1)
+        min_val = hidden_state.min(-1, keepdim=True).values
+        max_val = hidden_state.max(-1, keepdim=True).values
         scale = (max_val - min_val)
         scale[scale < 1e-5] += 1e-5
         hidden_state = (hidden_state - min_val) / scale
+        hidden_state = hidden_state.view(batch_size, channel, w, h)
         return hidden_state
 
     def forward(self, state, action_plane=torch.empty(0)):
