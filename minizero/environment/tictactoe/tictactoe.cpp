@@ -1,4 +1,5 @@
 #include "tictactoe.h"
+#include "random.h"
 #include "sgf_loader.h"
 #include <algorithm>
 #include <string>
@@ -154,10 +155,10 @@ Player TicTacToeEnv::eval() const
 
 std::vector<float> TicTacToeEnvLoader::getActionFeatures(const int pos, utils::Rotation rotation /* = utils::Rotation::kRotationNone */) const
 {
-    assert(pos < static_cast<int>(action_pairs_.size()));
     const TicTacToeAction& action = action_pairs_[pos].first;
     std::vector<float> action_features(kTicTacToeBoardSize * kTicTacToeBoardSize, 0.0f);
-    action_features[getPositionByRotating(rotation, action.getActionID(), kTicTacToeBoardSize)] = 1.0f;
+    int action_id = ((pos < static_cast<int>(action_pairs_.size())) ? getPositionByRotating(rotation, action.getActionID(), kTicTacToeBoardSize) : utils::Random::randInt() % action_features.size());
+    action_features[action_id] = 1.0f;
     return action_features;
 }
 

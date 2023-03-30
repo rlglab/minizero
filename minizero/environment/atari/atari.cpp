@@ -168,11 +168,15 @@ std::vector<float> AtariEnvLoader::getFeatures(const int pos, utils::Rotation ro
 
 std::vector<float> AtariEnvLoader::getActionFeatures(const int pos, utils::Rotation rotation /* = utils::Rotation::kRotationNone */) const
 {
-    assert(pos < static_cast<int>(action_pairs_.size()));
-    const AtariAction& action = action_pairs_[pos].first;
     int hidden_size = config::nn_hidden_channel_height * config::nn_hidden_channel_width;
     std::vector<float> action_features(kAtariActionSize * hidden_size, 0.0f);
-    std::fill(action_features.begin() + action.getActionID() * hidden_size, action_features.begin() + (action.getActionID() + 1) * hidden_size, 1.0f);
+    if (pos < static_cast<int>(action_pairs_.size())) {
+        const AtariAction& action = action_pairs_[pos].first;
+        std::fill(action_features.begin() + action.getActionID() * hidden_size, action_features.begin() + (action.getActionID() + 1) * hidden_size, 1.0f);
+    } else {
+        int action_id = utils::Random::randInt() % kAtariActionSize;
+        std::fill(action_features.begin() + action_id * hidden_size, action_features.begin() + (action_id + 1) * hidden_size, 1.0f);
+    }
     return action_features;
 }
 

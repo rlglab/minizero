@@ -1,4 +1,5 @@
 #include "othello.h"
+#include "random.h"
 #include "sgf_loader.h"
 #include <algorithm>
 #include <bitset>
@@ -270,10 +271,14 @@ std::vector<float> OthelloEnv::getActionFeatures(const OthelloAction& action, ut
 
 std::vector<float> OthelloEnvLoader::getActionFeatures(const int pos, utils::Rotation rotation /* = utils::Rotation::kRotationNone */) const
 {
-    assert(pos < static_cast<int>(action_pairs_.size()));
     const OthelloAction& action = action_pairs_[pos].first;
     std::vector<float> action_features(getBoardSize() * getBoardSize(), 0.0f);
-    if (!isPassAction(action)) { action_features[getPositionByRotating(rotation, action.getActionID(), getBoardSize())] = 1.0f; }
+    if (pos < static_cast<int>(action_pairs_.size())) {
+        if (!isPassAction(action)) { action_features[getPositionByRotating(rotation, action.getActionID(), getBoardSize())] = 1.0f; }
+    } else {
+        int action_id = utils::Random::randInt() % (action_features.size() + 1);
+        if (action_id < static_cast<int>(action_pairs_.size())) { action_features[action_id] = 1.0f; }
+    }
     return action_features;
 }
 

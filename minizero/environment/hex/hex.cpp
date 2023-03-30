@@ -1,6 +1,6 @@
 #include "hex.h"
-
 #include "color_message.h"
+#include "random.h"
 #include "sgf_loader.h"
 #include <iostream>
 #include <string>
@@ -409,10 +409,10 @@ Player HexEnv::updateWinner(int actionID)
 
 std::vector<float> HexEnvLoader::getActionFeatures(const int pos, utils::Rotation rotation /* = utils::Rotation::kRotationNone */) const
 {
-    assert(pos < static_cast<int>(action_pairs_.size()));
     const HexAction& action = action_pairs_[pos].first;
     std::vector<float> action_features(getBoardSize() * getBoardSize(), 0.0f);
-    action_features[action.getActionID()] = 1.0f;
+    int action_id = ((pos < static_cast<int>(action_pairs_.size())) ? action.getActionID() : utils::Random::randInt() % action_features.size());
+    action_features[action_id] = 1.0f;
     return action_features;
 }
 

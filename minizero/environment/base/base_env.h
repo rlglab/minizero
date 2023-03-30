@@ -2,6 +2,7 @@
 
 #include "rotation.h"
 #include "utils.h"
+#include <algorithm>
 #include <cassert>
 #include <fstream>
 #include <memory>
@@ -183,50 +184,41 @@ public:
     virtual std::vector<float> getFeatures(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const
     {
         // a slow but naive method which simply replays the game again to get features
-        assert(pos <= static_cast<int>(action_pairs_.size()));
-
         Env env;
-        for (int i = 0; i < pos; ++i) { env.act(action_pairs_[i].first); }
+        for (int i = 0; i < std::min(pos, static_cast<int>(action_pairs_.size())); ++i) { env.act(action_pairs_[i].first); }
         return env.getFeatures(rotation);
     }
 
-    virtual std::vector<float> getActionFeatures(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const
+    virtual std::vector<float> getPolicy(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const
     {
-        // a slow but naive method which simply replays the game again to get action features
-        assert(pos < static_cast<int>(action_pairs_.size()));
-
-        Env env;
-        for (int i = 0; i < pos; ++i) { env.act(action_pairs_[i].first); }
-        return env.getActionFeatures(action_pairs_[pos].first, rotation);
-    }
-
-    virtual std::vector<float> getPolicy(int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const
-    {
-        assert(pos < static_cast<int>(action_pairs_.size()));
-
-        const std::string policy_distribution = extractActionInfo(action_pairs_[pos].second, "P:");
         std::vector<float> policy(getPolicySize(), 0.0f);
-        if (policy_distribution.empty()) {
-            policy[getRotatePosition(action_pairs_[pos].first.getActionID(), rotation)] = 1.0f;
-        } else {
-            std::string tmp;
-            float total = 0.0f;
-            std::istringstream iss(policy_distribution);
-            while (std::getline(iss, tmp, ',')) {
-                int position = getRotatePosition(std::stoi(tmp.substr(0, tmp.find(":"))), rotation);
-                float count = std::stoi(tmp.substr(tmp.find(":") + 1));
-                policy[position] = count;
-                total += count;
+        if (pos < static_cast<int>(action_pairs_.size())) {
+            const std::string policy_distribution = extractActionInfo(action_pairs_[pos].second, "P:");
+            if (policy_distribution.empty()) {
+                policy[getRotatePosition(action_pairs_[pos].first.getActionID(), rotation)] = 1.0f;
+            } else {
+                std::string tmp;
+                float total = 0.0f;
+                std::istringstream iss(policy_distribution);
+                while (std::getline(iss, tmp, ',')) {
+                    int position = getRotatePosition(std::stoi(tmp.substr(0, tmp.find(":"))), rotation);
+                    float count = std::stoi(tmp.substr(tmp.find(":") + 1));
+                    policy[position] = count;
+                    total += count;
+                }
+                for (auto& p : policy) { p /= total; }
             }
-            for (auto& p : policy) { p /= total; }
+        } else { // absorbing states
+            std::fill(policy.begin(), policy.end(), 1.0f / getPolicySize());
         }
         return policy;
     }
 
-    virtual std::vector<float> getValue(const int pos) const { return {std::stof(extractActionInfo(action_pairs_[pos].second, "V:"))}; }
-    virtual std::vector<float> getReward(const int pos) const { return {std::stof(extractActionInfo(action_pairs_[pos].second, "R:"))}; }
+    virtual std::vector<float> getValue(const int pos) const { return (pos < static_cast<int>(action_pairs_.size()) ? std::vector<float>{std::stof(extractActionInfo(action_pairs_[pos].second, "V:"))} : std::vector<float>{0.0f}); }
+    virtual std::vector<float> getReward(const int pos) const { return (pos < static_cast<int>(action_pairs_.size()) ? std::vector<float>{std::stof(extractActionInfo(action_pairs_[pos].second, "R:"))} : std::vector<float>{0.0f}); }
     virtual float getPriority(const int pos) const { return 1.0f; }
 
+    virtual std::vector<float> getActionFeatures(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const = 0;
     virtual std::string name() const = 0;
     virtual int getPolicySize() const = 0;
     virtual int getRotatePosition(int position, utils::Rotation rotation) const = 0;
