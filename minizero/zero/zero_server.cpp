@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <boost/algorithm/string.hpp>
 #include <iostream>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -34,8 +35,10 @@ void ZeroLogger::addLog(const std::string& log_str, std::fstream& log_file)
 
 ZeroSelfPlayData::ZeroSelfPlayData(std::string input_data)
 {
-    // format: Selfplay data_length game_length return game_record
+    // format: Selfplay is_terminal data_length game_length return game_record
     input_data = input_data.substr(input_data.find(" ") + 1); // remove Selfplay
+    is_terminal_ = (input_data.substr(0, input_data.find(" ")) == "true");
+    input_data = input_data.substr(input_data.find(" ") + 1); // remove is_terminal
     data_length_ = std::stoi(input_data.substr(0, input_data.find(" ")));
     input_data = input_data.substr(input_data.find(" ") + 1); // remove data_length
     game_length_ = std::stoi(input_data.substr(0, input_data.find(" ")));
@@ -105,7 +108,7 @@ void ZeroWorkerHandler::handleReceivedMessage(const std::string& message)
         // print number of games if the queue already received many games in buffer
         if (shared_data_.sp_data_queue_.size() % std::max(1, static_cast<int>(config::zero_num_games_per_iteration * 0.25)) == 0) {
             boost::lock_guard<boost::mutex> lock(shared_data_.worker_mutex_);
-            shared_data_.logger_.addWorkerLog("[SelfPlay Game Buffer] " + std::to_string(shared_data_.sp_data_queue_.size()) + " games");
+            shared_data_.logger_.addTrainingLog("[SelfPlay Game Buffer] " + std::to_string(shared_data_.sp_data_queue_.size()) + " games");
         }
     } else if (args[0] == "Optimization_Done") {
         boost::lock_guard<boost::mutex> lock(shared_data_.mutex_);
@@ -163,8 +166,8 @@ void ZeroServer::selfPlay()
     shared_data_.logger_.addTrainingLog("[Iteration] =====" + std::to_string(iteration_) + "=====");
     shared_data_.logger_.addTrainingLog("[SelfPlay] Start " + std::to_string(shared_data_.getModelIetration()));
 
-    float total_return = 0.0f;
-    int num_collect_game = 0, total_data_length = 0, total_game_length = 0;
+    float total_return = 0.0f, max_return = std::numeric_limits<float>::min(), min_return = std::numeric_limits<float>::max();
+    int num_collect_game = 0, total_data_length = 0, total_game_length = 0, num_finished_game = 0;
     while (num_collect_game < config::zero_num_games_per_iteration) {
         broadCastSelfPlayJob();
 
@@ -181,9 +184,14 @@ void ZeroServer::selfPlay()
         // save record
         shared_data_.logger_.getSelfPlayFileStream() << sp_data.game_record_ << std::endl;
         ++num_collect_game;
-        total_return += sp_data.return_;
         total_data_length += sp_data.data_length_;
-        total_game_length += sp_data.game_length_;
+        if (sp_data.is_terminal_) {
+            ++num_finished_game;
+            total_return += sp_data.return_;
+            total_game_length += sp_data.game_length_;
+            max_return = std::max(max_return, sp_data.return_);
+            min_return = std::min(min_return, sp_data.return_);
+        }
 
         // display progress
         if (num_collect_game % std::max(1, static_cast<int>(config::zero_num_games_per_iteration * 0.25)) == 0) {
@@ -196,9 +204,14 @@ void ZeroServer::selfPlay()
     stopJob("sp");
     shared_data_.logger_.getSelfPlayFileStream().close();
     shared_data_.logger_.addTrainingLog("[SelfPlay] Finished.");
-    shared_data_.logger_.addTrainingLog("[SelfPlay Avg. Returns] " + std::to_string(total_return * 1.0f / num_collect_game));
-    shared_data_.logger_.addTrainingLog("[SelfPlay Avg. Data Lengths] " + std::to_string(total_data_length * 1.0f / num_collect_game));
-    shared_data_.logger_.addTrainingLog("[SelfPlay Avg. Game Lengths] " + std::to_string(total_game_length * 1.0f / num_collect_game));
+    if (num_finished_game > 0) {
+        shared_data_.logger_.addTrainingLog("[SelfPlay # Finished Games] " + std::to_string(num_finished_game));
+        shared_data_.logger_.addTrainingLog("[SelfPlay Avg. Game Lengths] " + std::to_string(total_game_length * 1.0f / num_finished_game));
+        shared_data_.logger_.addTrainingLog("[SelfPlay Min. Game Returns] " + std::to_string(min_return));
+        shared_data_.logger_.addTrainingLog("[SelfPlay Max. Game Returns] " + std::to_string(max_return));
+        shared_data_.logger_.addTrainingLog("[SelfPlay Avg. Game Returns] " + std::to_string(total_return / num_finished_game));
+    }
+    if (num_finished_game != num_collect_game) { shared_data_.logger_.addTrainingLog("[SelfPlay Avg. Data Lengths] " + std::to_string(total_data_length * 1.0f / num_collect_game)); }
 }
 
 void ZeroServer::broadCastSelfPlayJob()

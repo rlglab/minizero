@@ -31,6 +31,7 @@ private:
 
 class ZeroSelfPlayData {
 public:
+    bool is_terminal_;
     int data_length_;
     int game_length_;
     float return_;

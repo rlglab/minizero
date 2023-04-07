@@ -28,6 +28,7 @@ void ThreadSharedData::outputGame(const std::shared_ptr<BaseActor>& actor)
 
     std::ostringstream oss;
     oss << "SelfPlay "
+        << ((config::zero_actor_intermediate_sequence_length > 0 && !actor->isEnvTerminal()) ? "false" : "true") << " "    // is terminal
         << (data_range.second - data_range.first + 1) << " "                                                               // data length
         << game_length << " "                                                                                              // game length
         << actor->getEnvironment().getEvalScore(!actor->isEnvTerminal()) << " "                                            // return
