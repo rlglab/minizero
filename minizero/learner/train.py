@@ -17,6 +17,7 @@ class MinizeroDadaLoader:
     def __init__(self, conf_file_name):
         self.conf_file_name = conf_file_name
         self.data_loader = minizero_py.DataLoader(self.conf_file_name)
+        self.data_list = []
 
         # allocate memory
         if conf.get_nn_type_name() == "alphazero":
@@ -35,12 +36,15 @@ class MinizeroDadaLoader:
             self.reward = np.zeros(conf.get_batch_size() * conf.get_muzero_unrolling_step() * conf.get_nn_discrete_value_size(), dtype=np.float32)
             self.loss_scale = np.zeros(conf.get_batch_size(), dtype=np.float32)
 
-    def clear_data(self):
-        self.data_loader.clear_data()
-
     def load_data(self, training_dir, start_iter, end_iter):
         for i in range(start_iter, end_iter + 1):
-            self.data_loader.load_data_from_file(f"{training_dir}/sgf/{i}.sgf")
+            file_name = f"{training_dir}/sgf/{i}.sgf"
+            if file_name in self.data_list:
+                continue
+            self.data_loader.load_data_from_file(file_name)
+            self.data_list.append(file_name)
+            if len(self.data_list) > conf.get_zero_replay_buffer():
+                self.data_list.pop(0)
 
     def sample_data(self, conf):
         self.data_loader.sample_data(self.features, self.action_features, self.policy, self.value, self.reward, self.loss_scale)
@@ -148,7 +152,6 @@ def train(game_type, training_dir, conf, model_file, data_loader, start_iter, en
         return
 
     # load data
-    data_loader.clear_data()
     data_loader.load_data(training_dir, start_iter, end_iter)
 
     training_info = {}

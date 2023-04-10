@@ -19,6 +19,7 @@ public:
     }
 
     inline bool useGumbel() const { return config::actor_use_gumbel; }
+    inline int getZeroReplayBuffer() const { return config::zero_replay_buffer; }
     inline int getTrainingStep() const { return config::learner_training_step; }
     inline int getTrainingDisplayStep() const { return config::learner_training_display_step; }
     inline int getBatchSize() const { return config::learner_batch_size; }
@@ -48,6 +49,7 @@ PYBIND11_MODULE(minizero_py, m)
     py::class_<Conf>(m, "Conf")
         .def(py::init<std::string>())
         .def("use_gumbel", &Conf::useGumbel)
+        .def("get_zero_replay_buffer", &Conf::getZeroReplayBuffer)
         .def("get_training_step", &Conf::getTrainingStep)
         .def("get_training_display_step", &Conf::getTrainingDisplayStep)
         .def("get_batch_size", &Conf::getBatchSize)
@@ -73,7 +75,6 @@ PYBIND11_MODULE(minizero_py, m)
 
     py::class_<learner::DataLoader>(m, "DataLoader")
         .def(py::init<std::string>())
-        .def("clear_data", &learner::DataLoader::clearData)
         .def("load_data_from_file", &learner::DataLoader::loadDataFromFile, py::call_guard<py::gil_scoped_release>())
         .def(
             "sample_data", [](learner::DataLoader& data_loader, py::array_t<float>& features, py::array_t<float>& action_features, py::array_t<float>& policy, py::array_t<float>& value, py::array_t<float>& reward, py::array_t<float>& loss_scale) {

@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <utility>
 
 namespace minizero::learner {
@@ -23,41 +24,75 @@ void DataPtr::copyData(int batch_index, const Data& data)
     std::copy(data.loss_scale_.begin(), data.loss_scale_.end(), loss_scale_ + data.loss_scale_.size() * batch_index);
 }
 
-void DataLoaderSharedData::clear()
+void ReplayBuffer::addData(const EnvironmentLoader& env_loader)
 {
-    env_index_ = 0;
-    env_strings_.clear();
-    batch_index_ = 0;
-    num_data_ = 0;
-    game_priority_sum_ = 0.0f;
-    game_priorities_.clear();
-    position_priorities_.clear();
-    env_loaders_.clear();
-}
+    std::pair<int, int> data_range = env_loader.getDataRange();
+    std::deque<float> position_priorities(data_range.second + 1, 0.0f);
+    float max_priority = std::numeric_limits<float>::min();
+    for (int i = data_range.first; i <= data_range.second; ++i) {
+        float priority = env_loader.getPriority(i);
+        max_priority = std::max(max_priority, priority);
+        position_priorities[i] = priority;
+    }
 
-int DataLoaderSharedData::getNextEnvIndex()
-{
     std::lock_guard<std::mutex> lock(mutex_);
-    return (env_index_ < static_cast<int>(env_strings_.size()) ? env_index_++ : env_strings_.size());
+
+    // add new data to replay buffer
+    num_data_ += (data_range.second - data_range.first + 1);
+    position_priorities_.push_back(position_priorities);
+    game_priorities_.push_back(max_priority);
+    env_loaders_.push_back(env_loader);
+
+    // remove old data if replay buffer is full
+    const size_t replay_buffer_max_size = config::zero_replay_buffer * config::zero_num_games_per_iteration;
+    while (position_priorities_.size() > replay_buffer_max_size) {
+        data_range = env_loaders_.front().getDataRange();
+        num_data_ -= (data_range.second - data_range.first + 1);
+        position_priorities_.pop_front();
+        game_priorities_.pop_front();
+        env_loaders_.pop_front();
+    }
 }
 
-int DataLoaderSharedData::getNextBatchIndex()
-{
-    std::lock_guard<std::mutex> lock(mutex_);
-    return (batch_index_ < config::learner_batch_size ? batch_index_++ : config::learner_batch_size);
-}
-
-std::pair<int, int> DataLoaderSharedData::sampleEnvAndPos()
+std::pair<int, int> ReplayBuffer::sampleEnvAndPos()
 {
     int env_id = sampleIndex(game_priorities_);
     int pos_id = sampleIndex(position_priorities_[env_id]);
     return {env_id, pos_id};
 }
 
-int DataLoaderSharedData::sampleIndex(const std::vector<float>& weight)
+int ReplayBuffer::sampleIndex(const std::deque<float>& weight)
 {
     std::discrete_distribution<> dis(weight.begin(), weight.end());
     return dis(Random::generator_);
+}
+
+float ReplayBuffer::getLossScale(const std::pair<int, int>& p)
+{
+    if (!config::learner_use_per) { return 1.0f; }
+
+    // calculate importance sampling ratio
+    int env_id = p.first, pos = p.second;
+    float game_prob = game_priorities_[env_id] / game_priority_sum_;
+    float pos_prob = position_priorities_[env_id][pos] / std::accumulate(position_priorities_[env_id].begin(), position_priorities_[env_id].end(), 0.0f);
+    return 1.0f / (num_data_ * game_prob * pos_prob);
+}
+
+std::string DataLoaderSharedData::getNextEnvString()
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    std::string env_string = "";
+    if (!env_strings_.empty()) {
+        env_string = env_strings_.front();
+        env_strings_.pop_front();
+    }
+    return env_string;
+}
+
+int DataLoaderSharedData::getNextBatchIndex()
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    return (batch_index_ < config::learner_batch_size ? batch_index_++ : config::learner_batch_size);
 }
 
 void DataLoaderThread::initialize()
@@ -77,26 +112,11 @@ void DataLoaderThread::runJob()
 
 bool DataLoaderThread::addEnvironmentLoader()
 {
-    int env_index = getSharedData()->getNextEnvIndex();
-    if (env_index >= static_cast<int>(getSharedData()->env_strings_.size())) { return false; }
+    std::string env_string = getSharedData()->getNextEnvString();
+    if (env_string.empty()) { return false; }
 
     EnvironmentLoader env_loader;
-    const std::string& content = getSharedData()->env_strings_[env_index];
-    if (!env_loader.loadFromString(content)) { return true; }
-
-    std::pair<int, int> data_range = {0, static_cast<int>(env_loader.getActionPairs().size()) - 1};
-    const std::string& dlen = env_loader.getTag("DLEN");
-    if (!dlen.empty()) { data_range = {std::stoi(dlen), std::stoi(dlen.substr(dlen.find("-") + 1))}; }
-
-    std::vector<float> position_priorities(data_range.second + 1, 0.0f);
-    for (int i = data_range.first; i <= data_range.second; ++i) { position_priorities[i] = env_loader.getPriority(i); }
-
-    std::lock_guard<std::mutex> lock(getSharedData()->mutex_);
-    getSharedData()->position_priorities_.push_back(position_priorities);
-    getSharedData()->num_data_ += data_range.second - data_range.first + 1;
-    getSharedData()->game_priorities_.push_back(*std::max_element(position_priorities.begin(), position_priorities.end()));
-    getSharedData()->game_priority_sum_ += getSharedData()->game_priorities_.back();
-    getSharedData()->env_loaders_.push_back(env_loader);
+    if (env_loader.loadFromString(env_string)) { getSharedData()->replay_buffer_.addData(env_loader); }
     return true;
 }
 
@@ -119,13 +139,13 @@ bool DataLoaderThread::sampleData()
 Data DataLoaderThread::sampleAlphaZeroTrainingData()
 {
     // random pickup one position
-    std::pair<int, int> p = getSharedData()->sampleEnvAndPos();
+    std::pair<int, int> p = getSharedData()->replay_buffer_.sampleEnvAndPos();
     int env_id = p.first, pos = p.second;
 
     // AlphaZero training data
     Data data;
-    data.loss_scale_.push_back(1.0f);
-    const EnvironmentLoader& env_loader = getSharedData()->env_loaders_[env_id];
+    data.loss_scale_.push_back(getSharedData()->replay_buffer_.getLossScale(p));
+    const EnvironmentLoader& env_loader = getSharedData()->replay_buffer_.env_loaders_[env_id];
     Rotation rotation = static_cast<Rotation>(Random::randInt() % static_cast<int>(Rotation::kRotateSize));
     data.features_ = env_loader.getFeatures(pos, rotation);
     data.policy_ = env_loader.getPolicy(pos, rotation);
@@ -136,20 +156,14 @@ Data DataLoaderThread::sampleAlphaZeroTrainingData()
 Data DataLoaderThread::sampleMuZeroTrainingData()
 {
     // random pickup one position
-    std::pair<int, int> p = getSharedData()->sampleEnvAndPos();
+    std::pair<int, int> p = getSharedData()->replay_buffer_.sampleEnvAndPos();
     int env_id = p.first, pos = p.second;
 
     // MuZero training data
     Data data;
-    const EnvironmentLoader& env_loader = getSharedData()->env_loaders_[env_id];
+    data.loss_scale_.push_back(getSharedData()->replay_buffer_.getLossScale(p));
+    const EnvironmentLoader& env_loader = getSharedData()->replay_buffer_.env_loaders_[env_id];
     Rotation rotation = static_cast<Rotation>(Random::randInt() % static_cast<int>(Rotation::kRotateSize));
-    if (env_loader.name().find("atari") != std::string::npos) { // importance sampling for atari games
-        float game_prob = getSharedData()->game_priorities_[env_id] / getSharedData()->game_priority_sum_;
-        float pos_prob = getSharedData()->position_priorities_[env_id][pos] / std::accumulate(getSharedData()->position_priorities_[env_id].begin(), getSharedData()->position_priorities_[env_id].end(), 0.0f);
-        data.loss_scale_.push_back(1.0f / (getSharedData()->num_data_ * game_prob * pos_prob));
-    } else {
-        data.loss_scale_.push_back(1.0f);
-    }
     data.features_ = env_loader.getFeatures(pos, rotation);
     for (int step = 0; step <= config::learner_muzero_unrolling_step; ++step) {
         // action features
@@ -190,10 +204,9 @@ void DataLoader::loadDataFromFile(const std::string& file_name)
     std::ifstream fin(file_name, std::ifstream::in);
     for (std::string content; std::getline(fin, content);) { getSharedData()->env_strings_.push_back(content); }
 
-    getSharedData()->env_index_ = 0;
     for (auto& t : slave_threads_) { t->start(); }
     for (auto& t : slave_threads_) { t->finish(); }
-    getSharedData()->env_strings_.clear();
+    getSharedData()->replay_buffer_.game_priority_sum_ = std::accumulate(getSharedData()->replay_buffer_.game_priorities_.begin(), getSharedData()->replay_buffer_.game_priorities_.end(), 0.0f);
 }
 
 void DataLoader::sampleData()

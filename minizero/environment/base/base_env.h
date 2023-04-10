@@ -216,6 +216,16 @@ public:
         return policy;
     }
 
+    virtual std::pair<int, int> getDataRange() const
+    {
+        const std::string dlen = getTag("DLEN");
+        if (dlen.empty()) {
+            return {0, std::max(0, static_cast<int>(getActionPairs().size()) - 1)};
+        } else {
+            return {std::stoi(dlen), std::stoi(dlen.substr(dlen.find("-") + 1))};
+        }
+    }
+
     virtual std::vector<float> getValue(const int pos) const { return (pos < static_cast<int>(action_pairs_.size()) ? std::vector<float>{std::stof(extractActionInfo(action_pairs_[pos].second, "V:"))} : std::vector<float>{0.0f}); }
     virtual std::vector<float> getReward(const int pos) const { return (pos < static_cast<int>(action_pairs_.size()) ? std::vector<float>{std::stof(extractActionInfo(action_pairs_[pos].second, "R:"))} : std::vector<float>{0.0f}); }
     virtual float getPriority(const int pos) const { return 1.0f; }

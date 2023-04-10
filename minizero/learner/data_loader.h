@@ -2,6 +2,7 @@
 
 #include "environment.h"
 #include "paralleler.h"
+#include <deque>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -32,25 +33,31 @@ public:
     float* loss_scale_;
 };
 
+class ReplayBuffer {
+public:
+    std::mutex mutex_;
+    int num_data_;
+    float game_priority_sum_;
+    std::deque<float> game_priorities_;
+    std::deque<std::deque<float>> position_priorities_;
+    std::deque<EnvironmentLoader> env_loaders_;
+
+    void addData(const EnvironmentLoader& env_loader);
+    std::pair<int, int> sampleEnvAndPos();
+    int sampleIndex(const std::deque<float>& weight);
+    float getLossScale(const std::pair<int, int>& p);
+};
+
 class DataLoaderSharedData : public utils::BaseSharedData {
 public:
-    void clear();
-    int getNextEnvIndex();
+    std::string getNextEnvString();
     int getNextBatchIndex();
-    std::pair<int, int> sampleEnvAndPos();
-    int sampleIndex(const std::vector<float>& weight);
-
-    int env_index_;
-    std::mutex mutex_;
-    std::vector<std::string> env_strings_;
 
     int batch_index_;
     DataPtr data_ptr_;
-    int num_data_;
-    float game_priority_sum_;
-    std::vector<float> game_priorities_;
-    std::vector<std::vector<float>> position_priorities_;
-    std::vector<EnvironmentLoader> env_loaders_;
+    ReplayBuffer replay_buffer_;
+    std::mutex mutex_;
+    std::deque<std::string> env_strings_;
 };
 
 class DataLoaderThread : public utils::BaseSlaveThread {
@@ -84,7 +91,6 @@ public:
     void createSharedData() override { shared_data_ = std::make_shared<DataLoaderSharedData>(); }
     std::shared_ptr<utils::BaseSlaveThread> newSlaveThread(int id) override { return std::make_shared<DataLoaderThread>(id, shared_data_); }
     inline std::shared_ptr<DataLoaderSharedData> getSharedData() { return std::static_pointer_cast<DataLoaderSharedData>(shared_data_); }
-    inline void clearData() { getSharedData()->clear(); }
 };
 
 } // namespace minizero::learner
