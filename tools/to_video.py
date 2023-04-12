@@ -17,9 +17,9 @@ class AtariEnv:
         self.seed = seed
         self.done = False
         self.total_reward = 0
-        self.observation, self.info = self.env.reset(seed=self.seed)
         self.env.ale.setInt("random_seed", seed)
         self.env.ale.loadROM(f"/opt/atari57/{self.game_name}.bin")
+        self.observation, self.info = self.env.reset()
         self.frames = [self.env.render()]
 
     def act(self, action_id):
