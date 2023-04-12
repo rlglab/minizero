@@ -113,7 +113,7 @@ def save_model(training_step, network, optimizer, scheduler, training_dir):
 def calculate_loss(conf, network_output, label_policy, label_value, label_reward, loss_scale):
     # policy
     if conf.use_gumbel():
-        loss_policy = nn.functional.kl_div(nn.functional.log_softmax(network_output["policy_logit"], dim=1), label_policy, reduction='batchmean')
+        loss_policy = (nn.functional.kl_div(nn.functional.log_softmax(network_output["policy_logit"], dim=1), label_policy, reduction='none').sum(dim=1) * loss_scale).mean()
     else:
         loss_policy = -((label_policy * nn.functional.log_softmax(network_output["policy_logit"], dim=1)).sum(dim=1) * loss_scale).mean()
 
