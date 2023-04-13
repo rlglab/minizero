@@ -25,6 +25,7 @@ void AtariEnv::reset(int seed)
     reward_ = 0;
     total_reward_ = 0;
     ale_.setInt("random_seed", seed_);
+    ale_.setInt("max_num_frames_per_episode", kAtariMaxNumFramesPerEpisode);
     ale_.setFloat("repeat_action_probability", kAtariRepeatActionProbability);
     ale_.loadROM(config::env_atari_rom_dir + "/" + config::env_atari_name + ".bin");
     ale_.reset_game();
@@ -32,6 +33,7 @@ void AtariEnv::reset(int seed)
     for (auto action_id : ale_.getMinimalActionSet()) { minimal_action_set_.insert(action_id); }
     actions_.clear();
     observations_.clear();
+    observations_.reserve(kAtariMaxNumFramesPerEpisode + 1);
     observations_.push_back(getObservationString()); // initial observation
     feature_history_.clear();
     feature_history_.resize(kAtariFeatureHistorySize, std::vector<float>(3 * config::nn_input_channel_height * config::nn_input_channel_width, 0.0f));
@@ -52,7 +54,10 @@ bool AtariEnv::act(const AtariAction& action)
     actions_.push_back(action);
     observations_.push_back(getObservationString());
     // only keep recent 300 observations in atari games to save memory
-    if (observations_.size() > 300) { observations_[observations_.size() - 300] = ""; }
+    if (observations_.size() > 300) {
+        observations_[observations_.size() - 300].clear();
+        observations_[observations_.size() - 300].shrink_to_fit();
+    }
 
     // action & observation history
     action_feature_history_.push_back(std::vector<float>(config::nn_input_channel_height * config::nn_input_channel_width, action.getActionID() * 1.0f / kAtariActionSize));
