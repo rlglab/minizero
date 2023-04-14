@@ -39,7 +39,10 @@ void ThreadSharedData::outputGame(const std::shared_ptr<BaseActor>& actor)
     if (!is_terminal) {
         // delete action info history if not complete record to save memory
         auto& action_info_history = actor->getActionInfoHistory();
-        for (int i = data_range.first; i <= data_range.second; ++i) { action_info_history[i].clear(); }
+        for (int i = data_range.first; i <= data_range.second; ++i) {
+            action_info_history[i].clear();
+            action_info_history[i].shrink_to_fit();
+        }
     }
 
     std::lock_guard<std::mutex> lock(mutex_);

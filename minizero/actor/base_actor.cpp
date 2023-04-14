@@ -1,6 +1,7 @@
 #include "base_actor.h"
 #include "configuration.h"
 #include <string>
+#include <utility>
 
 namespace minizero::actor {
 
@@ -55,12 +56,12 @@ std::string BaseActor::getRecord(const std::unordered_map<std::string, std::stri
     return env_loader.toString();
 }
 
-std::unordered_map<std::string, std::string> BaseActor::getActionInfo() const
+std::vector<std::pair<std::string, std::string>> BaseActor::getActionInfo() const
 {
-    std::unordered_map<std::string, std::string> action_info;
-    action_info.insert({"P", getMCTSPolicy()});
-    action_info.insert({"V", getMCTSValue()});
-    action_info.insert({"R", getEnvReward()});
+    std::vector<std::pair<std::string, std::string>> action_info;
+    action_info.push_back({"P", getMCTSPolicy()});
+    action_info.push_back({"V", getMCTSValue()});
+    action_info.push_back({"R", getEnvReward()});
     return action_info;
 }
 

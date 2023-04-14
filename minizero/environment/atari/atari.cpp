@@ -143,7 +143,7 @@ bool AtariEnvLoader::loadFromString(const std::string& content)
     return success;
 }
 
-void AtariEnvLoader::loadFromEnvironment(const AtariEnv& env, const std::vector<std::unordered_map<std::string, std::string>>& action_info_history /* = {} */)
+void AtariEnvLoader::loadFromEnvironment(const AtariEnv& env, const std::vector<std::vector<std::pair<std::string, std::string>>>& action_info_history /* = {} */)
 {
     BaseEnvLoader::loadFromEnvironment(env, action_info_history);
     addTag("SD", std::to_string(env.getSeed()));

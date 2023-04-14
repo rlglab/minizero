@@ -6,6 +6,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace minizero::actor {
@@ -28,8 +29,8 @@ public:
     inline Environment& getEnvironment() { return env_; }
     inline const Environment& getEnvironment() const { return env_; }
     inline const int getNNEvaluationBatchIndex() const { return nn_evaluation_batch_id_; }
-    inline std::vector<std::unordered_map<std::string, std::string>>& getActionInfoHistory() { return action_info_history_; }
-    inline const std::vector<std::unordered_map<std::string, std::string>>& getActionInfoHistory() const { return action_info_history_; }
+    inline std::vector<std::vector<std::pair<std::string, std::string>>>& getActionInfoHistory() { return action_info_history_; }
+    inline const std::vector<std::vector<std::pair<std::string, std::string>>>& getActionInfoHistory() const { return action_info_history_; }
 
     virtual Action think(bool with_play = false, bool display_board = false) = 0;
     virtual void beforeNNEvaluation() = 0;
@@ -42,7 +43,7 @@ public:
     virtual std::shared_ptr<Search> createSearch() = 0;
 
 protected:
-    virtual std::unordered_map<std::string, std::string> getActionInfo() const;
+    virtual std::vector<std::pair<std::string, std::string>> getActionInfo() const;
     virtual std::string getMCTSPolicy() const = 0;
     virtual std::string getMCTSValue() const = 0;
     virtual std::string getEnvReward() const = 0;
@@ -50,7 +51,7 @@ protected:
     int nn_evaluation_batch_id_;
     Environment env_;
     std::shared_ptr<Search> search_;
-    std::vector<std::unordered_map<std::string, std::string>> action_info_history_;
+    std::vector<std::vector<std::pair<std::string, std::string>>> action_info_history_;
 };
 
 } // namespace minizero::actor

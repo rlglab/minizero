@@ -150,7 +150,7 @@ public:
         return true;
     }
 
-    virtual void loadFromEnvironment(const Env& env, const std::vector<std::unordered_map<std::string, std::string>>& action_info_history = {})
+    virtual void loadFromEnvironment(const Env& env, const std::vector<std::vector<std::pair<std::string, std::string>>>& action_info_history = {})
     {
         reset();
         for (size_t i = 0; i < env.getActionHistory().size(); ++i) {
@@ -291,7 +291,7 @@ protected:
 template <class Action, class Env>
 class BaseBoardEnvLoader : public BaseEnvLoader<Action, Env> {
 public:
-    void loadFromEnvironment(const Env& env, const std::vector<std::unordered_map<std::string, std::string>>& action_info_history = {}) override
+    void loadFromEnvironment(const Env& env, const std::vector<std::vector<std::pair<std::string, std::string>>>& action_info_history = {}) override
     {
         BaseEnvLoader<Action, Env>::loadFromEnvironment(env, action_info_history);
         BaseEnvLoader<Action, Env>::addTag("SZ", std::to_string(env.getBoardSize()));

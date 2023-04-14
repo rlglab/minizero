@@ -9,6 +9,7 @@
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 namespace minizero::env::go {
@@ -112,7 +113,7 @@ protected:
 
 class GoEnvLoader : public BaseBoardEnvLoader<GoAction, GoEnv> {
 public:
-    void loadFromEnvironment(const GoEnv& env, const std::vector<std::unordered_map<std::string, std::string>>& action_info_history = {}) override
+    void loadFromEnvironment(const GoEnv& env, const std::vector<std::vector<std::pair<std::string, std::string>>>& action_info_history = {}) override
     {
         BaseBoardEnvLoader<GoAction, GoEnv>::loadFromEnvironment(env, action_info_history);
         addTag("KM", std::to_string(env.getKomi()));

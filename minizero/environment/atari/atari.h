@@ -9,6 +9,7 @@
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 namespace minizero::env::atari {
@@ -82,7 +83,7 @@ class AtariEnvLoader : public BaseEnvLoader<AtariAction, AtariEnv> {
 public:
     void reset() override;
     bool loadFromString(const std::string& content) override;
-    void loadFromEnvironment(const AtariEnv& env, const std::vector<std::unordered_map<std::string, std::string>>& action_info_history = {}) override;
+    void loadFromEnvironment(const AtariEnv& env, const std::vector<std::vector<std::pair<std::string, std::string>>>& action_info_history = {}) override;
     std::vector<float> getFeatures(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::vector<float> getActionFeatures(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::vector<float> getValue(const int pos) const override { return toDiscreteValue(pos < static_cast<int>(action_pairs_.size()) ? transformValue(calculateNStepValue(pos)) : 0.0f); }
