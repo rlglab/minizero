@@ -53,10 +53,11 @@ bool AtariEnv::act(const AtariAction& action)
     total_reward_ += reward_;
     actions_.push_back(action);
     observations_.push_back(getObservationString());
-    // only keep recent 300 observations in atari games to save memory
-    if (observations_.size() > 300) {
-        observations_[observations_.size() - 300].clear();
-        observations_[observations_.size() - 300].shrink_to_fit();
+    // only keep the most recent N observations in atari games to save memory, N is determined by configuration
+    size_t recent_observation_length = (config::zero_actor_intermediate_sequence_length == 0 ? kAtariMaxNumFramesPerEpisode : config::zero_actor_intermediate_sequence_length + kAtariFeatureHistorySize + config::learner_n_step_return) + 1; // plus 1 for initial observation
+    if (observations_.size() > recent_observation_length) {
+        observations_[observations_.size() - recent_observation_length].clear();
+        observations_[observations_.size() - recent_observation_length].shrink_to_fit();
     }
 
     // action & observation history
@@ -151,10 +152,8 @@ void AtariEnvLoader::loadFromEnvironment(const AtariEnv& env, const std::vector<
 
 std::vector<float> AtariEnvLoader::getFeatures(const int pos, utils::Rotation rotation /* = utils::Rotation::kRotationNone */) const
 {
-    std::pair<int, int> data_range = {-1, -1};
-    const std::string& dlen = getTag("DLEN");
-    if (!dlen.empty()) { data_range = {std::stoi(dlen), std::stoi(dlen.substr(dlen.find("-") + 1))}; }
-    if (pos < data_range.first || pos > data_range.second) { return getFeaturesByReplay(pos, rotation); }
+    std::pair<int, int> data_range = getDataRange();
+    if (getTag("DLEN").empty() || pos < data_range.first || pos > data_range.second) { return getFeaturesByReplay(pos, rotation); }
 
     std::vector<float> features;
     int start = pos - kAtariFeatureHistorySize + 1, end = pos;
@@ -168,6 +167,7 @@ std::vector<float> AtariEnvLoader::getFeatures(const int pos, utils::Rotation ro
             features.insert(features.end(), f.begin(), f.end());
         }
     }
+    assert(static_cast<int>(features.size()) == kAtariFeatureHistorySize * 4 * config::nn_input_channel_height * config::nn_input_channel_width);
     return features;
 }
 
