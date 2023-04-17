@@ -5,6 +5,11 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+import sys
+import argparse
+import os
+import time
+from multiprocessing import Process
 
 
 class AtariEnv:
@@ -34,7 +39,7 @@ class AtariEnv:
         return self.total_reward
 
 
-def save_video(record, video_file_name=None):
+def save_video(video_file_name, index, record, fps):
     # collect frames
     seed = int(record.split("SD[")[1].split("]")[0])
     env_name = record.split("GM[")[1].split("]")[0].replace("atari_", "")
@@ -48,15 +53,62 @@ def save_video(record, video_file_name=None):
         print(f"replay mismatch, score: {env.get_eval_score()}, record_score: {record.split('RE[')[1].split(']')[0]}")
 
     # save video
-    print(env.frames[0].shape)
     img = plt.imshow(env.frames[0])
     plt.axis('off')
     plt.tight_layout()
     video = FuncAnimation(plt.gcf(), lambda i: img.set_data(env.frames[i]), frames=len(env.frames))
-    video_file_name = env_name + ".mp4" if video_file_name is None else video_file_name
-    # video.save(video_file_name, writer='imagemagick', fps=60)
-    video.save(video_file_name, writer=matplotlib.animation.FFMpegWriter(fps=60))
+    video.save(f'{video_file_name}/{os.path.basename(video_file_name)}-{index}.mp4', writer=matplotlib.animation.FFMpegWriter(fps=fps))
+
+
+def join_all_processes(all_processes):
+    for i in range(len(all_processes)):
+        all_processes[i].join()
+    all_processes.clear()
+
+
+def process_datas(video_file_name, source, num_processes, fps):
+    assert num_processes > 0
+    working_processes = 0
+    all_processes = []
+    for index, record in enumerate(source):
+        all_processes.append(Process(
+            target=save_video, args=(video_file_name, index, record, fps)))
+        working_processes += 1
+        all_processes[len(all_processes) - 1].start()
+        if working_processes >= num_processes:
+            join_all_processes(all_processes)
+            working_processes = 0
+    if working_processes > 0:
+        join_all_processes(all_processes)
+
+
+def mkdir(dir):
+    if not os.path.isdir(dir):
+        os.mkdir(dir)
 
 
 if __name__ == '__main__':
-    save_video(input())
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-i', dest='fin_name', type=str,
+                        help='input flie')
+    parser.add_argument('-d', dest='dir_name', type=str,
+                        default=time.strftime(
+                            '%Y-%m-%d %H:%M:%S', time.localtime()),
+                        help='output directory (default: current time)')
+    parser.add_argument('-c', dest='num_processes', type=int, default=8,
+                        help='process number (default: 8)')
+    parser.add_argument('-fps', dest='fps', type=int, default=60,
+                        help='fps (default: 60)')
+    args = parser.parse_args()
+    mkdir(args.dir_name)
+    if args.fin_name:
+        if os.path.isfile(args.fin_name):
+            with open(args.fin_name, 'r') as fin:
+                process_datas(video_file_name=args.dir_name,
+                              source=fin.readlines(), num_processes=args.num_processes, fps=args.fps)
+        else:
+            print(f'\"{args.fin_name}\" does not exist!')
+            exit(1)
+    else:
+        process_datas(video_file_name=args.dir_name,
+                      source=sys.stdin, num_processes=args.num_processes, fps=args.fps)
