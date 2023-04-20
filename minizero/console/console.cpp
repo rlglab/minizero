@@ -42,6 +42,24 @@ void Console::initialize()
         actor_ = actor::createActor(tree_node_size, network_);
     }
     actor_->setNetwork(network_);
+
+    // forward the network several times to warmup since the first few forwards requires some initialization time
+    const int num_warmup_forward = 3;
+    if (network_->getNetworkTypeName() == "alphazero") {
+        std::shared_ptr<network::AlphaZeroNetwork> alphazero_network = std::static_pointer_cast<network::AlphaZeroNetwork>(network_);
+        for (int i = 0; i < num_warmup_forward; ++i) {
+            for (int j = 0; j < config::actor_mcts_think_batch_size; ++j) { alphazero_network->pushBack(actor_->getEnvironment().getFeatures()); }
+            alphazero_network->forward();
+        }
+    } else if (network_->getNetworkTypeName() == "muzero") {
+        std::shared_ptr<network::MuZeroNetwork> muzero_network = std::static_pointer_cast<network::MuZeroNetwork>(network_);
+        for (int i = 0; i < num_warmup_forward; ++i) {
+            for (int j = 0; j < config::actor_mcts_think_batch_size; ++j) { muzero_network->pushBackInitialData(actor_->getEnvironment().getFeatures()); }
+            muzero_network->initialInference();
+        }
+    } else {
+        assert(false); // should not be here
+    }
 }
 
 void Console::executeCommand(std::string command)
