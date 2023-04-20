@@ -14,16 +14,6 @@ namespace minizero::learner {
 using namespace minizero;
 using namespace minizero::utils;
 
-void DataPtr::copyData(int batch_index, const Data& data)
-{
-    std::copy(data.features_.begin(), data.features_.end(), features_ + data.features_.size() * batch_index);
-    std::copy(data.action_features_.begin(), data.action_features_.end(), action_features_ + data.action_features_.size() * batch_index);
-    std::copy(data.policy_.begin(), data.policy_.end(), policy_ + data.policy_.size() * batch_index);
-    std::copy(data.value_.begin(), data.value_.end(), value_ + data.value_.size() * batch_index);
-    std::copy(data.reward_.begin(), data.reward_.end(), reward_ + data.reward_.size() * batch_index);
-    std::copy(data.loss_scale_.begin(), data.loss_scale_.end(), loss_scale_ + data.loss_scale_.size() * batch_index);
-}
-
 void ReplayBuffer::addData(const EnvironmentLoader& env_loader)
 {
     std::pair<int, int> data_range = env_loader.getDataRange();
@@ -126,9 +116,9 @@ bool DataLoaderThread::sampleData()
     if (batch_index >= config::learner_batch_size) { return false; }
 
     if (config::nn_type_name == "alphazero") {
-        getSharedData()->data_ptr_.copyData(batch_index, sampleAlphaZeroTrainingData());
+        setAlphaZeroTrainingData(batch_index);
     } else if (config::nn_type_name == "muzero") {
-        getSharedData()->data_ptr_.copyData(batch_index, sampleMuZeroTrainingData());
+        setMuZeroTrainingData(batch_index);
     } else {
         return false; // should not be here
     }
@@ -136,53 +126,68 @@ bool DataLoaderThread::sampleData()
     return true;
 }
 
-Data DataLoaderThread::sampleAlphaZeroTrainingData()
+void DataLoaderThread::setAlphaZeroTrainingData(int batch_index)
 {
     // random pickup one position
     std::pair<int, int> p = getSharedData()->replay_buffer_.sampleEnvAndPos();
     int env_id = p.first, pos = p.second;
 
     // AlphaZero training data
-    Data data;
-    data.loss_scale_.push_back(getSharedData()->replay_buffer_.getLossScale(p));
     const EnvironmentLoader& env_loader = getSharedData()->replay_buffer_.env_loaders_[env_id];
     Rotation rotation = static_cast<Rotation>(Random::randInt() % static_cast<int>(Rotation::kRotateSize));
-    data.features_ = env_loader.getFeatures(pos, rotation);
-    data.policy_ = env_loader.getPolicy(pos, rotation);
-    data.value_ = env_loader.getValue(pos);
-    return data;
+    float loss_scale = getSharedData()->replay_buffer_.getLossScale(p);
+    std::vector<float> features = env_loader.getFeatures(pos, rotation);
+    std::vector<float> policy = env_loader.getPolicy(pos, rotation);
+    std::vector<float> value = env_loader.getValue(pos);
+
+    // write data to data_ptr
+    getSharedData()->getDataPtr()->loss_scale_[batch_index] = loss_scale;
+    std::copy(features.begin(), features.end(), getSharedData()->getDataPtr()->features_ + features.size() * batch_index);
+    std::copy(policy.begin(), policy.end(), getSharedData()->getDataPtr()->policy_ + policy.size() * batch_index);
+    std::copy(value.begin(), value.end(), getSharedData()->getDataPtr()->value_ + value.size() * batch_index);
 }
 
-Data DataLoaderThread::sampleMuZeroTrainingData()
+void DataLoaderThread::setMuZeroTrainingData(int batch_index)
 {
     // random pickup one position
     std::pair<int, int> p = getSharedData()->replay_buffer_.sampleEnvAndPos();
     int env_id = p.first, pos = p.second;
 
     // MuZero training data
-    Data data;
-    data.loss_scale_.push_back(getSharedData()->replay_buffer_.getLossScale(p));
     const EnvironmentLoader& env_loader = getSharedData()->replay_buffer_.env_loaders_[env_id];
     Rotation rotation = static_cast<Rotation>(Random::randInt() % static_cast<int>(Rotation::kRotateSize));
-    data.features_ = env_loader.getFeatures(pos, rotation);
+    float loss_scale = getSharedData()->replay_buffer_.getLossScale(p);
+    std::vector<float> features = env_loader.getFeatures(pos, rotation);
+    std::vector<float> action_features, policy, value, reward, tmp;
     for (int step = 0; step <= config::learner_muzero_unrolling_step; ++step) {
         // action features
-        std::vector<float> action_features = env_loader.getActionFeatures(pos + step, rotation);
-        if (step < config::learner_muzero_unrolling_step) { data.action_features_.insert(data.action_features_.end(), action_features.begin(), action_features.end()); }
+        if (step < config::learner_muzero_unrolling_step) {
+            tmp = env_loader.getActionFeatures(pos + step, rotation);
+            action_features.insert(action_features.end(), tmp.begin(), tmp.end());
+        }
 
         // policy
-        std::vector<float> policy = env_loader.getPolicy(pos + step, rotation);
-        data.policy_.insert(data.policy_.end(), policy.begin(), policy.end());
+        tmp = env_loader.getPolicy(pos + step, rotation);
+        policy.insert(policy.end(), tmp.begin(), tmp.end());
 
         // value
-        std::vector<float> value = env_loader.getValue(pos + step);
-        data.value_.insert(data.value_.end(), value.begin(), value.end());
+        tmp = env_loader.getValue(pos + step);
+        value.insert(value.end(), tmp.begin(), tmp.end());
 
         // reward
-        std::vector<float> reward = env_loader.getReward(pos + step);
-        if (step < config::learner_muzero_unrolling_step) { data.reward_.insert(data.reward_.end(), reward.begin(), reward.end()); }
+        if (step < config::learner_muzero_unrolling_step) {
+            tmp = env_loader.getReward(pos + step);
+            reward.insert(reward.end(), tmp.begin(), tmp.end());
+        }
     }
-    return data;
+
+    // write data to data_ptr
+    getSharedData()->getDataPtr()->loss_scale_[batch_index] = loss_scale;
+    std::copy(features.begin(), features.end(), getSharedData()->getDataPtr()->features_ + features.size() * batch_index);
+    std::copy(action_features.begin(), action_features.end(), getSharedData()->getDataPtr()->action_features_ + action_features.size() * batch_index);
+    std::copy(policy.begin(), policy.end(), getSharedData()->getDataPtr()->policy_ + policy.size() * batch_index);
+    std::copy(value.begin(), value.end(), getSharedData()->getDataPtr()->value_ + value.size() * batch_index);
+    std::copy(reward.begin(), reward.end(), getSharedData()->getDataPtr()->reward_ + reward.size() * batch_index);
 }
 
 DataLoader::DataLoader(const std::string& conf_file_name)
@@ -197,6 +202,7 @@ DataLoader::DataLoader(const std::string& conf_file_name)
 void DataLoader::initialize()
 {
     createSlaveThreads(config::learner_num_thread);
+    getSharedData()->createDataPtr();
 }
 
 void DataLoader::loadDataFromFile(const std::string& file_name)

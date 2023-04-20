@@ -11,19 +11,16 @@
 
 namespace minizero::learner {
 
-class Data {
+class BaseBatchDataPtr {
 public:
-    std::vector<float> features_;
-    std::vector<float> action_features_;
-    std::vector<float> policy_;
-    std::vector<float> value_;
-    std::vector<float> reward_;
-    std::vector<float> loss_scale_;
+    BaseBatchDataPtr() {}
+    virtual ~BaseBatchDataPtr() = default;
 };
 
-class DataPtr {
+class BatchDataPtr : public BaseBatchDataPtr {
 public:
-    void copyData(int batch_index, const Data& data);
+    BatchDataPtr() {}
+    virtual ~BatchDataPtr() = default;
 
     float* features_;
     float* action_features_;
@@ -53,11 +50,14 @@ public:
     std::string getNextEnvString();
     int getNextBatchIndex();
 
+    virtual void createDataPtr() { data_ptr_ = std::make_shared<BatchDataPtr>(); }
+    inline std::shared_ptr<BatchDataPtr> getDataPtr() { return std::static_pointer_cast<BatchDataPtr>(data_ptr_); }
+
     int batch_index_;
-    DataPtr data_ptr_;
     ReplayBuffer replay_buffer_;
     std::mutex mutex_;
     std::deque<std::string> env_strings_;
+    std::shared_ptr<BaseBatchDataPtr> data_ptr_;
 };
 
 class DataLoaderThread : public utils::BaseSlaveThread {
@@ -73,8 +73,8 @@ protected:
     virtual bool addEnvironmentLoader();
     virtual bool sampleData();
 
-    virtual Data sampleAlphaZeroTrainingData();
-    virtual Data sampleMuZeroTrainingData();
+    virtual void setAlphaZeroTrainingData(int batch_index);
+    virtual void setMuZeroTrainingData(int batch_index);
 
     inline std::shared_ptr<DataLoaderSharedData> getSharedData() { return std::static_pointer_cast<DataLoaderSharedData>(shared_data_); }
 };
