@@ -3,6 +3,7 @@
 #include "create_actor.h"
 #include "create_network.h"
 #include "sgf_loader.h"
+#include "time_system.h"
 #include <algorithm>
 #include <climits>
 #include <iomanip>
@@ -149,7 +150,9 @@ void Console::cmdGenmove(const std::vector<std::string>& args)
 
     if (actor_->isEnvTerminal()) { return reply(ConsoleResponse::kSuccess, "PASS"); }
     actor_->getEnvironment().setTurn(minizero::env::charToPlayer(args[1].c_str()[0]));
+    boost::posix_time::ptime start_ptime = utils::TimeSystem::getLocalTime();
     const Action action = actor_->think((args[0] == "genmove" ? true : false), true);
+    std::cerr << "Spent Time = " << (utils::TimeSystem::getLocalTime() - start_ptime).total_milliseconds() / 1000.0f << " (s)" << std::endl;
     if (actor_->isResign()) { return reply(ConsoleResponse::kSuccess, "Resign"); }
 
     reply(ConsoleResponse::kSuccess, action.toConsoleString());

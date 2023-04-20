@@ -16,6 +16,7 @@ float actor_mcts_puct_base = 19652;
 float actor_mcts_puct_init = 1.25;
 float actor_mcts_reward_discount = 1.0f;
 int actor_mcts_think_batch_size = 1;
+float actor_mcts_think_time_limit = 0;
 bool actor_mcts_value_rescale = false;
 bool actor_select_action_by_count = false;
 bool actor_select_action_by_softmax_count = true;
@@ -94,6 +95,7 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("actor_mcts_reward_discount", actor_mcts_reward_discount, "", "Actor");
     cl.addParameter("actor_mcts_value_rescale", actor_mcts_value_rescale, "", "Actor");
     cl.addParameter("actor_mcts_think_batch_size", actor_mcts_think_batch_size, "", "Actor");
+    cl.addParameter("actor_mcts_think_time_limit", actor_mcts_think_time_limit, "MCTS time limit (in seconds), 0 represents searching without using the time limit", "Actor");
     cl.addParameter("actor_select_action_by_count", actor_select_action_by_count, "", "Actor");
     cl.addParameter("actor_select_action_by_softmax_count", actor_select_action_by_softmax_count, "", "Actor");
     cl.addParameter("actor_select_action_softmax_temperature", actor_select_action_softmax_temperature, "", "Actor");

@@ -35,7 +35,13 @@ void ZeroActor::resetSearch()
 Action ZeroActor::think(bool with_play /*= false*/, bool display_board /*= false*/)
 {
     resetSearch();
-    while (!isSearchDone()) { step(); }
+    boost::posix_time::ptime start_ptime = utils::TimeSystem::getLocalTime();
+    while (!isSearchDone()) {
+        step();
+        int spent_million_second = (utils::TimeSystem::getLocalTime() - start_ptime).total_milliseconds();
+        if (config::actor_mcts_think_time_limit > 0 && spent_million_second >= config::actor_mcts_think_time_limit * 1000) { break; }
+    }
+    if (!isSearchDone()) { handleSearchDone(); }
     if (with_play) { act(getSearchAction()); }
     if (display_board) { std::cerr << env_.toString() << mcts_search_data_.search_info_ << std::endl; }
     return getSearchAction();
