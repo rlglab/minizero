@@ -51,7 +51,7 @@ public:
     bool act(const std::vector<std::string>& action_string_args) override { return act(AtariAction(action_string_args)); }
     std::vector<AtariAction> getLegalActions() const override;
     bool isLegalAction(const AtariAction& action) const override { return minimal_action_set_.count(action.getActionID()); }
-    bool isTerminal() const override { return ale_.game_over(false); }
+    bool isTerminal() const override { return ((getActionHistory().size() * kAtariFrameSkip) >= kAtariMaxNumFramesPerEpisode) || ale_.game_over(false); }
     float getReward() const override { return reward_; }
     float getEvalScore(bool is_resign = false) const override { return total_reward_; }
     std::vector<float> getFeatures(utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
