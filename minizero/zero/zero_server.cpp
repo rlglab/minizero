@@ -167,7 +167,7 @@ void ZeroServer::selfPlay()
     shared_data_.logger_.addTrainingLog("[SelfPlay] Start " + std::to_string(shared_data_.getModelIetration()));
 
     float total_return = 0.0f, max_return = std::numeric_limits<float>::min(), min_return = std::numeric_limits<float>::max();
-    int num_collect_game = 0, total_data_length = 0, total_game_length = 0, num_finished_game = 0;
+    int num_collect_game = 0, total_data_length = 0, total_game_length = 0, max_game_length = 0, num_finished_game = 0;
     while (num_collect_game < config::zero_num_games_per_iteration) {
         broadCastSelfPlayJob();
 
@@ -189,6 +189,7 @@ void ZeroServer::selfPlay()
             ++num_finished_game;
             total_return += sp_data.return_;
             total_game_length += sp_data.game_length_;
+            max_game_length = std::max(max_game_length, sp_data.game_length_);
             max_return = std::max(max_return, sp_data.return_);
             min_return = std::min(min_return, sp_data.return_);
         }
@@ -207,6 +208,7 @@ void ZeroServer::selfPlay()
     if (num_finished_game > 0) {
         shared_data_.logger_.addTrainingLog("[SelfPlay # Finished Games] " + std::to_string(num_finished_game));
         shared_data_.logger_.addTrainingLog("[SelfPlay Avg. Game Lengths] " + std::to_string(total_game_length * 1.0f / num_finished_game));
+        shared_data_.logger_.addTrainingLog("[SelfPlay Max. Game Lengths] " + std::to_string(max_game_length));
         shared_data_.logger_.addTrainingLog("[SelfPlay Min. Game Returns] " + std::to_string(min_return));
         shared_data_.logger_.addTrainingLog("[SelfPlay Max. Game Returns] " + std::to_string(max_return));
         shared_data_.logger_.addTrainingLog("[SelfPlay Avg. Game Returns] " + std::to_string(total_return / num_finished_game));
