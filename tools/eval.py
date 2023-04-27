@@ -148,7 +148,7 @@ def eval(dir, fout_name, player1_elo_file, game0_white, step_num, plot_elo):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--dir', dest='dir', type=str,
-                        help='dir')
+                        help='dir to eval')
     parser.add_argument('-o', '--out', dest='fout_name', type=str, default='elo',
                         help='output flie')
     parser.add_argument('-e', '--elo', dest='player1_elo_file', type=str,
@@ -160,8 +160,13 @@ if __name__ == '__main__':
     parser.add_argument('--plot', action='store_true', dest='plot_elo',
                         help='plot elo curve')
     args = parser.parse_args()
-    if args.dir and os.path.isdir(args.dir):
-        eval(args.dir, args.fout_name, args.player1_elo_file,
-             args.game0_white, args.step_num, args.plot_elo)
+    if args.dir:
+        if os.path.isdir(args.dir):
+            eval(args.dir, args.fout_name, args.player1_elo_file,
+                args.game0_white, args.step_num, args.plot_elo)
+        else:
+            print(f'\"{args.dir}\" does not exist!')
+            exit(1)
     else:
-        print('No such directory!')
+        parser.print_help()
+        exit(1)
