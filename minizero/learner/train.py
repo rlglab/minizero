@@ -77,7 +77,6 @@ def load_model(game_type, training_dir, model_file, conf):
                              conf.get_nn_hidden_channel_width(),
                              conf.get_nn_num_action_feature_channels(),
                              conf.get_nn_num_blocks(),
-                             conf.get_nn_num_action_channels(),
                              conf.get_nn_action_size(),
                              conf.get_nn_num_value_hidden_channels(),
                              conf.get_nn_discrete_value_size(),

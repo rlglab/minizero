@@ -37,7 +37,6 @@ public:
     inline int getNNHiddenChannelWidth() const { return config::nn_hidden_channel_width; }
     inline int getNNNumActionFeatureChannels() const { return config::nn_num_action_feature_channels; }
     inline int getNNNumBlocks() const { return config::nn_num_blocks; }
-    inline int getNNNumActionChannels() const { return config::nn_num_action_channels; }
     inline int getNNActionSize() const { return config::nn_action_size; }
     inline int getNNNumValueHiddenChannels() const { return config::nn_num_value_hidden_channels; }
     inline int getNNDiscreteValueSize() const { return config::nn_discrete_value_size; }
@@ -67,7 +66,6 @@ PYBIND11_MODULE(minizero_py, m)
         .def("get_nn_hidden_channel_width", &Conf::getNNHiddenChannelWidth)
         .def("get_nn_num_action_feature_channels", &Conf::getNNNumActionFeatureChannels)
         .def("get_nn_num_blocks", &Conf::getNNNumBlocks)
-        .def("get_nn_num_action_channels", &Conf::getNNNumActionChannels)
         .def("get_nn_action_size", &Conf::getNNActionSize)
         .def("get_nn_num_value_hidden_channels", &Conf::getNNNumValueHiddenChannels)
         .def("get_nn_discrete_value_size", &Conf::getNNDiscreteValueSize)

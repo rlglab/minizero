@@ -68,7 +68,6 @@ extern int nn_hidden_channel_height;
 extern int nn_hidden_channel_width;
 extern int nn_num_action_feature_channels;
 extern int nn_num_blocks;
-extern int nn_num_action_channels;
 extern int nn_action_size;
 extern int nn_num_value_hidden_channels;
 extern int nn_discrete_value_size;

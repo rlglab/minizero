@@ -14,7 +14,6 @@ class AlphaZeroNetwork(nn.Module):
                  hidden_channel_height,
                  hidden_channel_width,
                  num_blocks,
-                 num_action_channels,
                  action_size,
                  num_value_hidden_channels):
         super(AlphaZeroNetwork, self).__init__()
@@ -26,14 +25,13 @@ class AlphaZeroNetwork(nn.Module):
         self.hidden_channel_height = hidden_channel_height
         self.hidden_channel_width = hidden_channel_width
         self.num_blocks = num_blocks
-        self.num_action_channels = num_action_channels
         self.action_size = action_size
         self.num_value_hidden_channels = num_value_hidden_channels
 
         self.conv = nn.Conv2d(num_input_channels, num_hidden_channels, kernel_size=3, padding=1)
         self.bn = nn.BatchNorm2d(num_hidden_channels)
         self.residual_blocks = nn.ModuleList([ResidualBlock(num_hidden_channels) for _ in range(num_blocks)])
-        self.policy = PolicyNetwork(num_hidden_channels, hidden_channel_height, hidden_channel_width, num_action_channels, action_size)
+        self.policy = PolicyNetwork(num_hidden_channels, hidden_channel_height, hidden_channel_width, action_size)
         self.value = ValueNetwork(num_hidden_channels, hidden_channel_height, hidden_channel_width, num_value_hidden_channels)
 
     @torch.jit.export
@@ -71,10 +69,6 @@ class AlphaZeroNetwork(nn.Module):
     @torch.jit.export
     def get_num_blocks(self):
         return self.num_blocks
-
-    @torch.jit.export
-    def get_num_action_channels(self):
-        return self.num_action_channels
 
     @torch.jit.export
     def get_action_size(self):

@@ -66,7 +66,6 @@ int nn_hidden_channel_height = 3;
 int nn_hidden_channel_width = 3;
 int nn_num_action_feature_channels = 1;
 int nn_num_blocks = 1;
-int nn_num_action_channels = 1;
 int nn_action_size = 9;
 int nn_num_value_hidden_channels = 256;
 int nn_discrete_value_size = 1;
@@ -144,7 +143,6 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("nn_hidden_channel_width", nn_hidden_channel_width, "", "Network");
     cl.addParameter("nn_num_action_feature_channels", nn_num_action_feature_channels, "", "Network");
     cl.addParameter("nn_num_blocks", nn_num_blocks, "", "Network");
-    cl.addParameter("nn_num_action_channels", nn_num_action_channels, "", "Network");
     cl.addParameter("nn_action_size", nn_action_size, "", "Network");
     cl.addParameter("nn_num_value_hidden_channels", nn_num_value_hidden_channels, "", "Network");
     cl.addParameter("nn_discrete_value_size", nn_discrete_value_size, "board games: 1, atari: 601", "Network");

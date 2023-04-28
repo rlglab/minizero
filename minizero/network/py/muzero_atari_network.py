@@ -60,12 +60,12 @@ class MuZeroDynamicsNetwork(nn.Module):
 
 
 class MuZeroPredictionNetwork(nn.Module):
-    def __init__(self, num_channels, channel_height, channel_width, num_blocks, num_action_channels, action_size, num_value_hidden_channels, value_size):
+    def __init__(self, num_channels, channel_height, channel_width, num_blocks, action_size, num_value_hidden_channels, value_size):
         super(MuZeroPredictionNetwork, self).__init__()
         self.conv = nn.Conv2d(num_channels, num_channels, kernel_size=3, padding=1)
         self.bn = nn.BatchNorm2d(num_channels)
         self.residual_blocks = nn.ModuleList([ResidualBlock(num_channels) for _ in range(num_blocks)])
-        self.policy = PolicyNetwork(num_channels, channel_height, channel_width, num_action_channels, action_size)
+        self.policy = PolicyNetwork(num_channels, channel_height, channel_width, action_size)
         self.value = DiscreteValueNetwork(num_channels, channel_height, channel_width, num_value_hidden_channels, value_size)
 
     def forward(self, hidden_state):
@@ -90,7 +90,6 @@ class MuZeroAtariNetwork(nn.Module):
                  hidden_channel_width,
                  num_action_feature_channels,
                  num_blocks,
-                 num_action_channels,
                  action_size,
                  num_value_hidden_channels,
                  discrete_value_size):
@@ -104,15 +103,13 @@ class MuZeroAtariNetwork(nn.Module):
         self.hidden_channel_width = hidden_channel_width
         self.num_action_feature_channels = num_action_feature_channels
         self.num_blocks = num_blocks
-        self.num_action_channels = num_action_channels
         self.action_size = action_size
         self.num_value_hidden_channels = num_value_hidden_channels
         self.discrete_value_size = discrete_value_size
 
         self.representation_network = MuZeroRepresentationNetwork(num_input_channels, num_hidden_channels, num_blocks)
         self.dynamics_network = MuZeroDynamicsNetwork(num_hidden_channels, hidden_channel_height, hidden_channel_height, num_action_feature_channels, num_blocks, discrete_value_size)
-        self.prediction_network = MuZeroPredictionNetwork(num_hidden_channels, hidden_channel_height, hidden_channel_width, num_blocks,
-                                                          num_action_channels, action_size, num_value_hidden_channels, discrete_value_size)
+        self.prediction_network = MuZeroPredictionNetwork(num_hidden_channels, hidden_channel_height, hidden_channel_width, num_blocks, action_size, num_value_hidden_channels, discrete_value_size)
 
     @torch.jit.export
     def get_type_name(self):
@@ -153,10 +150,6 @@ class MuZeroAtariNetwork(nn.Module):
     @torch.jit.export
     def get_num_blocks(self):
         return self.num_blocks
-
-    @torch.jit.export
-    def get_num_action_channels(self):
-        return self.num_action_channels
 
     @torch.jit.export
     def get_action_size(self):
