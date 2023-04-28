@@ -7,6 +7,7 @@ usage()
 	echo ""
 	echo "  -h        , --help                 Give this help list"
 	echo "  -n        , --name                 Assign name for training directory"
+	echo "  -np       , --name_prefix          Add prefix name for default training directory name"
 	echo "  -ns       , --name_suffix          Add suffix name for default training directory name"
 	echo "            , --sp_executable_file   Assign the path for self-play executable file"
 	echo "            , --op_executable_file   Assign the path for optimization executable file"
@@ -24,6 +25,7 @@ else
 fi
 
 train_dir=""
+name_prefix=""
 name_suffix=""
 sp_executable_file=build/${game_type}/minizero_${game_type}
 op_executable_file=minizero/learner/train.py
@@ -33,6 +35,8 @@ while :; do
 		-h|--help) shift; usage
 		;;
 		-n|--name) shift; train_dir=$1
+		;;
+		-np|--name_prefix) shift; name_prefix=$1
 		;;
 		-ns|--name_suffix) shift; name_suffix=$1
 		;;
@@ -52,8 +56,7 @@ done
 
 # create default name of training if name is not assigned
 if [[ -z ${train_dir} ]]; then
-	train_dir=$(${sp_executable_file} -mode zero_training_name -conf_file ${configure_file} -conf_str "${overwrite_conf_str}" 2>/dev/null)
-	[[ -z ${name_suffix} ]] || train_dir=${train_dir}_${name_suffix}
+	train_dir=${name_prefix}$(${sp_executable_file} -mode zero_training_name -conf_file ${configure_file} -conf_str "${overwrite_conf_str}" 2>/dev/null)${name_suffix}
 fi
 
 run_stage="R"
