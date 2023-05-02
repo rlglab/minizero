@@ -204,7 +204,7 @@ public:
                 std::istringstream iss(policy_distribution);
                 while (std::getline(iss, tmp, ',')) {
                     int position = getRotatePosition(std::stoi(tmp.substr(0, tmp.find(":"))), rotation);
-                    float count = std::stoi(tmp.substr(tmp.find(":") + 1));
+                    float count = std::stof(tmp.substr(tmp.find(":") + 1));
                     policy[position] = count;
                     total += count;
                 }
