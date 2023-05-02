@@ -38,11 +38,14 @@ def getWinRate(file, game0_white):
         else:
             white_games = 1
             resign_win = 'B+'
-        for line in lines:
+        for line_id, line in enumerate(lines):
             game_info = line.split('\t')
-            # 0 GAME, 1	RES_B, 2 RES_W, 3 RES_R, 4 ALT, 5 DUP
+            # 0 GAME, 1	RES_B, 2 RES_W, 3 RES_R, 4 ALT, 5 DUP, 11 ERR, 12 ERR_MSG
+            if game_info[11] != '0':
+                print(f'{file}, Line {line_id}: {game_info[12]}')
             if game_info[5] != '-':
                 dup_game += 1
+                # continue
             if int(game_info[4]) == white_games:
                 if (game_info[1] == '-1.000000' or resign_win in game_info[1]):
                     p1_white_win += 1
@@ -154,7 +157,7 @@ if __name__ == '__main__':
     parser.add_argument('-e', '--elo', dest='player1_elo_file', type=str,
                         help='elo flie of player 1')
     parser.add_argument('-w', '--white', action='store_true', dest='game0_white',
-                        help='output flie')
+                        help='print player2\'s stats')
     parser.add_argument('--step', dest='step_num', type=int, default=1,
                         help='training step')
     parser.add_argument('--plot', action='store_true', dest='plot_elo',
@@ -163,7 +166,7 @@ if __name__ == '__main__':
     if args.dir:
         if os.path.isdir(args.dir):
             eval(args.dir, args.fout_name, args.player1_elo_file,
-                args.game0_white, args.step_num, args.plot_elo)
+                 args.game0_white, args.step_num, args.plot_elo)
         else:
             print(f'\"{args.dir}\" does not exist!')
             exit(1)

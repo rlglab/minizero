@@ -10,6 +10,28 @@ import argparse
 import os
 import time
 from multiprocessing import Process
+import warnings
+
+ACTION_MEANING = {
+    0: "NOOP",
+    1: "FIRE",
+    2: "UP",
+    3: "RIGHT",
+    4: "LEFT",
+    5: "DOWN",
+    6: "UPRIGHT",
+    7: "UPLEFT",
+    8: "DOWNRIGHT",
+    9: "DOWNLEFT",
+    10: "UPFIRE",
+    11: "RIGHTFIRE",
+    12: "LEFTFIRE",
+    13: "DOWNFIRE",
+    14: "UPRIGHTFIRE",
+    15: "UPLEFTFIRE",
+    16: "DOWNRIGHTFIRE",
+    17: "DOWNLEFTFIRE",
+}
 
 
 class AtariEnv:
@@ -39,13 +61,18 @@ class AtariEnv:
         return self.total_reward
 
 
-def save_video(video_file_name, index, record, fps):
+def save_video(video_file_name, index, record, fps, force):
     # collect frames
     seed = int(record.split("SD[")[1].split("]")[0])
     env_name = record.split("GM[")[1].split("]")[0].replace("atari_", "")
+    if not force and os.path.isfile(f'{video_file_name}/{env_name}-{index}.mp4'):
+        print(f'*** {video_file_name}/{env_name}-{index}.mp4 exists! Use --force to overwrite it. ***')
+        return
     env = AtariEnv(env_name, 'ALE/' + ''.join([w.capitalize() for w in env_name.split('_')]) + '-v5', seed)
     for action in record.split("B[")[1:]:
-        action_id = int(action.split("|")[0])
+        action_id = int(action.split("|")[0].split(']')[0])
+        # mapping action
+        action_id = env.env.get_action_meanings().index( ACTION_MEANING[action_id])
         env.act(action_id)
 
     # check consistency
@@ -57,7 +84,7 @@ def save_video(video_file_name, index, record, fps):
     plt.axis('off')
     plt.tight_layout()
     video = FuncAnimation(plt.gcf(), lambda i: img.set_data(env.frames[i]), frames=len(env.frames))
-    video.save(f'{video_file_name}/{os.path.basename(video_file_name)}-{index}.mp4', writer=matplotlib.animation.FFMpegWriter(fps=fps))
+    video.save(f'{video_file_name}/{env_name}-{index}.mp4', writer=matplotlib.animation.FFMpegWriter(fps=fps))
 
 
 def join_all_processes(all_processes):
@@ -66,19 +93,15 @@ def join_all_processes(all_processes):
     all_processes.clear()
 
 
-def process_datas(video_file_name, source, num_processes, fps):
+def process_datas(video_file_name, source, num_processes, fps, force):
     assert num_processes > 0
-    working_processes = 0
     all_processes = []
     for index, record in enumerate(source):
-        all_processes.append(Process(
-            target=save_video, args=(video_file_name, index, record, fps)))
-        working_processes += 1
+        all_processes.append(Process(target=save_video, args=(video_file_name, index, record, fps, force)))
         all_processes[len(all_processes) - 1].start()
-        if working_processes >= num_processes:
+        if len(all_processes) >= num_processes:
             join_all_processes(all_processes)
-            working_processes = 0
-    if working_processes > 0:
+    if len(all_processes) > 0:
         join_all_processes(all_processes)
 
 
@@ -88,27 +111,27 @@ def mkdir(dir):
 
 
 if __name__ == '__main__':
+    warnings.filterwarnings("ignore")
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', dest='fin_name', type=str,
-                        help='input flie')
-    parser.add_argument('-d', dest='dir_name', type=str,
-                        default=time.strftime(
-                            '%Y-%m-%d %H:%M:%S', time.localtime()),
-                        help='output directory (default: current time)')
-    parser.add_argument('-c', dest='num_processes', type=int, default=8,
-                        help='process number (default: 8)')
-    parser.add_argument('-fps', dest='fps', type=int, default=60,
-                        help='fps (default: 60)')
+    parser.add_argument('-i', dest='fin_name', type=str, help='input flie')
+    parser.add_argument('-d', dest='dir_name', type=str, default=time.strftime(
+        '%Y-%m-%d %H:%M:%S', time.localtime()), help='output directory (default: current time)')
+    parser.add_argument('-c', dest='num_processes', type=int,
+                        default=8, help='process number (default: 8)')
+    parser.add_argument('-fps', dest='fps', type=int,
+                        default=60, help='fps (default: 60)')
+    parser.add_argument('--force', action='store_true',
+                        dest='force', help='overwrite files')
     args = parser.parse_args()
     mkdir(args.dir_name)
     if args.fin_name:
         if os.path.isfile(args.fin_name):
             with open(args.fin_name, 'r') as fin:
-                process_datas(video_file_name=args.dir_name,
-                              source=fin.readlines(), num_processes=args.num_processes, fps=args.fps)
+                process_datas(video_file_name=args.dir_name, source=fin.readlines(
+                ), num_processes=args.num_processes, fps=args.fps, force=args.force)
         else:
             print(f'\"{args.fin_name}\" does not exist!')
             exit(1)
     else:
-        process_datas(video_file_name=args.dir_name,
-                      source=sys.stdin, num_processes=args.num_processes, fps=args.fps)
+        process_datas(video_file_name=args.dir_name, source=sys.stdin,
+                      num_processes=args.num_processes, fps=args.fps, force=args.force)
