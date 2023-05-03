@@ -17,6 +17,7 @@ class MinizeroDadaLoader:
     def __init__(self, conf_file_name):
         self.conf_file_name = conf_file_name
         self.data_loader = minizero_py.DataLoader(self.conf_file_name)
+        self.data_loader.initialize()
         self.data_list = []
 
         # allocate memory

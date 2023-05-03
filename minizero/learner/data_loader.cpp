@@ -196,7 +196,6 @@ DataLoader::DataLoader(const std::string& conf_file_name)
     config::ConfigureLoader cl;
     config::setConfiguration(cl);
     cl.loadFromFile(conf_file_name);
-    initialize();
 }
 
 void DataLoader::initialize()

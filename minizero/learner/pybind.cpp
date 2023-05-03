@@ -73,6 +73,7 @@ PYBIND11_MODULE(minizero_py, m)
 
     py::class_<learner::DataLoader>(m, "DataLoader")
         .def(py::init<std::string>())
+        .def("initialize", &learner::DataLoader::initialize)
         .def("load_data_from_file", &learner::DataLoader::loadDataFromFile, py::call_guard<py::gil_scoped_release>())
         .def(
             "sample_data", [](learner::DataLoader& data_loader, py::array_t<float>& features, py::array_t<float>& action_features, py::array_t<float>& policy, py::array_t<float>& value, py::array_t<float>& reward, py::array_t<float>& loss_scale) {
