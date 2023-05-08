@@ -1,27 +1,45 @@
 #!/usr/bin/bash
-# check arguments
-if [ $# -lt 5 ]
-then
-	echo "Usage: ./self-eval.sh [Game type] [Folder] [Config] [Interval] [Game num] [-s Start] [-b Board Size] [-g GPU LIST] [-d Result Folder Name]"
+
+usage()
+{
+	echo "Usage: ./self-eval.sh GAME_TYPE FOLDER CONF_FILE INTERVAL GAMENUM [OPTION...]"
+	echo ""
+	echo "  -h        , --help                 Give this help list"
+    echo "  -s                                 Start from which file in the folder (default 0)"
+	echo "  -b                                 Board size (default 9)"
+	echo "  -g, --gpu                          Assign available GPUs, e.g. 0123"
+    echo "            , --num_threads          Number of threads to play games"
+	echo "  -d                                 Result Folder Name (default [Folder1]_vs_[Folder2]_eval)"
+	echo "            , --sp_executable_file   Assign the path for fighting executable file"
 	exit 1
+}
+
+# check arguments
+if [ $# -lt 5 ] || [ $(($# % 2)) -eq 0 ];
+then
+	usage
 else
-    GAME_TYPE=$1
-    FOLDER=$2
-    CONF_FILE=$3
-    INTERVAL=$4
-    GAMENUM=$5
-    shift 5
-    # default arguments
-    START=0
-    NUM_GPU=$(nvidia-smi -L | wc -l)
-    GPU_LIST=$(echo $NUM_GPU | awk '{for(i=0;i<$1;i++)printf i}')
-    BOARD_SIZE=9
-    NAME="self_eval"
+    GAME_TYPE=$1; shift
+    FOLDER=$1; shift
+    CONF_FILE=$1; shift
+    INTERVAL=$1; shift
+    GAMENUM=$1; shift
 fi
+
+# default arguments
+START=0
+NUM_GPU=$(nvidia-smi -L | wc -l)
+GPU_LIST=$(echo $NUM_GPU | awk '{for(i=0;i<$1;i++)printf i}')
+num_threads=2
+BOARD_SIZE=9
+NAME="self_eval"
+sp_executable_file=build/${GAME_TYPE}/minizero_${GAME_TYPE}
 
 while :; do
 	case $1 in
-		-g|--gpu) shift; GPU_LIST=$1; NUM_GPU=${#GPU_LIST}
+		-h|--help) shift; usage
+		;;
+        -g|--gpu) shift; GPU_LIST=$1; NUM_GPU=${#GPU_LIST}
 		;;
         -b) shift; BOARD_SIZE=$1
 		;;
@@ -29,14 +47,18 @@ while :; do
 		;;
         -d) shift; NAME=$1
 		;;
+        --num_threads) shift; num_threads=$1
+        ;;
+        --sp_executable_file) shift; sp_executable_file=$1
+		;;
 		"") break
 		;;
-		*) echo "Unknown argument: $1"; exit 1
+		*) echo "Unknown argument: $1"; usage
 		;;
 	esac
 	shift
 done
-echo "./self-eval.sh $GAME_TYPE $FOLDER $CONF_FILE $INTERVAL $GAMENUM -s $START -b $BOARD_SIZE -g $GPU_LIST -d $NAME"
+echo "./self-eval.sh $GAME_TYPE $FOLDER $CONF_FILE $INTERVAL $GAMENUM -s $START -b $BOARD_SIZE -g $GPU_LIST -d $NAME --num_threads $num_threads --sp_executable_file $sp_executable_file"
 if [ ! -d "${FOLDER}" ]; then
     echo "${FOLDER} not exists!"
     exit 1
@@ -47,9 +69,9 @@ if [ ! -d "${FOLDER}/$NAME" ]; then
 fi
 
 function run_twogtp(){
-    BLACK="build/$GAME_TYPE/minizero_$GAME_TYPE -conf_file $CONF_FILE -conf_str \"nn_file_name=$FOLDER/model/$3\""
-    WHITE="build/$GAME_TYPE/minizero_$GAME_TYPE -conf_file $CONF_FILE -conf_str \"nn_file_name=$FOLDER/model/$2\""
-    EVAL_FOLDER="${FOLDER}/$4/${3:12:-3}_vs_${2:12:-3}"
+    BLACK="$sp_executable_file -conf_file $CONF_FILE -conf_str \"nn_file_name=$FOLDER/model/$3\""
+    WHITE="$sp_executable_file -conf_file $CONF_FILE -conf_str \"nn_file_name=$FOLDER/model/$2\""
+    EVAL_FOLDER="${FOLDER}/$NAME/${3:12:-3}_vs_${2:12:-3}"
     SGFFILE="${EVAL_FOLDER}/${3:12:-3}_vs_${2:12:-3}"
     if [ ! -d "${EVAL_FOLDER}" ];then
         mkdir $EVAL_FOLDER
@@ -62,42 +84,21 @@ function run_twogtp(){
         KOMI=7
     fi
     echo "GPUID: $1, Current players: ${3:12:-3} vs. ${2:12:-3}, Game num $GAMENUM"
-    CUDA_VISIBLE_DEVICES=$1 gogui-twogtp -black "$BLACK" -white "$WHITE" -games $GAMENUM -sgffile $SGFFILE -alternate -auto -size $BOARD_SIZE -komi $KOMI -threads 2
+    CUDA_VISIBLE_DEVICES=$1 gogui-twogtp -black "$BLACK" -white "$WHITE" -games $GAMENUM -sgffile $SGFFILE -alternate -auto -size $BOARD_SIZE -komi $KOMI -threads $num_threads
 }
 function run_gpu(){
-    CUR_NUM=1
-    CNT=1
-    S=0
-    P1=""
-    P2=""
-    for file in $(ls -rt $FOLDER/model | grep .pt )
+    models=($(ls $FOLDER/model | grep ".pt$" | sort -V))
+    for((i=$START;i<${#models[@]}-$INTERVAL;i=i+$INTERVAL))
     do
-        if [ $S -lt $2 ];then
-            S=$(($S+1))
-            continue
-        fi
-        if [ $S -eq $2 ];then
-            P1=$file
-            S=$(($S+1))
-            continue
-        fi
-        if [ $CNT -ne $INTERVAL ];then
-            CNT=$(($CNT+1))
-            continue
-        fi
-        CNT=1
-        CUR_NUM=$(($CUR_NUM+1))
-        P2=$file
-        run_twogtp $1 $P1 $P2 $3
-        P1=$P2
+        run_twogtp $1 ${models[$i]} ${models[$(($i+$INTERVAL))]}
     done
     echo "GPUID $1 done!"
 }
 for (( i=0; i < ${#GPU_LIST} ; i = i+1 ))
 do
     GPUID=${GPU_LIST:$i:1}
-    run_gpu $GPUID $START $NAME &
+    run_gpu $GPUID &
     sleep 10
 done
 wait
-echo "done!"
+echo "All done!"
