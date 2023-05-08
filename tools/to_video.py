@@ -72,7 +72,7 @@ def save_video(video_file_name, index, record, fps, force):
     for action in record.split("B[")[1:]:
         action_id = int(action.split("|")[0].split(']')[0])
         # mapping action
-        action_id = env.env.get_action_meanings().index( ACTION_MEANING[action_id])
+        action_id = env.env.get_action_meanings().index(ACTION_MEANING[action_id])
         env.act(action_id)
 
     # check consistency

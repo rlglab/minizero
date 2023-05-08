@@ -44,6 +44,7 @@ extern int zero_replay_buffer;
 extern float zero_disable_resign_ratio;
 extern int zero_actor_intermediate_sequence_length;
 extern std::string zero_actor_ignored_command;
+extern bool zero_actor_stop_after_enough_games;
 extern bool zero_server_accept_different_model_games;
 
 // learner parameters
@@ -77,6 +78,7 @@ extern std::string nn_type_name;
 extern std::string env_atari_rom_dir;
 extern std::string env_atari_name;
 extern int env_board_size;
+extern int env_atari_noop_start;
 extern float env_go_komi;
 extern std::string env_go_ko_rule;
 

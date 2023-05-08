@@ -42,6 +42,7 @@ int zero_replay_buffer = 20;
 float zero_disable_resign_ratio = 0.1;
 int zero_actor_intermediate_sequence_length = 0;
 std::string zero_actor_ignored_command = "reset_actors";
+bool zero_actor_stop_after_enough_games = false;
 bool zero_server_accept_different_model_games = true;
 
 // learner parameters
@@ -75,6 +76,7 @@ std::string nn_type_name = "alphazero";
 std::string env_atari_rom_dir = "/opt/atari57/";
 std::string env_atari_name = "ms_pacman";
 int env_board_size = 0;
+int env_atari_noop_start = 0;
 float env_go_komi = 7.5;
 std::string env_go_ko_rule = "positional";
 
@@ -119,6 +121,7 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("zero_disable_resign_ratio", zero_disable_resign_ratio, "", "Zero");
     cl.addParameter("zero_actor_intermediate_sequence_length", zero_actor_intermediate_sequence_length, "board games: 0; atari: 200", "Zero");
     cl.addParameter("zero_actor_ignored_command", zero_actor_ignored_command, "format: command1 command2 ...", "Zero");
+    cl.addParameter("zero_actor_stop_after_enough_games", zero_actor_stop_after_enough_games, "", "Zero");
     cl.addParameter("zero_server_accept_different_model_games", zero_server_accept_different_model_games, "", "Zero");
 
     // learner parameters
@@ -160,6 +163,7 @@ void setConfiguration(ConfigureLoader& cl)
                                                       "#\troad_runner robotank seaquest skiing solaris space_invaders star_gunner surround tennis time_pilot\n"
                                                       "#\ttutankham up_n_down venture video_pinball wizard_of_wor yars_revenge zaxxon",
                     "Environment");
+    cl.addParameter("env_atari_noop_start", env_atari_noop_start, "", "Environment");
 #elif GO
     cl.addParameter("env_go_komi", env_go_komi, "", "Environment");
     cl.addParameter("env_go_ko_rule", env_go_ko_rule, "positional/situational", "Environment");

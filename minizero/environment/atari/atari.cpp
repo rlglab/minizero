@@ -41,6 +41,10 @@ void AtariEnv::reset(int seed)
     feature_history_.pop_front();
     action_feature_history_.clear();
     action_feature_history_.resize(kAtariFeatureHistorySize, std::vector<float>(config::nn_input_channel_height * config::nn_input_channel_width, 0.0f));
+    int noop_length = config::env_atari_noop_start > 0 ? utils::Random::randInt() % (config::env_atari_noop_start + 1) : 0;
+    for (int i = 0; i < noop_length; ++i) {
+        act(AtariAction(0, env::Player::kPlayer1));
+    }
 }
 
 bool AtariEnv::act(const AtariAction& action)
