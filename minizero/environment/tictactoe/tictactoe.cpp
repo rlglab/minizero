@@ -45,7 +45,7 @@ bool TicTacToeEnv::isLegalAction(const TicTacToeAction& action) const
 {
     assert(action.getActionID() >= 0 && action.getActionID() < kTicTacToeBoardSize * kTicTacToeBoardSize);
     assert(action.getPlayer() == Player::kPlayer1 || action.getPlayer() == Player::kPlayer2);
-    return (board_[action.getActionID()] == Player::kPlayerNone);
+    return (action.getActionID() >= 0 && action.getActionID() < kTicTacToeBoardSize * kTicTacToeBoardSize && board_[action.getActionID()] == Player::kPlayerNone);
 }
 
 bool TicTacToeEnv::isTerminal() const

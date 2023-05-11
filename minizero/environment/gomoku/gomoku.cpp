@@ -50,7 +50,7 @@ bool GomokuEnv::isLegalAction(const GomokuAction& action) const
 {
     assert(action.getActionID() >= 0 && action.getActionID() < board_size_ * board_size_);
     assert(action.getPlayer() == Player::kPlayer1 || action.getPlayer() == Player::kPlayer2);
-    return (board_[action.getActionID()] == Player::kPlayerNone);
+    return (action.getActionID() >= 0 && action.getActionID() < board_size_ * board_size_ && board_[action.getActionID()] == Player::kPlayerNone);
 }
 
 bool GomokuEnv::isTerminal() const

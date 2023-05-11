@@ -132,7 +132,7 @@ void Console::cmdPlay(const std::vector<std::string>& args)
     std::string action_string = args[2];
     std::vector<std::string> act_args;
     for (unsigned int i = 1; i < args.size(); i++) { act_args.push_back(args[i]); }
-    if (!actor_->act(act_args)) { return reply(ConsoleResponse::kFail, "Invalid action: \"" + action_string + "\""); }
+    if (!actor_->act(act_args) && !actor_->isEnvTerminal()) { return reply(ConsoleResponse::kFail, "Invalid action: \"" + action_string + "\""); }
     reply(ConsoleResponse::kSuccess, "");
 }
 
