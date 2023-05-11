@@ -21,34 +21,67 @@ bool SGFLoader::loadFromFile(const std::string& file_name)
     return loadFromString(sgf_content);
 }
 
-bool SGFLoader::loadFromString(const std::string& sgf_content)
+bool SGFLoader::loadFromString(const std::string& content)
 {
     reset();
-    sgf_content_ = trimSpace(sgf_content);
-    for (size_t index = 0; index < sgf_content_.size() && sgf_content_[index] != ')';) {
-        std::pair<std::string, std::string> key_value;
-        if ((index = calculateKeyValuePair(sgf_content_, index, key_value)) == std::string::npos) { return false; }
-        if (key_value.first == "B" || key_value.first == "W") {
-            int board_size = tags_.count("SZ") ? std::stoi(tags_["SZ"]) : -1;
-            if (board_size == -1) { return false; }
-            std::vector<std::string> args{key_value.first, actionIDToBoardCoordinateString(sgfStringToActionID(key_value.second, board_size), board_size)};
-            std::string comment;
-            if (index < sgf_content_.size() && sgf_content_[index] == 'C') {
-                if ((index = calculateKeyValuePair(sgf_content_, index, key_value)) == std::string::npos) { return false; }
-                comment = key_value.second;
-            }
-            actions_.push_back({args, comment});
-        } else {
-            tags_[key_value.first] = key_value.second;
+    sgf_content_ = content;
+    std::string key, value;
+    int state = '(';
+    bool accept_move = false;
+    bool escape_next = false;
+    int board_size = -1;
+    for (char c : content) {
+        switch (state) {
+            case '(': // wait until record start
+                if (!accept_move) {
+                    accept_move = (c == '(');
+                } else {
+                    state = (c == ';') ? c : 'x';
+                    accept_move = false;
+                }
+                break;
+            case ';': // store key
+                if (c == ';') {
+                    accept_move = true;
+                } else if (c == '[' || c == ')') {
+                    state = c;
+                } else if (std::isgraph(c)) {
+                    key += c;
+                }
+                break;
+            case '[': // store value
+                if (c == '\\' && !escape_next) {
+                    escape_next = true;
+                } else if (c != ']' || escape_next) {
+                    value += c;
+                    escape_next = false;
+                } else { // ready to store key-value pair
+                    if (accept_move) {
+                        if (value.empty() || board_size == -1) { return false; }
+                        actions_.emplace_back().first = Action(key, actionIDToBoardCoordinateString(sgfStringToActionID(value, board_size), board_size));
+                        accept_move = false;
+                    } else if (actions_.size()) {
+                        actions_.back().second[key] = std::move(value);
+                    } else {
+                        if (key == "SZ") { board_size = std::stoi(value); }
+                        tags_[key] = std::move(value);
+                    }
+                    key.clear();
+                    value.clear();
+                    state = ';';
+                }
+                break;
+            case ')': // end of record, do nothing
+                break;
         }
     }
-    return true;
+    return state == ')';
 }
 
 void SGFLoader::reset()
 {
-    file_name_ = "";
-    sgf_content_ = "";
+    file_name_.clear();
+    sgf_content_.clear();
     tags_.clear();
     actions_.clear();
 }
@@ -106,33 +139,6 @@ std::string SGFLoader::trimSpace(const std::string& s) const
         if (skip || c != ' ') { new_s += c; }
     }
     return new_s;
-}
-
-size_t SGFLoader::calculateKeyValuePair(const std::string& s, size_t start_pos, std::pair<std::string, std::string>& key_value)
-{
-    key_value = {"", ""};
-    bool is_key = true;
-    for (; start_pos < s.size(); ++start_pos) {
-        if (is_key) {
-            if (isalpha(s[start_pos])) {
-                key_value.first += s[start_pos];
-            } else if (s[start_pos] == '[') {
-                if (key_value.first == "") { return std::string::npos; }
-                is_key = false;
-            }
-        } else {
-            if (s[start_pos] == ']') {
-                if (s[start_pos - 1] == '\\') {
-                    key_value.second += s[start_pos];
-                } else {
-                    return ++start_pos;
-                }
-            } else if (s[start_pos] != '\\') {
-                key_value.second += s[start_pos];
-            }
-        }
-    }
-    return std::string::npos;
 }
 
 } // namespace minizero::utils

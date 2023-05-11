@@ -4,13 +4,13 @@
 #include "rotation.h"
 #include "sgf_loader.h"
 #include "utils.h"
+#include "vector_map.h"
 #include <algorithm>
 #include <cassert>
 #include <fstream>
 #include <memory>
 #include <sstream>
 #include <string>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -107,13 +107,16 @@ public:
     BaseEnvLoader() {}
     virtual ~BaseEnvLoader() = default;
 
+    typedef minizero::utils::VectorMap<std::string, std::string> Info;
+
+public:
     virtual void reset()
     {
-        content_ = "";
+        sgf_content_.clear();
         tags_.clear();
-        action_pairs_.clear();
         tags_.insert({"GM", name()});
         tags_.insert({"RE", "0"});
+        action_pairs_.clear();
     }
 
     virtual bool loadFromFile(const std::string& file_name)
@@ -121,44 +124,79 @@ public:
         std::ifstream fin(file_name.c_str());
         if (!fin) { return false; }
 
-        std::stringstream buffer;
-        buffer << fin.rdbuf();
-        return loadFromString(buffer.str());
+        std::string line;
+        std::string sgf_content;
+        while (std::getline(fin, line)) {
+            if (line.back() == '\r') { line.pop_back(); }
+            if (line.empty()) { continue; }
+            sgf_content += line;
+        }
+        return loadFromString(sgf_content);
     }
 
     virtual bool loadFromString(const std::string& content)
     {
         reset();
-        content_ = content;
-        size_t index = content.find('(') + 1;
-        while (index < content.size() && content[index] != ')') {
-            size_t left_bracket_pos = content.find('[', index);
-            size_t right_bracket_pos = content.find(']', index);
-            if (left_bracket_pos == std::string::npos || right_bracket_pos == std::string::npos) { return false; }
-
-            std::string key = content.substr(index, left_bracket_pos - index);
-            std::string value = content.substr(left_bracket_pos + 1, right_bracket_pos - left_bracket_pos - 1);
-            if (key == "B" || key == "W") {
-                Action action(std::stoi(value.substr(0, value.find('|'))), charToPlayer(key[0]));
-                std::string action_info = value.substr(value.find('|') + 1);
-                addActionPair(action, action_info);
-            } else {
-                addTag(key, value);
+        sgf_content_ = content;
+        std::string key, value;
+        int state = '(';
+        bool accept_move = false;
+        bool escape_next = false;
+        int board_size = minizero::config::env_board_size;
+        for (char c : content) {
+            switch (state) {
+                case '(': // wait until record start
+                    if (!accept_move) {
+                        accept_move = (c == '(');
+                    } else {
+                        state = (c == ';') ? c : 'x';
+                        accept_move = false;
+                    }
+                    break;
+                case ';': // store key
+                    if (c == ';') {
+                        accept_move = true;
+                    } else if (c == '[' || c == ')') {
+                        state = c;
+                    } else if (std::isgraph(c)) {
+                        key += c;
+                    }
+                    break;
+                case '[': // store value
+                    if (c == '\\' && !escape_next) {
+                        escape_next = true;
+                    } else if (c != ']' || escape_next) {
+                        value += c;
+                        escape_next = false;
+                    } else { // ready to store key-value pair
+                        if (accept_move) {
+                            if (value.empty()) { return false; }
+                            int action_id = std::isdigit(value[0]) ? std::stoi(value) : minizero::utils::SGFLoader::sgfStringToActionID(value, board_size);
+                            action_pairs_.emplace_back().first = Action(action_id, charToPlayer(key[0]));
+                            accept_move = false;
+                        } else if (action_pairs_.size()) {
+                            action_pairs_.back().second[key] = std::move(value);
+                        } else {
+                            if (key == "SZ") { board_size = std::stoi(value); }
+                            tags_[key] = std::move(value);
+                        }
+                        key.clear();
+                        value.clear();
+                        state = ';';
+                    }
+                    break;
+                case ')': // end of record, do nothing
+                    break;
             }
-            index = right_bracket_pos + 1;
         }
-        return true;
+        return state == ')';
     }
 
     virtual void loadFromEnvironment(const Env& env, const std::vector<std::vector<std::pair<std::string, std::string>>>& action_info_history = {})
     {
         reset();
         for (size_t i = 0; i < env.getActionHistory().size(); ++i) {
-            std::string action_info = "";
-            if (action_info_history.size() > i) {
-                for (const auto& p : action_info_history[i]) { action_info += p.first + ":" + p.second + ";"; }
-            }
-            addActionPair(env.getActionHistory()[i], action_info);
+            addActionPair(env.getActionHistory()[i], action_info_history.size() > i ? Info(action_info_history[i]) : Info());
         }
         addTag("RE", std::to_string(env.getEvalScore()));
 
@@ -172,12 +210,11 @@ public:
     virtual std::string toString() const
     {
         std::ostringstream oss;
-        oss << "(";
-        for (const auto& t : tags_) { oss << t.first << "[" << t.second << "]"; }
+        oss << "(;";
+        for (const auto& t : tags_) { oss << t.first << "[" << escapeSGFString(t.second) << "]"; }
         for (const auto& p : action_pairs_) {
-            oss << playerToChar(p.first.getPlayer())
-                << "[" << p.first.getActionID()
-                << "|" << p.second << "]";
+            oss << ";" << playerToChar(p.first.getPlayer()) << "[" << p.first.getActionID() << "]";
+            for (const auto& info : p.second) { oss << info.first << "[" << escapeSGFString(info.second) << "]"; }
         }
         oss << ")";
         return oss.str();
@@ -195,7 +232,7 @@ public:
     {
         std::vector<float> policy(getPolicySize(), 0.0f);
         if (pos < static_cast<int>(action_pairs_.size())) {
-            const std::string policy_distribution = extractActionInfo(action_pairs_[pos].second, "P:");
+            const std::string policy_distribution = action_pairs_[pos].second["P"];
             if (policy_distribution.empty()) {
                 policy[getRotatePosition(action_pairs_[pos].first.getActionID(), rotation)] = 1.0f;
             } else {
@@ -226,8 +263,8 @@ public:
         }
     }
 
-    virtual std::vector<float> getValue(const int pos) const { return (pos < static_cast<int>(action_pairs_.size()) ? std::vector<float>{std::stof(extractActionInfo(action_pairs_[pos].second, "V:"))} : std::vector<float>{0.0f}); }
-    virtual std::vector<float> getReward(const int pos) const { return (pos < static_cast<int>(action_pairs_.size()) ? std::vector<float>{std::stof(extractActionInfo(action_pairs_[pos].second, "R:"))} : std::vector<float>{0.0f}); }
+    virtual std::vector<float> getValue(const int pos) const { return (pos < static_cast<int>(action_pairs_.size()) ? std::vector<float>{std::stof(action_pairs_[pos].second["V"])} : std::vector<float>{0.0f}); }
+    virtual std::vector<float> getReward(const int pos) const { return (pos < static_cast<int>(action_pairs_.size()) ? std::vector<float>{std::stof(action_pairs_[pos].second["R"])} : std::vector<float>{0.0f}); }
     virtual float getPriority(const int pos) const { return 1.0f; }
 
     virtual std::vector<float> getActionFeatures(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const = 0;
@@ -235,27 +272,31 @@ public:
     virtual int getPolicySize() const = 0;
     virtual int getRotatePosition(int position, utils::Rotation rotation) const = 0;
 
-    inline std::string getContent() const { return content_; }
+    inline std::string getSGFContent() const { return sgf_content_; }
     inline std::string getTag(const std::string& key) const { return tags_.count(key) ? tags_.at(key) : ""; }
-    inline std::vector<std::pair<Action, std::string>>& getActionPairs() { return action_pairs_; }
-    inline const std::vector<std::pair<Action, std::string>>& getActionPairs() const { return action_pairs_; }
+    inline std::vector<std::pair<Action, Info>>& getActionPairs() { return action_pairs_; }
+    inline const std::vector<std::pair<Action, Info>>& getActionPairs() const { return action_pairs_; }
     inline float getReturn() const { return std::stof(getTag("RE")); }
-    inline void addActionPair(const Action& action, const std::string& action_info = "") { action_pairs_.push_back({action, action_info}); }
+    inline void addActionPair(const Action& action, const Info& action_info = {}) { action_pairs_.emplace_back(action, action_info); }
     inline void addTag(const std::string& key, const std::string& value) { tags_[key] = value; }
 
 protected:
-    inline std::string extractActionInfo(const std::string& action_info, const std::string& tag) const
+    std::string escapeSGFString(const std::string& str) const
     {
-        if (action_info.find(tag) == std::string::npos) { return ""; }
-
-        size_t start = action_info.find(tag) + tag.size();
-        size_t end = action_info.find(";", start);
-        return action_info.substr(start, end - start);
+        std::string special = "()[]\\";
+        std::string escaped;
+        escaped.reserve(str.size() + 10);
+        for (char c : str) {
+            if (special.find(c) != std::string::npos) escaped += '\\';
+            escaped += c;
+        }
+        return escaped;
     }
 
-    std::string content_;
-    std::unordered_map<std::string, std::string> tags_;
-    std::vector<std::pair<Action, std::string>> action_pairs_;
+protected:
+    std::string sgf_content_;
+    Info tags_;
+    std::vector<std::pair<Action, Info>> action_pairs_;
 };
 
 template <int kNumPlayer = 2>
