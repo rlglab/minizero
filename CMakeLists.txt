@@ -17,6 +17,9 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -g -Wall -mpopcnt -O3 -pthread")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -Wall -Wno-unused-function -O0 -pthread")
 
+# for git info
+include_directories(${PROJECT_BINARY_DIR}/git_info)
+
 add_subdirectory(minizero)
 add_subdirectory(minizero/actor)
 add_subdirectory(minizero/config)

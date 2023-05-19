@@ -1,6 +1,7 @@
 #include "mode_handler.h"
 #include "actor_group.h"
 #include "console.h"
+#include "git_info.h"
 #include "random.h"
 #include "zero_server.h"
 #include <string>
@@ -57,6 +58,7 @@ void ModeHandler::run(int argc, char* argv[])
         genConfiguration(cl, gen_config);
         exit(0);
     } else {
+        std::cerr << "(Version: " << GIT_SHORT_HASH << ")" << std::endl;
         // run mode
         if (!function_map_.count(mode_string)) { usage(); }
         (*function_map_[mode_string])();
@@ -149,7 +151,9 @@ void ModeHandler::runZeroTrainingName()
     std::cout << Environment().name()                                                           // name for environment
               << "_" << (config::actor_use_gumbel ? "g" : "") << config::nn_type_name[0] << "z" // network & training algorithm
               << "_" << config::nn_num_blocks << "b"                                            // number of blocks
-              << "_n" << config::actor_num_simulation << std::endl;                             // number of simulations
+              << "x" << config::nn_num_hidden_channels                                          // number of hidden channels
+              << "_n" << config::actor_num_simulation                                           // number of simulations
+              << "-" << GIT_SHORT_HASH << std::endl;                                            // git hash info
 }
 
 void ModeHandler::runEnvTest()

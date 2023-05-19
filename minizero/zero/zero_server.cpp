@@ -1,4 +1,5 @@
 #include "zero_server.h"
+#include "git_info.h"
 #include "random.h"
 #include <algorithm>
 #include <boost/algorithm/string.hpp>
@@ -25,6 +26,7 @@ void ZeroLogger::createLog()
     }
     worker_log_ << std::endl;
     training_log_ << std::endl;
+    addTrainingLog("[Version] " + std::string(GIT_SHORT_HASH));
 }
 
 void ZeroLogger::addLog(const std::string& log_str, std::fstream& log_file)
