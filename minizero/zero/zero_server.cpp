@@ -92,9 +92,17 @@ void ZeroWorkerHandler::handleReceivedMessage(const std::string& message)
             job_command += ":program_quiet=true";
             write(job_command);
         } else if (type_ == "op") {
-            write("Job_Optimization " + config::zero_training_directory);
+            if (shared_data_.num_op_worker_ >= 1) {
+                shared_data_.logger_.addWorkerLog("[Worker Error] Receive multiple op workers");
+                shared_data_.logger_.addWorkerLog("[Worker Disconnection] " + getName() + " " + getType());
+                ConnectionHandler::close();
+            } else {
+                ++shared_data_.num_op_worker_;
+                write("Job_Optimization " + config::zero_training_directory);
+            }
         } else {
-            close();
+            shared_data_.logger_.addWorkerLog("[Worker Disconnection] " + getName() + " " + getType());
+            ConnectionHandler::close();
         }
         is_idle_ = true;
     } else if (args[0] == "SelfPlay") {
@@ -109,7 +117,6 @@ void ZeroWorkerHandler::handleReceivedMessage(const std::string& message)
 
         // print number of games if the queue already received many games in buffer
         if (shared_data_.sp_data_queue_.size() % std::max(1, static_cast<int>(config::zero_num_games_per_iteration * 0.25)) == 0) {
-            boost::lock_guard<boost::mutex> lock(shared_data_.worker_mutex_);
             shared_data_.logger_.addTrainingLog("[SelfPlay Game Buffer] " + std::to_string(shared_data_.sp_data_queue_.size()) + " games");
         }
     } else if (args[0] == "Optimization_Done") {
@@ -132,6 +139,7 @@ void ZeroWorkerHandler::close()
     boost::lock_guard<boost::mutex> lock(shared_data_.worker_mutex_);
     shared_data_.logger_.addWorkerLog("[Worker Disconnection] " + getName() + " " + getType());
     ConnectionHandler::close();
+    if (getType() == "op") { --shared_data_.num_op_worker_; }
 }
 
 void ZeroServer::run()
@@ -157,6 +165,7 @@ void ZeroServer::initialize()
     std::string nn_file_name = config::nn_file_name;
     nn_file_name = nn_file_name.substr(nn_file_name.find("weight_iter_") + std::string("weight_iter_").size());
     nn_file_name = nn_file_name.substr(0, nn_file_name.find("."));
+    shared_data_.num_op_worker_ = 0;
     shared_data_.model_iteration_ = stoi(nn_file_name);
 }
 

@@ -53,6 +53,7 @@ public:
     int getModelIetration();
 
     bool is_optimization_phase_;
+    int num_op_worker_;
     int total_games_;
     int model_iteration_;
     ZeroLogger logger_;
