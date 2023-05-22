@@ -11,6 +11,7 @@ usage()
 	echo "  -ns       , --name_suffix          Add suffix name for default training directory name"
 	echo "            , --sp_executable_file   Assign the path for self-play executable file"
 	echo "            , --op_executable_file   Assign the path for optimization executable file"
+	echo "            , --link_sgf   	   	   Assign the path of sgf for training without self play (only op)"
 	echo "  -conf_str ,                        Overwrite configuration file"
 	exit 1
 }
@@ -30,6 +31,7 @@ name_suffix=""
 sp_executable_file=build/${game_type}/minizero_${game_type}
 op_executable_file=minizero/learner/train.py
 overwrite_conf_str=""
+link_sgf=""
 while :; do
 	case $1 in
 		-h|--help) shift; usage
@@ -43,6 +45,8 @@ while :; do
 		--sp_executable_file) shift; sp_executable_file=$1
 		;;
 		--op_executable_file) shift; op_executable_file=$1
+		;;
+		--link_sgf) shift; link_sgf=$1
 		;;
 		-conf_str) shift; overwrite_conf_str=$1
 		;;
@@ -71,7 +75,14 @@ if [[ ${run_stage,} == "r" ]]; then
 	rm -rf ${train_dir}
 
 	echo "create ${train_dir} ..."
-	mkdir -p ${train_dir}/model ${train_dir}/sgf
+	mkdir -p ${train_dir}/model
+	if [[ ! -z ${link_sgf} ]];
+	then
+		ln -sr ${link_sgf} ${train_dir}/sgf
+		echo "link ${link_sgf} ..."
+	else
+		mkdir -p ${train_dir}/sgf
+	fi
 	touch ${train_dir}/op.log
 	new_configure_file=$(basename ${train_dir}).cfg
 	${sp_executable_file} -gen ${train_dir}/${new_configure_file} -conf_file ${configure_file} -conf_str "${overwrite_conf_str}" 2>/dev/null
@@ -79,7 +90,7 @@ if [[ ${run_stage,} == "r" ]]; then
 	# setup initial weight
 	echo "\"\" -1 -1" | PYTHONPATH=. python ${op_executable_file} ${game_type} ${train_dir} ${train_dir}/${new_configure_file} >/dev/null 2>&1
 elif [[ ${run_stage,} == "c" ]]; then
-    zero_start_iteration=$(($(grep -Ei 'optimization.+finished' ${train_dir}/Training.log | wc -l)+1))
+    zero_start_iteration=$(ls ${train_dir}/model/ | grep ".pt$" | wc -l)
     model_file=$(ls ${train_dir}/model/ | grep ".pt$" | sort -V | tail -n1)
     new_configure_file=$(basename ${train_dir}/*.cfg)
 	echo y | ${sp_executable_file} -gen ${train_dir}/${new_configure_file} -conf_file ${train_dir}/${new_configure_file} -conf_str "${overwrite_conf_str}" 2>/dev/null
@@ -94,4 +105,8 @@ fi
 
 # run zero server
 conf_str="zero_training_directory=${train_dir}:zero_end_iteration=${end_iteration}:nn_file_name=${model_file}:zero_start_iteration=${zero_start_iteration}"
+if [[ ! -z ${link_sgf} ]];
+then
+	conf_str="$conf_str:zero_num_games_per_iteration=0"
+fi
 ${sp_executable_file} -conf_file ${train_dir}/${new_configure_file} -conf_str ${conf_str} -mode zero_server

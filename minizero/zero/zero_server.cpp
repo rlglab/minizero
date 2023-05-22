@@ -173,7 +173,7 @@ void ZeroServer::selfPlay()
 {
     // setup
     std::string self_play_file_name = config::zero_training_directory + "/sgf/" + std::to_string(iteration_) + ".sgf";
-    shared_data_.logger_.getSelfPlayFileStream().open(self_play_file_name.c_str(), std::ios::out);
+    if (config::zero_num_games_per_iteration > 0) { shared_data_.logger_.getSelfPlayFileStream().open(self_play_file_name.c_str(), std::ios::out); }
     shared_data_.logger_.addTrainingLog("[Iteration] =====" + std::to_string(iteration_) + "=====");
     shared_data_.logger_.addTrainingLog("[SelfPlay] Start " + std::to_string(shared_data_.getModelIetration()));
 
@@ -214,7 +214,7 @@ void ZeroServer::selfPlay()
     }
 
     stopJob("sp");
-    shared_data_.logger_.getSelfPlayFileStream().close();
+    if (config::zero_num_games_per_iteration > 0) { shared_data_.logger_.getSelfPlayFileStream().close(); }
     shared_data_.logger_.addTrainingLog("[SelfPlay] Finished.");
     if (num_finished_game > 0) {
         shared_data_.logger_.addTrainingLog("[SelfPlay # Finished Games] " + std::to_string(num_finished_game));
