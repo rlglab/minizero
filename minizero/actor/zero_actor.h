@@ -55,7 +55,7 @@ protected:
 
     std::vector<MCTS::ActionCandidate> calculateAlphaZeroActionPolicy(const Environment& env_transition, const std::shared_ptr<network::AlphaZeroNetworkOutput>& alphazero_output);
     std::vector<MCTS::ActionCandidate> calculateMuZeroActionPolicy(MCTSNode* leaf_node, const std::shared_ptr<network::MuZeroNetworkOutput>& muzero_output);
-    Environment getEnvironmentTransition(const std::vector<MCTSNode*>& node_path);
+    virtual Environment getEnvironmentTransition(const std::vector<MCTSNode*>& node_path);
 
     bool enable_resign_;
     uint64_t tree_node_size_;

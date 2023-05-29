@@ -79,9 +79,9 @@ void ZeroActor::afterNNEvaluation(const std::shared_ptr<NetworkOutput>& network_
         if (!env_transition.isTerminal()) {
             std::shared_ptr<AlphaZeroNetworkOutput> alphazero_output = std::static_pointer_cast<AlphaZeroNetworkOutput>(network_output);
             getMCTS()->expand(leaf_node, calculateAlphaZeroActionPolicy(env_transition, alphazero_output));
-            getMCTS()->backup(node_path, alphazero_output->value_);
+            getMCTS()->backup(node_path, alphazero_output->value_, env_transition.getReward());
         } else {
-            getMCTS()->backup(node_path, env_transition.getEvalScore());
+            getMCTS()->backup(node_path, env_transition.getEvalScore(), env_transition.getReward());
         }
     } else if (muzero_network_) {
         std::shared_ptr<MuZeroNetworkOutput> muzero_output = std::static_pointer_cast<MuZeroNetworkOutput>(network_output);
