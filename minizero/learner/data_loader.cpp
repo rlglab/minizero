@@ -142,6 +142,8 @@ void DataLoaderThread::setAlphaZeroTrainingData(int batch_index)
 
     // write data to data_ptr
     getSharedData()->getDataPtr()->loss_scale_[batch_index] = loss_scale;
+    getSharedData()->getDataPtr()->sampled_index_[2 * batch_index] = p.first;
+    getSharedData()->getDataPtr()->sampled_index_[2 * batch_index + 1] = p.second;
     std::copy(features.begin(), features.end(), getSharedData()->getDataPtr()->features_ + features.size() * batch_index);
     std::copy(policy.begin(), policy.end(), getSharedData()->getDataPtr()->policy_ + policy.size() * batch_index);
     std::copy(value.begin(), value.end(), getSharedData()->getDataPtr()->value_ + value.size() * batch_index);
@@ -183,6 +185,8 @@ void DataLoaderThread::setMuZeroTrainingData(int batch_index)
 
     // write data to data_ptr
     getSharedData()->getDataPtr()->loss_scale_[batch_index] = loss_scale;
+    getSharedData()->getDataPtr()->sampled_index_[2 * batch_index] = p.first;
+    getSharedData()->getDataPtr()->sampled_index_[2 * batch_index + 1] = p.second;
     std::copy(features.begin(), features.end(), getSharedData()->getDataPtr()->features_ + features.size() * batch_index);
     std::copy(action_features.begin(), action_features.end(), getSharedData()->getDataPtr()->action_features_ + action_features.size() * batch_index);
     std::copy(policy.begin(), policy.end(), getSharedData()->getDataPtr()->policy_ + policy.size() * batch_index);
@@ -221,4 +225,36 @@ void DataLoader::sampleData()
     for (auto& t : slave_threads_) { t->finish(); }
 }
 
+float DataLoader::invert_value(float value)
+{
+    const float epsilon = 0.001;
+    const float sign_value = (value > 0.0f ? 1.0f : (value == 0.0f ? 0.0f : -1.0f));
+    return sign_value * (powf((sqrt(1 + 4 * epsilon * (fabs(value) + 1 + epsilon)) - 1) / (2 * epsilon), 2.0f) - 1);
+}
+
+void DataLoader::updatePriority(int* sampled_index, float* batch_v_first, float* batch_v_last)
+{
+    // TODO: use multiple threads
+    for (int batch_index = 0; batch_index < config::learner_batch_size; ++batch_index) {
+        int env_id = sampled_index[2 * batch_index];
+        int pos_id = sampled_index[2 * batch_index + 1];
+        float v_first = invert_value(batch_v_first[batch_index]);
+        float v_last = invert_value(batch_v_last[batch_index]);
+        EnvironmentLoader& env_loader = getSharedData()->replay_buffer_.env_loaders_[env_id];
+        std::deque<float>& position_priorities = getSharedData()->replay_buffer_.position_priorities_[env_id];
+        env_loader.setActionPairInfo(pos_id, "V", std::to_string(v_first));
+        env_loader.setActionPairInfo(pos_id + config::learner_n_step_return - 1, "V", std::to_string(v_last));
+        const float old_priority = position_priorities[pos_id];
+        float new_priority = env_loader.getPriority(pos_id);
+        position_priorities[pos_id] = new_priority;
+        if (new_priority > getSharedData()->replay_buffer_.game_priorities_[env_id]) {
+            getSharedData()->replay_buffer_.game_priority_sum_ += new_priority - getSharedData()->replay_buffer_.game_priorities_[env_id];
+            getSharedData()->replay_buffer_.game_priorities_[env_id] = new_priority;
+        } else if (new_priority < old_priority && old_priority == getSharedData()->replay_buffer_.game_priorities_[env_id]) {
+            float max_priority = (*std::max_element(std::begin(position_priorities), std::end(position_priorities)));
+            getSharedData()->replay_buffer_.game_priority_sum_ += max_priority - getSharedData()->replay_buffer_.game_priorities_[env_id];
+            getSharedData()->replay_buffer_.game_priorities_[env_id] = max_priority;
+        }
+    }
+}
 } // namespace minizero::learner

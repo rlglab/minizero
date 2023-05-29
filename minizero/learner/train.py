@@ -21,6 +21,7 @@ class MinizeroDadaLoader:
         self.data_list = []
 
         # allocate memory
+        self.sampled_index = np.zeros(conf.get_batch_size() * 2, dtype=np.int32)
         if conf.get_nn_type_name() == "alphazero":
             self.features = np.zeros(conf.get_batch_size() * conf.get_nn_num_input_channels() * conf.get_nn_input_channel_height() * conf.get_nn_input_channel_width(), dtype=np.float32)
             self.action_features = None
@@ -48,7 +49,7 @@ class MinizeroDadaLoader:
                 self.data_list.pop(0)
 
     def sample_data(self, conf):
-        self.data_loader.sample_data(self.features, self.action_features, self.policy, self.value, self.reward, self.loss_scale)
+        self.data_loader.sample_data(self.features, self.action_features, self.policy, self.value, self.reward, self.loss_scale, self.sampled_index)
         features = torch.FloatTensor(self.features).view(conf.get_batch_size(),
                                                          conf.get_nn_num_input_channels(),
                                                          conf.get_nn_input_channel_height(),
@@ -62,8 +63,14 @@ class MinizeroDadaLoader:
         value = torch.FloatTensor(self.value).view(conf.get_batch_size(), -1, conf.get_nn_discrete_value_size())
         reward = None if self.reward is None else torch.FloatTensor(self.reward).view(conf.get_batch_size(), -1, conf.get_nn_discrete_value_size())
         loss_scale = torch.FloatTensor(self.loss_scale / np.amax(self.loss_scale))
+        sampled_index = self.sampled_index
 
-        return features, action_features, policy, value, reward, loss_scale
+        return features, action_features, policy, value, reward, loss_scale, sampled_index
+
+    def update_priority(self, sampled_index, v_first, v_last):
+        start_value = -int(conf.get_nn_discrete_value_size() / 2)
+        accumulator = np.arange(start_value, start_value + v_first.shape[1])
+        self.data_loader.update_priority(sampled_index, (v_first * accumulator).sum(axis=1), (v_last * accumulator).sum(axis=1))
 
 
 def load_model(game_type, training_dir, model_file, conf):
@@ -157,7 +164,7 @@ def train(game_type, training_dir, conf, model_file, data_loader, start_iter, en
     training_info = {}
     for i in range(1, conf.get_training_step() + 1):
         optimizer.zero_grad()
-        features, action_features, label_policy, label_value, label_reward, loss_scale = data_loader.sample_data(conf)
+        features, action_features, label_policy, label_value, label_reward, loss_scale, sampled_index = data_loader.sample_data(conf)
 
         if conf.get_nn_type_name() == "alphazero":
             network_output = network(features.to(device))
@@ -170,6 +177,7 @@ def train(game_type, training_dir, conf, model_file, data_loader, start_iter, en
             add_training_info(training_info, 'loss_value', loss_value.item())
         elif conf.get_nn_type_name() == "muzero":
             network_output = network(features.to(device))
+            v_first = network_output['value'].to('cpu').detach().numpy()
             loss_step_policy, loss_step_value, loss_step_reward = calculate_loss(conf, network_output, label_policy[:, 0].to(device), label_value[:, 0].to(device), None, loss_scale.to(device))
             add_training_info(training_info, 'loss_policy_0', loss_step_policy.item())
             add_training_info(training_info, 'accuracy_policy_0', calculate_accuracy(network_output["policy_logit"], label_policy[:, 0], conf.get_batch_size()))
@@ -190,6 +198,9 @@ def train(game_type, training_dir, conf, model_file, data_loader, start_iter, en
                 loss_value += loss_step_value / conf.get_muzero_unrolling_step()
                 loss_reward += loss_step_reward / conf.get_muzero_unrolling_step()
                 network_output["hidden_state"].register_hook(lambda grad: grad / 2)
+            v_last = network_output['value'].to('cpu').detach().numpy()
+            if conf.use_per():
+                data_loader.update_priority(sampled_index, v_first, v_last)
             loss = loss_policy + loss_value + loss_reward
 
             add_training_info(training_info, 'loss_policy', loss_policy.item())

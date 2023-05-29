@@ -28,6 +28,7 @@ public:
     float* value_;
     float* reward_;
     float* loss_scale_;
+    int* sampled_index_;
 };
 
 class ReplayBuffer {
@@ -87,10 +88,14 @@ public:
     void summarize() override {}
     virtual void loadDataFromFile(const std::string& file_name);
     virtual void sampleData();
+    virtual void updatePriority(int* sampled_index, float* batch_v_first, float* batch_v_last);
 
     void createSharedData() override { shared_data_ = std::make_shared<DataLoaderSharedData>(); }
     std::shared_ptr<utils::BaseSlaveThread> newSlaveThread(int id) override { return std::make_shared<DataLoaderThread>(id, shared_data_); }
     inline std::shared_ptr<DataLoaderSharedData> getSharedData() { return std::static_pointer_cast<DataLoaderSharedData>(shared_data_); }
+
+protected:
+    float invert_value(float value);
 };
 
 } // namespace minizero::learner

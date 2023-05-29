@@ -265,6 +265,12 @@ public:
 
     virtual std::vector<float> getValue(const int pos) const { return (pos < static_cast<int>(action_pairs_.size()) ? std::vector<float>{std::stof(action_pairs_[pos].second["V"])} : std::vector<float>{0.0f}); }
     virtual std::vector<float> getReward(const int pos) const { return (pos < static_cast<int>(action_pairs_.size()) ? std::vector<float>{std::stof(action_pairs_[pos].second["R"])} : std::vector<float>{0.0f}); }
+    virtual bool setActionPairInfo(const int pos, const std::string& tag, const std::string value)
+    {
+        if (pos >= static_cast<int>(action_pairs_.size())) { return false; }
+        action_pairs_[pos].second[tag] = value;
+        return true;
+    }
     virtual float getPriority(const int pos) const { return 1.0f; }
 
     virtual std::vector<float> getActionFeatures(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const = 0;
