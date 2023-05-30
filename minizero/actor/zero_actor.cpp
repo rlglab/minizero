@@ -93,6 +93,7 @@ void ZeroActor::afterNNEvaluation(const std::shared_ptr<NetworkOutput>& network_
     }
     if (leaf_node == getMCTS()->getRootNode()) { addNoiseToNodeChildren(leaf_node); }
     if (isSearchDone()) { handleSearchDone(); }
+    if (config::actor_use_gumbel) { gumbel_zero_.sequentialHalving(getMCTS()); }
 }
 
 void ZeroActor::setNetwork(const std::shared_ptr<network::Network>& network)
@@ -164,14 +165,18 @@ void ZeroActor::handleSearchDone()
 
 MCTSNode* ZeroActor::decideActionNode()
 {
-    if (config::actor_select_action_by_count) {
-        return getMCTS()->selectChildByMaxCount(getMCTS()->getRootNode());
-    } else if (config::actor_select_action_by_softmax_count) {
-        return getMCTS()->selectChildBySoftmaxCount(getMCTS()->getRootNode(), config::actor_select_action_softmax_temperature);
-    }
+    if (config::actor_use_gumbel) {
+        return gumbel_zero_.decideActionNode(getMCTS());
+    } else {
+        if (config::actor_select_action_by_count) {
+            return getMCTS()->selectChildByMaxCount(getMCTS()->getRootNode());
+        } else if (config::actor_select_action_by_softmax_count) {
+            return getMCTS()->selectChildBySoftmaxCount(getMCTS()->getRootNode(), config::actor_select_action_softmax_temperature);
+        }
 
-    assert(false);
-    return nullptr;
+        assert(false);
+        return nullptr;
+    }
 }
 
 void ZeroActor::addNoiseToNodeChildren(MCTSNode* node)

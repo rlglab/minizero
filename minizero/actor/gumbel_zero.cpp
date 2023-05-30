@@ -1,42 +1,30 @@
-#include "gumbel_zero_actor.h"
+#include "gumbel_zero.h"
 #include <algorithm>
-#include <cmath>
 #include <limits>
 #include <memory>
-#include <string>
 #include <unordered_map>
-#include <vector>
 
 namespace minizero::actor {
 
-using namespace minizero;
-using namespace network;
-
-void GumbelZeroActor::afterNNEvaluation(const std::shared_ptr<network::NetworkOutput>& network_output)
-{
-    ZeroActor::afterNNEvaluation(network_output);
-    sequentialHalving();
-}
-
-std::string GumbelZeroActor::getMCTSPolicy() const
+std::string GumbelZero::getMCTSPolicy(const std::shared_ptr<MCTS>& mcts) const
 {
     // calculate value for non-visisted nodes
     float pi_sum = 0.0f, q_sum = 0.0f;
-    for (int i = 0; i < getMCTS()->getRootNode()->getNumChildren(); ++i) {
-        MCTSNode* child = getMCTS()->getRootNode()->getChild(i);
+    for (int i = 0; i < mcts->getRootNode()->getNumChildren(); ++i) {
+        MCTSNode* child = mcts->getRootNode()->getChild(i);
         if (child->getCount() == 0) { continue; }
         float value = (child->getAction().getPlayer() == env::Player::kPlayer1 ? child->getValue() : -child->getValue());
         pi_sum += child->getPolicy();
         q_sum += child->getPolicy() * value;
     }
-    float value_pi = (getMCTS()->getRootNode()->getChild(0)->getAction().getPlayer() == env::Player::kPlayer1 ? getMCTS()->getRootNode()->getValue() : -getMCTS()->getRootNode()->getValue());
+    float value_pi = (mcts->getRootNode()->getChild(0)->getAction().getPlayer() == env::Player::kPlayer1 ? mcts->getRootNode()->getValue() : -mcts->getRootNode()->getValue());
     float non_visited_node_value = 1.0 / (1 + config::actor_num_simulation) * (value_pi + (config::actor_num_simulation / pi_sum) * q_sum);
 
     // calculate completed Q-values
     std::unordered_map<int, float> new_logits;
     float max_logit = -std::numeric_limits<float>::max();
-    for (int i = 0; i < getMCTS()->getRootNode()->getNumChildren(); ++i) {
-        MCTSNode* child = getMCTS()->getRootNode()->getChild(i);
+    for (int i = 0; i < mcts->getRootNode()->getNumChildren(); ++i) {
+        MCTSNode* child = mcts->getRootNode()->getChild(i);
         float value = (child->getCount() == 0 ? non_visited_node_value : (child->getAction().getPlayer() == env::Player::kPlayer1 ? child->getValue() : -child->getValue()));
         float logit_without_noise = child->getPolicyLogit() - child->getPolicyNoise();
         float score = logit_without_noise + (config::actor_gumbel_sigma_visit_c + 1) * config::actor_gumbel_sigma_scale_c * value;
@@ -56,42 +44,42 @@ std::string GumbelZeroActor::getMCTSPolicy() const
     return oss.str();
 }
 
-MCTSNode* GumbelZeroActor::decideActionNode()
+MCTSNode* GumbelZero::decideActionNode(const std::shared_ptr<MCTS>& mcts)
 {
     if (config::actor_select_action_by_count) {
         assert(candidates_.size() > 0);
         sortCandidatesByScore();
         return candidates_[0];
     } else if (config::actor_select_action_by_softmax_count) {
-        return getMCTS()->selectChildBySoftmaxCount(getMCTS()->getRootNode(), config::actor_select_action_softmax_temperature);
+        return mcts->selectChildBySoftmaxCount(mcts->getRootNode(), config::actor_select_action_softmax_temperature);
     }
 
     assert(false);
     return nullptr;
 }
 
-std::vector<MCTSNode*> GumbelZeroActor::selection()
+std::vector<MCTSNode*> GumbelZero::selection(const std::shared_ptr<MCTS>& mcts)
 {
     std::vector<MCTSNode*> node_path;
-    if (getMCTS()->getNumSimulation() == 0) {
-        node_path = getMCTS()->select();
+    if (mcts->getNumSimulation() == 0) {
+        node_path = mcts->select();
     } else {
         assert(candidates_.size() > 0);
         sort(candidates_.begin(), candidates_.end(), [](const MCTSNode* lhs, const MCTSNode* rhs) {
             return (lhs->getCount() < rhs->getCount() || (lhs->getCount() == rhs->getCount() && lhs->getPolicyLogit() > rhs->getPolicyLogit()));
         });
-        node_path = getMCTS()->selectFromNode(candidates_[0]);
-        node_path.insert(node_path.begin(), getMCTS()->getRootNode());
+        node_path = mcts->selectFromNode(candidates_[0]);
+        node_path.insert(node_path.begin(), mcts->getRootNode());
     }
     return node_path;
 }
 
-void GumbelZeroActor::sequentialHalving()
+void GumbelZero::sequentialHalving(const std::shared_ptr<MCTS>& mcts)
 {
-    if (getMCTS()->getNumSimulation() == 1) {
+    if (mcts->getNumSimulation() == 1) {
         // collect candidates
         candidates_.clear();
-        for (int i = 0; i < getMCTS()->getRootNode()->getNumChildren(); ++i) { candidates_.push_back(getMCTS()->getRootNode()->getChild(i)); }
+        for (int i = 0; i < mcts->getRootNode()->getNumChildren(); ++i) { candidates_.push_back(mcts->getRootNode()->getChild(i)); }
         sort(candidates_.begin(), candidates_.end(), [](const MCTSNode* lhs, const MCTSNode* rhs) { return lhs->getPolicyLogit() > rhs->getPolicyLogit(); });
         if (static_cast<int>(candidates_.size()) > config::actor_gumbel_sample_size) { candidates_.resize(config::actor_gumbel_sample_size); }
         sample_size_ = config::actor_gumbel_sample_size;
@@ -117,7 +105,7 @@ void GumbelZeroActor::sequentialHalving()
     }
 }
 
-void GumbelZeroActor::sortCandidatesByScore()
+void GumbelZero::sortCandidatesByScore()
 {
     assert(!candidates_.empty());
     sort(candidates_.begin(), candidates_.end(), [](const MCTSNode* lhs, const MCTSNode* rhs) {

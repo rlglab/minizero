@@ -2,6 +2,7 @@
 
 #include "alphazero_network.h"
 #include "base_actor.h"
+#include "gumbel_zero.h"
 #include "mcts.h"
 #include "muzero_network.h"
 #include <memory>
@@ -43,7 +44,7 @@ public:
     const std::shared_ptr<MCTS> getMCTS() const { return std::static_pointer_cast<MCTS>(search_); }
 
 protected:
-    std::string getMCTSPolicy() const override { return getMCTS()->getSearchDistributionString(); }
+    std::string getMCTSPolicy() const override { return (config::actor_use_gumbel ? gumbel_zero_.getMCTSPolicy(getMCTS()) : getMCTS()->getSearchDistributionString()); }
     std::string getMCTSValue() const override { return std::to_string(getMCTS()->getRootNode()->getMean()); }
     std::string getEnvReward() const override;
 
@@ -51,13 +52,14 @@ protected:
     virtual void handleSearchDone();
     virtual MCTSNode* decideActionNode();
     virtual void addNoiseToNodeChildren(MCTSNode* node);
-    virtual std::vector<MCTSNode*> selection() { return getMCTS()->select(); }
+    virtual std::vector<MCTSNode*> selection() { return (config::actor_use_gumbel ? gumbel_zero_.selection(getMCTS()) : getMCTS()->select()); }
 
     std::vector<MCTS::ActionCandidate> calculateAlphaZeroActionPolicy(const Environment& env_transition, const std::shared_ptr<network::AlphaZeroNetworkOutput>& alphazero_output);
     std::vector<MCTS::ActionCandidate> calculateMuZeroActionPolicy(MCTSNode* leaf_node, const std::shared_ptr<network::MuZeroNetworkOutput>& muzero_output);
     virtual Environment getEnvironmentTransition(const std::vector<MCTSNode*>& node_path);
 
     bool enable_resign_;
+    GumbelZero gumbel_zero_;
     uint64_t tree_node_size_;
     MCTSSearchData mcts_search_data_;
     std::shared_ptr<network::AlphaZeroNetwork> alphazero_network_;
