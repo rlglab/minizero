@@ -59,6 +59,8 @@ public:
     std::string toString() const override { return ""; }
     inline std::string name() const override { return kAtariName + "_" + minizero::config::env_atari_name; }
     inline int getNumPlayer() const override { return kAtariNumPlayer; }
+    inline int getRotatePosition(int position, utils::Rotation rotation) const override { return position; }
+    inline int getRotateAction(int action_id, utils::Rotation rotation) const override { return action_id; }
 
     // atari environment states & settings
     inline int getSeed() const { return seed_; }
@@ -93,6 +95,7 @@ public:
     inline std::string name() const override { return kAtariName + "_" + minizero::config::env_atari_name; }
     inline int getPolicySize() const override { return kAtariActionSize; }
     inline int getRotatePosition(int position, utils::Rotation rotation) const override { return position; }
+    inline int getRotateAction(int action_id, utils::Rotation rotation) const override { return action_id; }
 
 private:
     void addObservations(const std::string& compressed_obs);

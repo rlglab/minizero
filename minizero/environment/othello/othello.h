@@ -40,6 +40,9 @@ public:
     inline int getNumPlayer() const override { return kOthelloNumPlayer; }
     inline bool isPassAction(const OthelloAction& action) const { return (action.getActionID() == getBoardSize() * getBoardSize()); }
 
+    inline int getRotatePosition(int position, utils::Rotation rotation) const override { return utils::getPositionByRotating(rotation, position, getBoardSize()); };
+    inline int getRotateAction(int action_id, utils::Rotation rotation) const override { return getRotatePosition(action_id, rotation); };
+
 private:
     Player eval() const;
     OthelloBitboard getCanPutPoint(
@@ -72,7 +75,8 @@ public:
     inline std::vector<float> getValue(const int pos) const { return {getReturn()}; }
     inline std::string name() const override { return kOthelloName + "_" + std::to_string(getBoardSize()) + "x" + std::to_string(getBoardSize()); }
     inline int getPolicySize() const override { return getBoardSize() * getBoardSize() + 1; }
-    inline int getRotatePosition(int position, utils::Rotation rotation) const override { return getPositionByRotating(rotation, position, getBoardSize()); }
+    inline int getRotatePosition(int position, utils::Rotation rotation) const override { return utils::getPositionByRotating(rotation, position, getBoardSize()); };
+    inline int getRotateAction(int action_id, utils::Rotation rotation) const override { return getRotatePosition(action_id, rotation); };
 };
 
 } // namespace minizero::env::othello

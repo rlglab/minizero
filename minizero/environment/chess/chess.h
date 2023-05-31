@@ -207,6 +207,8 @@ public:
     std::string toString() const override;
     inline std::string name() const override { return kChessName; }
     inline int getNumPlayer() const override { return kChessNumPlayer; }
+    inline int getRotatePosition(int position, utils::Rotation rotation) const override { return position; }
+    inline int getRotateAction(int action_id, utils::Rotation rotation) const override { return action_id; }
 
 private:
     int ply1_remain_[5];
@@ -238,6 +240,7 @@ public:
     inline std::string name() const override { return kChessName; }
     inline int getPolicySize() const override { return 4672; }
     inline int getRotatePosition(int position, utils::Rotation rotation) const override { return position; }
+    inline int getRotateAction(int action_id, utils::Rotation rotation) const override { return action_id; }
 };
 
 } // namespace minizero::env::chess

@@ -69,6 +69,9 @@ public:
     inline const std::vector<GoHashKey>& getHashKeyHistory() const { return hashkey_history_; }
     inline const std::unordered_set<GoHashKey>& getHashTable() const { return hash_table_; }
 
+    inline int getRotatePosition(int position, utils::Rotation rotation) const override { return utils::getPositionByRotating(rotation, position, getBoardSize()); };
+    inline int getRotateAction(int action_id, utils::Rotation rotation) const override { return getRotatePosition(action_id, rotation); };
+
 protected:
     void initialize();
     GoBlock* newBlock();
@@ -124,7 +127,8 @@ public:
     inline std::vector<float> getValue(const int pos) const { return {getReturn()}; }
     inline std::string name() const override { return kGoName + "_" + std::to_string(getBoardSize()) + "x" + std::to_string(getBoardSize()); }
     inline int getPolicySize() const override { return getBoardSize() * getBoardSize() + 1; }
-    inline int getRotatePosition(int position, utils::Rotation rotation) const override { return getPositionByRotating(rotation, position, getBoardSize()); }
+    inline int getRotatePosition(int position, utils::Rotation rotation) const override { return utils::getPositionByRotating(rotation, position, getBoardSize()); };
+    inline int getRotateAction(int action_id, utils::Rotation rotation) const override { return getRotatePosition(action_id, rotation); };
 };
 
 } // namespace minizero::env::go

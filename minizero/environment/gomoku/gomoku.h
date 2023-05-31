@@ -36,6 +36,9 @@ public:
     inline std::string name() const override { return kGomokuName + "_" + std::to_string(getBoardSize()) + "x" + std::to_string(getBoardSize()); }
     inline int getNumPlayer() const override { return kGomokuNumPlayer; }
 
+    inline int getRotatePosition(int position, utils::Rotation rotation) const override { return utils::getPositionByRotating(rotation, position, getBoardSize()); };
+    inline int getRotateAction(int action_id, utils::Rotation rotation) const override { return getRotatePosition(action_id, rotation); };
+
 private:
     Player updateWinner(const GomokuAction& action);
     int calculateNumberOfConnection(int start_pos, std::pair<int, int> direction);
@@ -51,7 +54,8 @@ public:
     inline std::vector<float> getValue(const int pos) const { return {getReturn()}; }
     inline std::string name() const override { return kGomokuName + "_" + std::to_string(getBoardSize()) + "x" + std::to_string(getBoardSize()); }
     inline int getPolicySize() const override { return getBoardSize() * getBoardSize(); }
-    inline int getRotatePosition(int position, utils::Rotation rotation) const override { return getPositionByRotating(rotation, position, getBoardSize()); }
+    inline int getRotatePosition(int position, utils::Rotation rotation) const override { return utils::getPositionByRotating(rotation, position, getBoardSize()); };
+    inline int getRotateAction(int action_id, utils::Rotation rotation) const override { return getRotatePosition(action_id, rotation); };
 };
 
 } // namespace minizero::env::gomoku

@@ -29,6 +29,8 @@ public:
     std::string toString() const override;
     inline std::string name() const override { return kTicTacToeName; }
     inline int getNumPlayer() const override { return kTicTacToeNumPlayer; }
+    inline int getRotatePosition(int position, utils::Rotation rotation) const override { return utils::getPositionByRotating(rotation, position, getBoardSize()); };
+    inline int getRotateAction(int action_id, utils::Rotation rotation) const override { return getRotatePosition(action_id, rotation); };
 
 private:
     Player eval() const;
@@ -42,7 +44,8 @@ public:
     inline std::vector<float> getValue(const int pos) const { return {getReturn()}; }
     inline std::string name() const override { return kTicTacToeName; }
     inline int getPolicySize() const override { return kTicTacToeBoardSize * kTicTacToeBoardSize; }
-    inline int getRotatePosition(int position, utils::Rotation rotation) const override { return getPositionByRotating(rotation, position, kTicTacToeBoardSize); }
+    inline int getRotatePosition(int position, utils::Rotation rotation) const override { return utils::getPositionByRotating(rotation, position, getBoardSize()); };
+    inline int getRotateAction(int action_id, utils::Rotation rotation) const override { return getRotatePosition(action_id, rotation); };
 };
 
 } // namespace minizero::env::tictactoe

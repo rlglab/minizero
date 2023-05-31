@@ -86,6 +86,8 @@ public:
     virtual float getEvalScore(bool is_resign = false) const = 0;
     virtual std::vector<float> getFeatures(utils::Rotation rotation = utils::Rotation::kRotationNone) const = 0;
     virtual std::vector<float> getActionFeatures(const Action& action, utils::Rotation rotation = utils::Rotation::kRotationNone) const = 0;
+    virtual int getRotatePosition(int position, utils::Rotation rotation) const = 0;
+    virtual int getRotateAction(int action_id, utils::Rotation rotation) const = 0;
     virtual std::string toString() const = 0;
     virtual std::string name() const = 0;
     virtual int getNumPlayer() const = 0;
@@ -234,13 +236,13 @@ public:
         if (pos < static_cast<int>(action_pairs_.size())) {
             const std::string policy_distribution = action_pairs_[pos].second["P"];
             if (policy_distribution.empty()) {
-                policy[getRotatePosition(action_pairs_[pos].first.getActionID(), rotation)] = 1.0f;
+                policy[getRotateAction(action_pairs_[pos].first.getActionID(), rotation)] = 1.0f;
             } else {
                 std::string tmp;
                 float total = 0.0f;
                 std::istringstream iss(policy_distribution);
                 while (std::getline(iss, tmp, ',')) {
-                    int position = getRotatePosition(std::stoi(tmp.substr(0, tmp.find(":"))), rotation);
+                    int position = getRotateAction(std::stoi(tmp.substr(0, tmp.find(":"))), rotation);
                     float count = std::stof(tmp.substr(tmp.find(":") + 1));
                     policy[position] = count;
                     total += count;
@@ -277,14 +279,15 @@ public:
     virtual std::string name() const = 0;
     virtual int getPolicySize() const = 0;
     virtual int getRotatePosition(int position, utils::Rotation rotation) const = 0;
+    virtual int getRotateAction(int action_id, utils::Rotation rotation) const = 0;
+    virtual inline std::string getTag(const std::string& key) const { return tags_.count(key) ? tags_.at(key) : ""; }
+    virtual inline void addTag(const std::string& key, const std::string& value) { tags_[key] = value; }
 
     inline std::string getSGFContent() const { return sgf_content_; }
-    inline std::string getTag(const std::string& key) const { return tags_.count(key) ? tags_.at(key) : ""; }
     inline std::vector<std::pair<Action, Info>>& getActionPairs() { return action_pairs_; }
     inline const std::vector<std::pair<Action, Info>>& getActionPairs() const { return action_pairs_; }
-    inline float getReturn() const { return std::stof(getTag("RE")); }
     inline void addActionPair(const Action& action, const Info& action_info = {}) { action_pairs_.emplace_back(action, action_info); }
-    inline void addTag(const std::string& key, const std::string& value) { tags_[key] = value; }
+    inline float getReturn() const { return std::stof(getTag("RE")); }
 
 protected:
     std::string escapeSGFString(const std::string& str) const
@@ -338,17 +341,25 @@ protected:
 template <class Action, class Env>
 class BaseBoardEnvLoader : public BaseEnvLoader<Action, Env> {
 public:
+    BaseBoardEnvLoader() : board_size_(minizero::config::env_board_size) {}
+    virtual ~BaseBoardEnvLoader() = default;
+
     void loadFromEnvironment(const Env& env, const std::vector<std::vector<std::pair<std::string, std::string>>>& action_info_history = {}) override
     {
         BaseEnvLoader<Action, Env>::loadFromEnvironment(env, action_info_history);
-        BaseEnvLoader<Action, Env>::addTag("SZ", std::to_string(env.getBoardSize()));
+        addTag("SZ", std::to_string(env.getBoardSize()));
     }
 
-    inline int getBoardSize() const
+    inline void addTag(const std::string& key, const std::string& value) override
     {
-        std::string size = BaseEnvLoader<Action, Env>::getTag("SZ");
-        return size.size() ? std::stoi(size) : minizero::config::env_board_size;
+        BaseEnvLoader<Action, Env>::addTag(key, value);
+        if (key == "SZ") { board_size_ = std::stoi(value); }
     }
+
+    inline int getBoardSize() const { return board_size_; }
+
+protected:
+    int board_size_;
 };
 
 } // namespace minizero::env

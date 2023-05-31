@@ -57,6 +57,8 @@ public:
     inline Player getWinner() const { return winner_; }
     inline const std::vector<Cell>& getBoard() const { return board_; }
     std::vector<int> getWinningStonesPosition() const;
+    inline int getRotatePosition(int position, utils::Rotation rotation) const override { return position; }
+    inline int getRotateAction(int action_id, utils::Rotation rotation) const override { return action_id; }
 
 private:
     Player updateWinner(int actionID);
@@ -72,6 +74,7 @@ public:
     inline std::string name() const override { return kHexName + "_" + std::to_string(getBoardSize()) + "x" + std::to_string(getBoardSize()); }
     inline int getPolicySize() const override { return getBoardSize() * getBoardSize(); }
     inline int getRotatePosition(int position, utils::Rotation rotation) const override { return position; }
+    inline int getRotateAction(int action_id, utils::Rotation rotation) const override { return action_id; }
 };
 
 } // namespace minizero::env::hex
