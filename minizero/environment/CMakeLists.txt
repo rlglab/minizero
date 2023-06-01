@@ -13,6 +13,8 @@ target_include_directories(
     killallgo
     othello
     tictactoe
+    stochastic
+    stochastic/puzzle2048
 )
 target_link_libraries(
     environment

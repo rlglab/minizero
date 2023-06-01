@@ -189,6 +189,8 @@ void setDefaultBoardSize(ConfigureLoader& cl)
     env_board_size = 8;
 #elif TICTACTOE
     env_board_size = 3;
+#elif PUZZLE2048
+    env_board_size = 4;
 #else
     env_board_size = 0;
 #endif

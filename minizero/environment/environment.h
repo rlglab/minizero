@@ -35,6 +35,11 @@ typedef minizero::env::killallgo::KillAllGoEnvLoader EnvironmentLoader;
 typedef minizero::env::othello::OthelloAction Action;
 typedef minizero::env::othello::OthelloEnv Environment;
 typedef minizero::env::othello::OthelloEnvLoader EnvironmentLoader;
+#elif PUZZLE2048
+#include "puzzle2048.h"
+typedef minizero::env::puzzle2048::Puzzle2048Action Action;
+typedef minizero::env::puzzle2048::Puzzle2048Env Environment;
+typedef minizero::env::puzzle2048::Puzzle2048EnvLoader EnvironmentLoader;
 #else
 #include "tictactoe.h"
 typedef minizero::env::tictactoe::TicTacToeAction Action;
