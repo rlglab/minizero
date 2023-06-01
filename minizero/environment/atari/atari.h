@@ -88,8 +88,8 @@ public:
     void loadFromEnvironment(const AtariEnv& env, const std::vector<std::vector<std::pair<std::string, std::string>>>& action_info_history = {}) override;
     std::vector<float> getFeatures(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::vector<float> getActionFeatures(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
-    std::vector<float> getValue(const int pos) const override { return toDiscreteValue(pos < static_cast<int>(action_pairs_.size()) ? transformValue(calculateNStepValue(pos)) : 0.0f); }
-    inline std::vector<float> getReward(const int pos) const override { return toDiscreteValue(pos < static_cast<int>(action_pairs_.size()) ? transformValue(BaseEnvLoader::getReward(pos)[0]) : 0.0f); }
+    std::vector<float> getValue(const int pos) const override { return toDiscreteValue(pos < static_cast<int>(action_pairs_.size()) ? utils::transformValue(calculateNStepValue(pos)) : 0.0f); }
+    inline std::vector<float> getReward(const int pos) const override { return toDiscreteValue(pos < static_cast<int>(action_pairs_.size()) ? utils::transformValue(BaseEnvLoader::getReward(pos)[0]) : 0.0f); }
     float getPriority(const int pos) const override { return fabs(calculateNStepValue(pos) - BaseEnvLoader::getValue(pos)[0]); }
 
     inline std::string name() const override { return kAtariName + "_" + minizero::config::env_atari_name; }
@@ -101,7 +101,6 @@ private:
     void addObservations(const std::string& compressed_obs);
     std::vector<float> getFeaturesByReplay(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const;
     float calculateNStepValue(const int pos) const;
-    float transformValue(float value) const;
     std::vector<float> toDiscreteValue(float value) const;
 
     std::vector<std::string> observations_;

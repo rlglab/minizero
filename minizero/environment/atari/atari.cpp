@@ -229,14 +229,6 @@ float AtariEnvLoader::calculateNStepValue(const int pos) const
     return value;
 }
 
-float AtariEnvLoader::transformValue(float value) const
-{
-    const float epsilon = 0.001;
-    const float sign_value = (value > 0.0f ? 1.0f : (value == 0.0f ? 0.0f : -1.0f));
-    value = sign_value * (sqrt(fabs(value) + 1) - 1) + epsilon * value;
-    return value;
-}
-
 std::vector<float> AtariEnvLoader::toDiscreteValue(float value) const
 {
     std::vector<float> discrete_value(config::nn_discrete_value_size, 0.0f);

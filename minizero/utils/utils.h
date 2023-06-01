@@ -4,6 +4,7 @@
 #include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/filtering_streambuf.hpp>
+#include <cmath>
 #include <iomanip>
 #include <sstream>
 #include <string>
@@ -90,6 +91,23 @@ inline std::string compressString(const std::string& s)
 inline std::string decompressString(const std::string& s)
 {
     return decompressBinaryString(hexToBinaryString(s));
+}
+
+inline float transformValue(float value)
+{
+    // reference: Observe and Look Further: Achieving Consistent Performance on Atari, page 11
+    const float epsilon = 0.001;
+    const float sign_value = (value > 0.0f ? 1.0f : (value == 0.0f ? 0.0f : -1.0f));
+    value = sign_value * (sqrt(fabs(value) + 1) - 1) + epsilon * value;
+    return value;
+}
+
+inline float invertValue(float value)
+{
+    // reference: Observe and Look Further: Achieving Consistent Performance on Atari, page 11
+    const float epsilon = 0.001;
+    const float sign_value = (value > 0.0f ? 1.0f : (value == 0.0f ? 0.0f : -1.0f));
+    return sign_value * (powf((sqrt(1 + 4 * epsilon * (fabs(value) + 1 + epsilon)) - 1) / (2 * epsilon), 2.0f) - 1);
 }
 
 } // namespace minizero::utils

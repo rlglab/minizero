@@ -93,9 +93,6 @@ public:
     void createSharedData() override { shared_data_ = std::make_shared<DataLoaderSharedData>(); }
     std::shared_ptr<utils::BaseSlaveThread> newSlaveThread(int id) override { return std::make_shared<DataLoaderThread>(id, shared_data_); }
     inline std::shared_ptr<DataLoaderSharedData> getSharedData() { return std::static_pointer_cast<DataLoaderSharedData>(shared_data_); }
-
-protected:
-    float invert_value(float value);
 };
 
 } // namespace minizero::learner

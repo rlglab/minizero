@@ -225,21 +225,14 @@ void DataLoader::sampleData()
     for (auto& t : slave_threads_) { t->finish(); }
 }
 
-float DataLoader::invert_value(float value)
-{
-    const float epsilon = 0.001;
-    const float sign_value = (value > 0.0f ? 1.0f : (value == 0.0f ? 0.0f : -1.0f));
-    return sign_value * (powf((sqrt(1 + 4 * epsilon * (fabs(value) + 1 + epsilon)) - 1) / (2 * epsilon), 2.0f) - 1);
-}
-
 void DataLoader::updatePriority(int* sampled_index, float* batch_v_first, float* batch_v_last)
 {
     // TODO: use multiple threads
     for (int batch_index = 0; batch_index < config::learner_batch_size; ++batch_index) {
         int env_id = sampled_index[2 * batch_index];
         int pos_id = sampled_index[2 * batch_index + 1];
-        float v_first = invert_value(batch_v_first[batch_index]);
-        float v_last = invert_value(batch_v_last[batch_index]);
+        float v_first = utils::invertValue(batch_v_first[batch_index]);
+        float v_last = utils::invertValue(batch_v_last[batch_index]);
         EnvironmentLoader& env_loader = getSharedData()->replay_buffer_.env_loaders_[env_id];
         std::deque<float>& position_priorities = getSharedData()->replay_buffer_.position_priorities_[env_id];
         env_loader.setActionPairInfo(pos_id, "V", std::to_string(v_first));

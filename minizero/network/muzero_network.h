@@ -1,6 +1,7 @@
 #pragma once
 
 #include "network.h"
+#include "utils.h"
 #include <algorithm>
 #include <memory>
 #include <mutex>
@@ -163,14 +164,14 @@ private:
                                                                 value_output.data_ptr<float>() + (i + 1) * getDiscreteValueSize(),
                                                                 0.0f,
                                                                 [&start_value](const float& sum, const float& value) { return sum + value * start_value++; });
-                muzero_network_output->value_ = invert_value(muzero_network_output->value_);
+                muzero_network_output->value_ = utils::invertValue(muzero_network_output->value_);
                 if (forward_result.contains("reward")) {
                     start_value = -getDiscreteValueSize() / 2;
                     muzero_network_output->reward_ = std::accumulate(reward_output.data_ptr<float>() + i * getDiscreteValueSize(),
                                                                      reward_output.data_ptr<float>() + (i + 1) * getDiscreteValueSize(),
                                                                      0.0f,
                                                                      [&start_value](const float& sum, const float& value) { return sum + value * start_value++; });
-                    muzero_network_output->reward_ = invert_value(muzero_network_output->reward_);
+                    muzero_network_output->reward_ = utils::invertValue(muzero_network_output->reward_);
                 }
             } else {
                 muzero_network_output->value_ = value_output[i].item<float>();
@@ -178,13 +179,6 @@ private:
         }
 
         return network_outputs;
-    }
-
-    float invert_value(float value)
-    {
-        const float epsilon = 0.001;
-        const float sign_value = (value > 0.0f ? 1.0f : (value == 0.0f ? 0.0f : -1.0f));
-        return sign_value * (powf((sqrt(1 + 4 * epsilon * (fabs(value) + 1 + epsilon)) - 1) / (2 * epsilon), 2.0f) - 1);
     }
 
     int num_action_feature_channels_;
