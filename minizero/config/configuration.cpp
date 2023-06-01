@@ -148,7 +148,7 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("nn_num_blocks", nn_num_blocks, "", "Network");
     cl.addParameter("nn_action_size", nn_action_size, "", "Network");
     cl.addParameter("nn_num_value_hidden_channels", nn_num_value_hidden_channels, "", "Network");
-    cl.addParameter("nn_discrete_value_size", nn_discrete_value_size, "board games: 1, atari: 601", "Network");
+    cl.addParameter("nn_discrete_value_size", nn_discrete_value_size, "set to 1 for the games which doesn't use discrete value", "Network");
     cl.addParameter("nn_type_name", nn_type_name, "alphazero/muzero", "Network");
 
     // environment parameters

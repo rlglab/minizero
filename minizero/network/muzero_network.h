@@ -34,7 +34,6 @@ public:
     MuZeroNetwork()
     {
         num_action_feature_channels_ = -1;
-        discrete_value_size_ = -1;
         initial_input_batch_size_ = recurrent_input_batch_size_ = 0;
         initial_tensor_input_.clear();
         initial_tensor_input_.reserve(kReserved_batch_size);
@@ -50,7 +49,6 @@ public:
 
         std::vector<torch::jit::IValue> dummy;
         num_action_feature_channels_ = network_.get_method("get_num_action_feature_channels")(dummy).toInt();
-        discrete_value_size_ = (getNetworkTypeName() == "muzero_atari" ? network_.get_method("get_discrete_value_size")(dummy).toInt() : -1);
         initial_input_batch_size_ = 0;
         recurrent_input_batch_size_ = 0;
     }
@@ -60,7 +58,6 @@ public:
         std::ostringstream oss;
         oss << Network::toString();
         oss << "Number of action feature channels: " << num_action_feature_channels_ << std::endl;
-        if (getNetworkTypeName() == "muzero_atari") { oss << "Discrete value size: " << discrete_value_size_ << std::endl; }
         return oss.str();
     }
 
@@ -120,7 +117,6 @@ public:
     }
 
     inline int getNumActionFeatureChannels() const { return num_action_feature_channels_; }
-    inline int getDiscreteValueSize() const { return discrete_value_size_; }
     inline int getInitialInputBatchSize() const { return initial_input_batch_size_; }
     inline int getRecurrentInputBatchSize() const { return recurrent_input_batch_size_; }
 
@@ -182,7 +178,6 @@ private:
     }
 
     int num_action_feature_channels_;
-    int discrete_value_size_;
     int initial_input_batch_size_;
     int recurrent_input_batch_size_;
     std::mutex initial_mutex_;

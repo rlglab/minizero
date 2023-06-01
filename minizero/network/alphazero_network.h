@@ -1,6 +1,7 @@
 #pragma once
 
 #include "network.h"
+#include "utils.h"
 #include <algorithm>
 #include <memory>
 #include <mutex>
@@ -69,20 +70,33 @@ public:
         auto value_output = forward_result.at("value").toTensor().to(at::kCPU);
         assert(policy_output.numel() == batch_size_ * getActionSize());
         assert(policy_logits_output.numel() == batch_size_ * getActionSize());
-        assert(value_output.numel() == batch_size_);
+        assert(value_output.numel() == batch_size_ * getDiscreteValueSize());
 
         const int policy_size = getActionSize();
         std::vector<std::shared_ptr<NetworkOutput>> network_outputs;
         for (int i = 0; i < batch_size_; ++i) {
             network_outputs.emplace_back(std::make_shared<AlphaZeroNetworkOutput>(policy_size));
             auto alphazero_network_output = std::static_pointer_cast<AlphaZeroNetworkOutput>(network_outputs.back());
-            alphazero_network_output->value_ = value_output[i].item<float>();
+
+            // policy & policy logits
             std::copy(policy_output.data_ptr<float>() + i * policy_size,
                       policy_output.data_ptr<float>() + (i + 1) * policy_size,
                       alphazero_network_output->policy_.begin());
             std::copy(policy_logits_output.data_ptr<float>() + i * policy_size,
                       policy_logits_output.data_ptr<float>() + (i + 1) * policy_size,
                       alphazero_network_output->policy_logits_.begin());
+
+            // value
+            if (getDiscreteValueSize() == 1) {
+                alphazero_network_output->value_ = value_output[i].item<float>();
+            } else {
+                int start_value = -getDiscreteValueSize() / 2;
+                alphazero_network_output->value_ = std::accumulate(value_output.data_ptr<float>() + i * getDiscreteValueSize(),
+                                                                   value_output.data_ptr<float>() + (i + 1) * getDiscreteValueSize(),
+                                                                   0.0f,
+                                                                   [&start_value](const float& sum, const float& value) { return sum + value * start_value++; });
+                alphazero_network_output->value_ = utils::invertValue(alphazero_network_output->value_);
+            }
         }
 
         clear();
