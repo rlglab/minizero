@@ -92,17 +92,4 @@ inline int getPositionByRotating(Rotation rotation, int original_pos, int board_
     return new_pos;
 }
 
-template <class T>
-void rotateBoardVector(std::vector<T>& input, int board_size, Rotation rotation)
-{
-    if (rotation == Rotation::kRotationNone) { return; }
-
-    std::vector<T> output;
-    for (size_t pos = 0; pos < input.size(); ++pos) {
-        int rotation_pos = getPositionByRotating(reversed_rotation[static_cast<int>(rotation)], pos, board_size);
-        output.push_back(input[rotation_pos]);
-    }
-    input = output;
-}
-
 } // namespace minizero::utils

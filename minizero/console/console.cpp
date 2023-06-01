@@ -218,11 +218,15 @@ void Console::calculatePolicyValue(std::vector<float>& policy, float& value, uti
 {
     if (network_->getNetworkTypeName() == "alphazero") {
         std::shared_ptr<network::AlphaZeroNetwork> alphazero_network = std::static_pointer_cast<network::AlphaZeroNetwork>(network_);
-        int index = alphazero_network->pushBack(actor_->getEnvironment().getFeatures(rotation), rotation);
+        int index = alphazero_network->pushBack(actor_->getEnvironment().getFeatures(rotation));
         std::shared_ptr<NetworkOutput> network_output = alphazero_network->forward()[index];
         std::shared_ptr<minizero::network::AlphaZeroNetworkOutput> zero_output = std::static_pointer_cast<minizero::network::AlphaZeroNetworkOutput>(network_output);
-        policy = zero_output->policy_;
         value = zero_output->value_;
+        policy.clear();
+        for (size_t action_id = 0; action_id < zero_output->policy_.size(); ++action_id) {
+            int rotated_id = actor_->getEnvironment().getRotateAction(action_id, rotation);
+            policy.push_back(zero_output->policy_[rotated_id]);
+        }
     } else if (network_->getNetworkTypeName() == "muzero") {
         std::shared_ptr<network::MuZeroNetwork> muzero_network = std::static_pointer_cast<network::MuZeroNetwork>(network_);
         int index = muzero_network->pushBackInitialData(actor_->getEnvironment().getFeatures());

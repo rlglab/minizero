@@ -54,7 +54,7 @@ protected:
     virtual void addNoiseToNodeChildren(MCTSNode* node);
     virtual std::vector<MCTSNode*> selection() { return (config::actor_use_gumbel ? gumbel_zero_.selection(getMCTS()) : getMCTS()->select()); }
 
-    std::vector<MCTS::ActionCandidate> calculateAlphaZeroActionPolicy(const Environment& env_transition, const std::shared_ptr<network::AlphaZeroNetworkOutput>& alphazero_output);
+    std::vector<MCTS::ActionCandidate> calculateAlphaZeroActionPolicy(const Environment& env_transition, const std::shared_ptr<network::AlphaZeroNetworkOutput>& alphazero_output, const utils::Rotation& rotation);
     std::vector<MCTS::ActionCandidate> calculateMuZeroActionPolicy(MCTSNode* leaf_node, const std::shared_ptr<network::MuZeroNetworkOutput>& muzero_output);
     virtual Environment getEnvironmentTransition(const std::vector<MCTSNode*>& node_path);
 
@@ -62,6 +62,7 @@ protected:
     GumbelZero gumbel_zero_;
     uint64_t tree_node_size_;
     MCTSSearchData mcts_search_data_;
+    utils::Rotation feature_rotation_;
     std::shared_ptr<network::AlphaZeroNetwork> alphazero_network_;
     std::shared_ptr<network::MuZeroNetwork> muzero_network_;
 };
