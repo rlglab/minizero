@@ -70,7 +70,8 @@ class MuZeroNetwork(nn.Module):
                  num_action_feature_channels,
                  num_blocks,
                  action_size,
-                 num_value_hidden_channels):
+                 num_value_hidden_channels,
+                 discrete_value_size):
         super(MuZeroNetwork, self).__init__()
         self.game_name = game_name
         self.num_input_channels = num_input_channels
@@ -83,6 +84,7 @@ class MuZeroNetwork(nn.Module):
         self.num_blocks = num_blocks
         self.action_size = action_size
         self.num_value_hidden_channels = num_value_hidden_channels
+        self.discrete_value_size = discrete_value_size
 
         self.representation_network = MuZeroRepresentationNetwork(num_input_channels, num_hidden_channels, num_blocks)
         self.dynamics_network = MuZeroDynamicsNetwork(num_hidden_channels, num_action_feature_channels, num_blocks)
@@ -135,6 +137,10 @@ class MuZeroNetwork(nn.Module):
     @torch.jit.export
     def get_num_value_hidden_channels(self):
         return self.num_value_hidden_channels
+
+    @torch.jit.export
+    def get_discrete_value_size(self):
+        return self.discrete_value_size
 
     @torch.jit.export
     def initial_inference(self, state):

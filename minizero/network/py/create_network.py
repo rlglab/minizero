@@ -55,7 +55,8 @@ def create_network(game_name="tietactoe",
                                     num_action_feature_channels,
                                     num_blocks,
                                     action_size,
-                                    num_value_hidden_channels)
+                                    num_value_hidden_channels,
+                                    discrete_value_size)
     else:
         assert False
 
