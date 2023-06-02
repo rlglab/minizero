@@ -25,7 +25,7 @@ public:
     virtual bool actChanceEvent(const Action& action) = 0;
     virtual std::vector<Action> getLegalChanceEvents() const = 0;
     virtual bool isLegalChanceEvent(const Action& action) const = 0;
-    virtual int getChanceEventSize() const = 0;
+    virtual int getMaxChanceEventSize() const = 0;
     virtual float getChanceEventProbability(const Action& action) const = 0;
 
     inline int getSeed() const { return seed_; }

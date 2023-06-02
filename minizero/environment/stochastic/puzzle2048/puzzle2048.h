@@ -41,7 +41,7 @@ public:
 
     std::vector<Puzzle2048Action> getLegalActions() const override;
     std::vector<Puzzle2048Action> getLegalChanceEvents() const override;
-    int getChanceEventSize() const override;
+    int getMaxChanceEventSize() const override { return 32; }
     float getChanceEventProbability(const Puzzle2048Action& action) const override;
     bool isLegalAction(const Puzzle2048Action& action) const override;
     bool isLegalChanceEvent(const Puzzle2048Action& action) const override;
