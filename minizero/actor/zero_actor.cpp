@@ -111,6 +111,13 @@ void ZeroActor::setNetwork(const std::shared_ptr<network::Network>& network)
     assert((alphazero_network_ && !muzero_network_) || (!alphazero_network_ && muzero_network_));
 }
 
+std::vector<std::pair<std::string, std::string>> ZeroActor::getActionInfo() const
+{
+    // ignore recording mcts action info if there is no search
+    if (getMCTS()->getRootNode()->getCount() > 0) { return BaseActor::getActionInfo(); }
+    return {};
+}
+
 std::string ZeroActor::getEnvReward() const
 {
     std::ostringstream oss;
