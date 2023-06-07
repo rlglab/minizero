@@ -39,6 +39,15 @@ def analysis(dir):
                 if key not in myDict:
                     myDict[key] = []
                 myDict[key].append(float(x[5]))
+            if "[SelfPlay Avg. Returns]" in line:
+                x = line.split(" ")
+                print(x)
+                key = x[1] + " " + x[2] + " " + x[3]
+                if key not in myDict:
+                    myDict[key] = []
+                myDict[key].append(float(x[4]))
+                if "[SelfPlay Avg. Returns]" in line:
+                    myDict["[Iteration]"].append(counter)
             if "[SelfPlay Min. Game Returns]" in line or "[SelfPlay Max. Game Returns]" in line or "[SelfPlay Avg. Game Returns]" in line:
                 x = line.split(" ")
                 key = x[1] + " " + x[2] + " " + x[3] + " " + x[4]
@@ -81,10 +90,12 @@ def analysis(dir):
                 bool_print = True
                 if "Returns" in item or "Lengths" in item:
                     step_interval = learner_training_step
+                    ax1.plot([x * step_interval for x in myDict["[Iteration]"]], myDict[key], label=f'{key}', linewidth=width)
+                    axs[counter_fig].plot([x * step_interval for x in myDict["[Iteration]"]], myDict[key], label=f'{key}', linewidth=width)
                 else:
                     step_interval = learner_training_display_step
-                ax1.plot([x * step_interval for x in list(range(len(myDict[key])))], myDict[key], label=f'{key}', linewidth=width)
-                axs[counter_fig].plot([x * step_interval for x in list(range(len(myDict[key])))], myDict[key], label=f'{key}', linewidth=width)
+                    ax1.plot([x * step_interval for x in list(range(len(myDict[key])))], myDict[key], label=f'{key}', linewidth=width)
+                    axs[counter_fig].plot([x * step_interval for x in list(range(len(myDict[key])))], myDict[key], label=f'{key}', linewidth=width)
                 ax2.set_xlim([ax1.get_xlim()[0] / learner_training_step, ax1.get_xlim()[1] / learner_training_step])
                 axs_twiny = axs[counter_fig].twiny()
                 axs_twiny.set_xlim([ax1.get_xlim()[0] / learner_training_step, ax1.get_xlim()[1] / learner_training_step])
@@ -104,12 +115,13 @@ def analysis(dir):
             plt.tight_layout()
             plt.show()
             path = os.path.join(dir, "analysis")
-            plt.savefig(os.path.join(dir, "analysis", f'{os.path.dirname(dir+"/")}_{item}.png'))
-            print(os.path.join(dir, "analysis", f'{os.path.dirname(dir+"/")}_{item}.png'))
+            dir = os.path.dirname(dir + "/")
+            plt.savefig(os.path.join(f'{os.path.dirname(dir + "/")}', "analysis", f'{str(dir.split("/")[-1])}_{item}.png'))
+            print(os.path.join(f'{os.path.dirname(dir + "/")}', "analysis", f'{str(dir.split("/")[-1])}_{item}.png'))
             counter_fig += 1
     fig.tight_layout()
-    fig.savefig(os.path.join(dir, "analysis", f'{os.path.dirname(dir+"/")}.png'))
-    print(os.path.join(dir, "analysis", f'{os.path.dirname(dir+"/")}.png'))
+    fig.savefig(os.path.join(f'{os.path.dirname(dir+"/")}', "analysis", f'{str(dir.split("/")[-1])}.png'))
+    print(os.path.join(f'{os.path.dirname(dir+"/")}', "analysis", f'{str(dir.split("/")[-1])}.png'))
 
 
 if __name__ == '__main__':
