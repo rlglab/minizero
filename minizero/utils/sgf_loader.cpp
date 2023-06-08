@@ -57,8 +57,8 @@ bool SGFLoader::loadFromString(const std::string& content)
                     escape_next = false;
                 } else { // ready to store key-value pair
                     if (accept_move) {
-                        if (value.empty() || board_size == -1) { return false; }
-                        actions_.emplace_back().first = Action(key, actionIDToBoardCoordinateString(sgfStringToActionID(value, board_size), board_size));
+                        if (board_size == -1) { return false; }
+                        actions_.emplace_back().first = SGFAction(key, actionIDToBoardCoordinateString(sgfStringToActionID(value, board_size), board_size));
                         accept_move = false;
                     } else if (actions_.size()) {
                         actions_.back().second[key] = std::move(value);

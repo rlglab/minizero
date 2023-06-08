@@ -109,7 +109,8 @@ public:
     BaseEnvLoader() {}
     virtual ~BaseEnvLoader() = default;
 
-    typedef minizero::utils::VectorMap<std::string, std::string> Info;
+    typedef minizero::utils::VectorMap<std::string, std::string> Tags;
+    typedef minizero::utils::VectorMap<std::string, std::string> ActionInfo;
 
 public:
     virtual void reset()
@@ -172,8 +173,7 @@ public:
                         escape_next = false;
                     } else { // ready to store key-value pair
                         if (accept_move) {
-                            if (value.empty()) { return false; }
-                            int action_id = std::isdigit(value[0]) ? std::stoi(value) : minizero::utils::SGFLoader::sgfStringToActionID(value, board_size);
+                            int action_id = value.size() && std::isdigit(value[0]) ? std::stoi(value) : minizero::utils::SGFLoader::sgfStringToActionID(value, board_size);
                             action_pairs_.emplace_back().first = Action(action_id, charToPlayer(key[0]));
                             accept_move = false;
                         } else if (action_pairs_.size()) {
@@ -198,7 +198,7 @@ public:
     {
         reset();
         for (size_t i = 0; i < env.getActionHistory().size(); ++i) {
-            addActionPair(env.getActionHistory()[i], action_info_history.size() > i ? Info(action_info_history[i]) : Info());
+            addActionPair(env.getActionHistory()[i], action_info_history.size() > i ? ActionInfo(action_info_history[i]) : ActionInfo());
         }
         addTag("RE", std::to_string(env.getEvalScore()));
 
@@ -284,9 +284,9 @@ public:
     virtual inline void addTag(const std::string& key, const std::string& value) { tags_[key] = value; }
 
     inline std::string getSGFContent() const { return sgf_content_; }
-    inline std::vector<std::pair<Action, Info>>& getActionPairs() { return action_pairs_; }
-    inline const std::vector<std::pair<Action, Info>>& getActionPairs() const { return action_pairs_; }
-    inline void addActionPair(const Action& action, const Info& action_info = {}) { action_pairs_.emplace_back(action, action_info); }
+    inline std::vector<std::pair<Action, ActionInfo>>& getActionPairs() { return action_pairs_; }
+    inline const std::vector<std::pair<Action, ActionInfo>>& getActionPairs() const { return action_pairs_; }
+    inline void addActionPair(const Action& action, const ActionInfo& action_info = {}) { action_pairs_.emplace_back(action, action_info); }
     inline float getReturn() const { return std::stof(getTag("RE")); }
 
 protected:
@@ -304,8 +304,8 @@ protected:
 
 protected:
     std::string sgf_content_;
-    Info tags_;
-    std::vector<std::pair<Action, Info>> action_pairs_;
+    Tags tags_;
+    std::vector<std::pair<Action, ActionInfo>> action_pairs_;
 };
 
 template <int kNumPlayer = 2>
