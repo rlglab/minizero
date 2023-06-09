@@ -74,7 +74,7 @@ std::vector<float> TicTacToeEnv::getFeatures(utils::Rotation rotation /*= utils:
     std::vector<float> vFeatures;
     for (int channel = 0; channel < 4; ++channel) {
         for (int pos = 0; pos < kTicTacToeBoardSize * kTicTacToeBoardSize; ++pos) {
-            int rotation_pos = getPositionByRotating(utils::reversed_rotation[static_cast<int>(rotation)], pos, kTicTacToeBoardSize);
+            int rotation_pos = getRotatePosition(pos, utils::reversed_rotation[static_cast<int>(rotation)]);
             if (channel == 0) {
                 vFeatures.push_back((board_[rotation_pos] == turn_ ? 1.0f : 0.0f));
             } else if (channel == 1) {
@@ -92,7 +92,7 @@ std::vector<float> TicTacToeEnv::getFeatures(utils::Rotation rotation /*= utils:
 std::vector<float> TicTacToeEnv::getActionFeatures(const TicTacToeAction& action, utils::Rotation rotation /*= utils::Rotation::kRotationNone*/) const
 {
     std::vector<float> action_features(kTicTacToeBoardSize * kTicTacToeBoardSize, 0.0f);
-    action_features[getPositionByRotating(rotation, action.getActionID(), kTicTacToeBoardSize)] = 1.0f;
+    action_features[getRotateAction(action.getActionID(), rotation)] = 1.0f;
     return action_features;
 }
 
@@ -149,7 +149,7 @@ std::vector<float> TicTacToeEnvLoader::getActionFeatures(const int pos, utils::R
 {
     const TicTacToeAction& action = action_pairs_[pos].first;
     std::vector<float> action_features(kTicTacToeBoardSize * kTicTacToeBoardSize, 0.0f);
-    int action_id = ((pos < static_cast<int>(action_pairs_.size())) ? getPositionByRotating(rotation, action.getActionID(), kTicTacToeBoardSize) : utils::Random::randInt() % action_features.size());
+    int action_id = ((pos < static_cast<int>(action_pairs_.size())) ? getRotateAction(action.getActionID(), rotation) : utils::Random::randInt() % action_features.size());
     action_features[action_id] = 1.0f;
     return action_features;
 }

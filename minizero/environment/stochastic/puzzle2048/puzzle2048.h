@@ -47,7 +47,7 @@ public:
     bool isLegalChanceEvent(const Puzzle2048Action& action) const override;
     bool isTerminal() const override;
 
-    int getRotatePosition(int position, utils::Rotation rotation) const override { return getPositionByRotating(rotation, position, kPuzzle2048BoardSize); }
+    int getRotatePosition(int position, utils::Rotation rotation) const override { return utils::getPositionByRotating(rotation, position, kPuzzle2048BoardSize); }
     int getRotateAction(int action_id, utils::Rotation rotation) const override;
     std::vector<float> getFeatures(utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::vector<float> getActionFeatures(const Puzzle2048Action& action, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;

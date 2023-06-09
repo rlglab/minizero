@@ -287,7 +287,7 @@ std::vector<float> GoEnv::getFeatures(utils::Rotation rotation /*= utils::Rotati
     std::vector<float> vFeatures;
     for (int channel = 0; channel < 18; ++channel) {
         for (int pos = 0; pos < board_size_ * board_size_; ++pos) {
-            int rotation_pos = getPositionByRotating(utils::reversed_rotation[static_cast<int>(rotation)], pos, board_size_);
+            int rotation_pos = getRotatePosition(pos, utils::reversed_rotation[static_cast<int>(rotation)]);
             if (channel < 16) {
                 int last_n_turn = stone_bitboard_history_.size() - 1 - channel / 2;
                 if (last_n_turn < 0) {
@@ -310,7 +310,7 @@ std::vector<float> GoEnv::getFeatures(utils::Rotation rotation /*= utils::Rotati
 std::vector<float> GoEnv::getActionFeatures(const GoAction& action, utils::Rotation rotation /*= utils::Rotation::kRotationNone*/) const
 {
     std::vector<float> action_features(board_size_ * board_size_, 0.0f);
-    if (!isPassAction(action)) { action_features[getPositionByRotating(rotation, action.getActionID(), board_size_)] = 1.0f; }
+    if (!isPassAction(action)) { action_features[getRotateAction(action.getActionID(), rotation)] = 1.0f; }
     return action_features;
 }
 
@@ -727,7 +727,7 @@ std::vector<float> GoEnvLoader::getActionFeatures(const int pos, utils::Rotation
     const GoAction& action = action_pairs_[pos].first;
     std::vector<float> action_features(getBoardSize() * getBoardSize(), 0.0f);
     if (pos < static_cast<int>(action_pairs_.size())) {
-        if (!isPassAction(action)) { action_features[getPositionByRotating(rotation, action.getActionID(), getBoardSize())] = 1.0f; }
+        if (!isPassAction(action)) { action_features[getRotateAction(action.getActionID(), rotation)] = 1.0f; }
     } else {
         int action_id = utils::Random::randInt() % (action_features.size() + 1);
         if (action_id < static_cast<int>(action_pairs_.size())) { action_features[action_id] = 1.0f; }

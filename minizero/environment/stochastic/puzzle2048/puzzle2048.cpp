@@ -113,7 +113,7 @@ std::vector<float> Puzzle2048Env::getFeatures(utils::Rotation rotation /*= utils
     std::vector<float> features;
     for (int tile = 0; tile < 16; ++tile) {
         for (int pos = 0; pos < 16; ++pos) {
-            features.push_back(board_.get(getPositionByRotating(rotation, pos, 4)) == tile ? 1.0f : 0.0f);
+            features.push_back(board_.get(getRotatePosition(pos, rotation)) == tile ? 1.0f : 0.0f);
         }
     }
     return features;

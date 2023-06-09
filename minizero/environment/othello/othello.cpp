@@ -239,7 +239,7 @@ std::vector<float> OthelloEnv::getFeatures(utils::Rotation rotation) const
     std::vector<float> vFeatures;
     for (int channel = 0; channel < 4; ++channel) {
         for (int pos = 0; pos < board_size_ * board_size_; ++pos) {
-            int rotation_pos = getPositionByRotating(utils::reversed_rotation[static_cast<int>(rotation)], pos, board_size_);
+            int rotation_pos = getRotatePosition(pos, utils::reversed_rotation[static_cast<int>(rotation)]);
             if (channel == 0) {
                 vFeatures.push_back((board_.get(turn_)[rotation_pos] == 1 ? 1.0f : 0.0f));
             } else if (channel == 1) {
@@ -257,7 +257,7 @@ std::vector<float> OthelloEnv::getFeatures(utils::Rotation rotation) const
 std::vector<float> OthelloEnv::getActionFeatures(const OthelloAction& action, utils::Rotation rotation /*= utils::Rotation::kRotationNone*/) const
 {
     std::vector<float> action_features(board_size_ * board_size_, 0.0f);
-    if (!isPassAction(action)) { action_features[getPositionByRotating(rotation, action.getActionID(), board_size_)] = 1.0f; }
+    if (!isPassAction(action)) { action_features[getRotateAction(action.getActionID(), rotation)] = 1.0f; }
     return action_features;
 }
 
@@ -266,7 +266,7 @@ std::vector<float> OthelloEnvLoader::getActionFeatures(const int pos, utils::Rot
     const OthelloAction& action = action_pairs_[pos].first;
     std::vector<float> action_features(getBoardSize() * getBoardSize(), 0.0f);
     if (pos < static_cast<int>(action_pairs_.size())) {
-        if (!isPassAction(action)) { action_features[getPositionByRotating(rotation, action.getActionID(), getBoardSize())] = 1.0f; }
+        if (!isPassAction(action)) { action_features[getRotateAction(action.getActionID(), rotation)] = 1.0f; }
     } else {
         int action_id = utils::Random::randInt() % (action_features.size() + 1);
         if (action_id < static_cast<int>(action_pairs_.size())) { action_features[action_id] = 1.0f; }

@@ -14,7 +14,7 @@ typedef BaseBoardAction<kTicTacToeNumPlayer> TicTacToeAction;
 
 class TicTacToeEnv : public BaseBoardEnv<TicTacToeAction> {
 public:
-    TicTacToeEnv() { reset(); }
+    TicTacToeEnv() : BaseBoardEnv<TicTacToeAction>(kTicTacToeBoardSize) { reset(); }
 
     void reset() override;
     bool act(const TicTacToeAction& action) override;
