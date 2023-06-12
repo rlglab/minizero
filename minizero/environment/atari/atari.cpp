@@ -86,6 +86,7 @@ std::vector<AtariAction> AtariEnv::getLegalActions() const
 std::vector<float> AtariEnv::getFeatures(utils::Rotation rotation /* = utils::Rotation::kRotationNone */) const
 {
     std::vector<float> features;
+    features.reserve(kAtariFeatureHistorySize * 4 * config::nn_input_channel_height * config::nn_input_channel_width);
     for (int i = 0; i < kAtariFeatureHistorySize; ++i) { // 1 for action; 3 for RGB, action first since the latest observation didn't have action yet
         features.insert(features.end(), action_feature_history_[i].begin(), action_feature_history_[i].end());
         features.insert(features.end(), feature_history_[i].begin(), feature_history_[i].end());
@@ -156,10 +157,8 @@ void AtariEnvLoader::loadFromEnvironment(const AtariEnv& env, const std::vector<
 
 std::vector<float> AtariEnvLoader::getFeatures(const int pos, utils::Rotation rotation /* = utils::Rotation::kRotationNone */) const
 {
-    std::pair<int, int> data_range = getDataRange();
-    if (getTag("DLEN").empty() || pos < data_range.first || pos > data_range.second) { return getFeaturesByReplay(pos, rotation); }
-
     std::vector<float> features;
+    features.reserve(kAtariFeatureHistorySize * 4 * config::nn_input_channel_height * config::nn_input_channel_width);
     int start = pos - kAtariFeatureHistorySize + 1, end = pos;
     for (int i = start; i <= end; ++i) { // 1 for action; 3 for RGB, action first since the latest observation didn't have action yet
         int action_id = (i - 1 < 0 ? 0
@@ -168,7 +167,9 @@ std::vector<float> AtariEnvLoader::getFeatures(const int pos, utils::Rotation ro
         std::vector<float> action_features(config::nn_input_channel_height * config::nn_input_channel_width, action_id * 1.0f / kAtariActionSize);
         features.insert(features.end(), action_features.begin(), action_features.end());
         if (i >= 0) {
-            for (const auto& o : observations_[i]) { features.push_back(static_cast<unsigned int>(static_cast<unsigned char>(o)) / 255.0f); }
+            const std::string& observation = (i < static_cast<int>(observations_.size()) ? observations_[i] : observations_.back());
+            if (observation.empty()) { return getFeaturesByReplay(pos, rotation); }
+            for (const auto& o : observation) { features.push_back(static_cast<unsigned int>(static_cast<unsigned char>(o)) / 255.0f); }
         } else {
             std::vector<float> f(3 * kAtariResolution * kAtariResolution, 0.0f);
             features.insert(features.end(), f.begin(), f.end());
@@ -208,8 +209,6 @@ void AtariEnvLoader::addObservations(const std::string& compressed_obs)
 
 std::vector<float> AtariEnvLoader::getFeaturesByReplay(const int pos, utils::Rotation rotation /* = utils::Rotation::kRotationNone */) const
 {
-    assert(pos <= static_cast<int>(action_pairs_.size()));
-
     AtariEnv env;
     env.reset(std::stoi(getTag("SD")));
     for (int i = 0; i < pos; ++i) { env.act(action_pairs_[i].first); }
