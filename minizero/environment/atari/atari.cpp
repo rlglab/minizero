@@ -162,7 +162,10 @@ std::vector<float> AtariEnvLoader::getFeatures(const int pos, utils::Rotation ro
     std::vector<float> features;
     int start = pos - kAtariFeatureHistorySize + 1, end = pos;
     for (int i = start; i <= end; ++i) { // 1 for action; 3 for RGB, action first since the latest observation didn't have action yet
-        std::vector<float> action_features(config::nn_input_channel_height * config::nn_input_channel_width, ((i - 1 >= 0) ? action_pairs_[i - 1].first.getActionID() * 1.0f / kAtariActionSize : 0.0f));
+        int action_id = (i - 1 < 0 ? 0
+                                   : (i - 1 >= static_cast<int>(action_pairs_.size()) ? utils::Random::randInt() % kAtariActionSize : action_pairs_[i - 1].first.getActionID()));
+        assert(action_id >= 0 && action_id < kAtariActionSize);
+        std::vector<float> action_features(config::nn_input_channel_height * config::nn_input_channel_width, action_id * 1.0f / kAtariActionSize);
         features.insert(features.end(), action_features.begin(), action_features.end());
         if (i >= 0) {
             for (const auto& o : observations_[i]) { features.push_back(static_cast<unsigned int>(static_cast<unsigned char>(o)) / 255.0f); }
