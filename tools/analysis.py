@@ -3,7 +3,7 @@ import argparse
 import os
 
 
-def analysis(dir):
+def analysis(dir, iter):
     # read log
     op_log = open(os.path.join(dir, "op.log"), 'r')
     Training_log = open(os.path.join(dir, "Training.log"), 'r')
@@ -17,16 +17,18 @@ def analysis(dir):
     Game_list = ["[SelfPlay Max. Game Lengths]", "[SelfPlay Avg. Game Lengths]"]
     Fig_list = ["accuracy_policy", "loss_value", "loss_reward", "loss_policy", "Lengths", "Returns"]
     # init variables
-    counter = 0
     set_learner_training_display_step = True
     set_learner_training_step = True
     myDict = {}
     video_list = []
     # parse log
     for index in range(2):
+        counter = 0
         for line in lines[index]:
             if not line:
                 continue
+            if iter != -1 and counter >= iter:
+                break
             if "accuracy_policy" in line or "loss" in line:
                 x = line.split("\t")[1].split(": ")  # get key and value
                 key = x[0]
@@ -65,6 +67,8 @@ def analysis(dir):
                     if key not in myDict:
                         myDict[key] = []
                     counter += 1
+            if index == 0 and "Optimization_Done" in line:  # op.log
+                counter += 1
             if index == 0 and set_learner_training_step:  # op.log
                 if "nn step" in line and set_learner_training_display_step:
                     x = line.split(" ")[4].split(",")[0]
@@ -127,6 +131,7 @@ def analysis(dir):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--dir', dest='dir', default='', help='dir to anaylisis')
+    parser.add_argument('-i', '--iter', dest='iter', default='-1', type=int, help='iteration to anaylisis')
     args = parser.parse_args()
     if args.dir:
         dir = args.dir
@@ -135,7 +140,7 @@ if __name__ == '__main__':
             path = os.path.join(dir, "analysis")
             if not os.path.isdir(path):
                 os.mkdir(path)
-            analysis(dir)
+            analysis(dir, args.iter)
         else:
             print(f'\"{args.dir}\" does not exist!')
             exit(1)
