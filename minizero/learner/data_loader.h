@@ -33,6 +33,8 @@ public:
 
 class ReplayBuffer {
 public:
+    ReplayBuffer();
+
     std::mutex mutex_;
     int num_data_;
     float game_priority_sum_;

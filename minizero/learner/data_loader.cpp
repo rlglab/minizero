@@ -14,6 +14,15 @@ namespace minizero::learner {
 using namespace minizero;
 using namespace minizero::utils;
 
+ReplayBuffer::ReplayBuffer()
+{
+    num_data_ = 0;
+    game_priority_sum_ = 0.0f;
+    game_priorities_.clear();
+    position_priorities_.clear();
+    env_loaders_.clear();
+}
+
 void ReplayBuffer::addData(const EnvironmentLoader& env_loader)
 {
     std::pair<int, int> data_range = env_loader.getDataRange();
