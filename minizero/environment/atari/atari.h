@@ -21,7 +21,7 @@ const int kAtariFrameSkip = 4;
 const int kAtariResolution = 96;
 const int kAtariFeatureHistorySize = 32;
 const int kAtariMaxNumFramesPerEpisode = 108000;
-const float kAtariRepeatActionProbability = 0.0f;
+const float kAtariRepeatActionProbability = 0.25f;
 
 std::string getAtariActionName(int action_id);
 

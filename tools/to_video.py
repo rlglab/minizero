@@ -37,7 +37,7 @@ ACTION_MEANING = {
 class AtariEnv:
     def __init__(self, game_name, gym_game_name, seed=None):
         self.game_name = game_name
-        self.env = gym.make(gym_game_name, frameskip=4, repeat_action_probability=0.0, full_action_space=True, render_mode="rgb_array")
+        self.env = gym.make(gym_game_name, frameskip=4, repeat_action_probability=0.25, full_action_space=True, render_mode="rgb_array")
         self.reset(seed)
 
     def reset(self, seed):
