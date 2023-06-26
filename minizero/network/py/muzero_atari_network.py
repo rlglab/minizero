@@ -62,20 +62,12 @@ class MuZeroDynamicsNetwork(nn.Module):
 class MuZeroPredictionNetwork(nn.Module):
     def __init__(self, num_channels, channel_height, channel_width, num_blocks, action_size, num_value_hidden_channels, value_size):
         super(MuZeroPredictionNetwork, self).__init__()
-        self.conv = nn.Conv2d(num_channels, num_channels, kernel_size=3, padding=1)
-        self.bn = nn.BatchNorm2d(num_channels)
-        self.residual_blocks = nn.ModuleList([ResidualBlock(num_channels) for _ in range(num_blocks)])
         self.policy = PolicyNetwork(num_channels, channel_height, channel_width, action_size)
         self.value = DiscreteValueNetwork(num_channels, channel_height, channel_width, num_value_hidden_channels, value_size)
 
     def forward(self, hidden_state):
-        x = self.conv(hidden_state)
-        x = self.bn(x)
-        x = F.relu(x)
-        for residual_block in self.residual_blocks:
-            x = residual_block(x)
-        policy_logit = self.policy(x)
-        value_logit = self.value(x)
+        policy_logit = self.policy(hidden_state)
+        value_logit = self.value(hidden_state)
         return policy_logit, value_logit
 
 
