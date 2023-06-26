@@ -119,6 +119,7 @@ do
 		sleep 60
 	else
 		echo "connect success"
+		retry_connection_counter=0
 
 		# send info
 		NAME=$(hostname)"_"$gpu_list
