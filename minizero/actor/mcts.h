@@ -274,14 +274,15 @@ protected:
     {
         assert(node && !node->isLeaf());
         MCTSNode* selected = nullptr;
-        int total_simulation = node->getCountWithVirtualLoss();
+        int total_simulation = node->getCountWithVirtualLoss() - 1;
         float init_q_value = calculateInitQValue(node);
-        float best_score = -std::numeric_limits<float>::max();
+        float best_score = -std::numeric_limits<float>::max(), best_policy = -std::numeric_limits<float>::max();
         for (int i = 0; i < node->getNumChildren(); ++i) {
             MCTSNode* child = node->getChild(i);
             float score = child->getNormalizedPUCTScore(total_simulation, tree_value_bound_, init_q_value);
-            if (score <= best_score) { continue; }
+            if (score < best_score || (score == best_score && child->getPolicy() <= best_policy)) { continue; }
             best_score = score;
+            best_policy = child->getPolicy();
             selected = child;
         }
         assert(selected != nullptr);
