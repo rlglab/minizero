@@ -64,7 +64,7 @@ public:
 
     // atari environment states & settings
     inline int getSeed() const { return seed_; }
-    inline int getLives() { return ale_.lives(); }
+    inline int getLives() const { return lives_; }
     inline int getFrameNumber() const { return ale_.getFrameNumber(); }
     inline int getEpisodeFrameNumber() const { return ale_.getEpisodeFrameNumber(); }
 
@@ -73,6 +73,7 @@ private:
     std::string getObservationString() const;
 
     int seed_;
+    int lives_;
     float reward_;
     float total_reward_;
     ale::ALEInterface ale_;

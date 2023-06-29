@@ -31,6 +31,7 @@ void AtariEnv::reset(int seed)
     ale_.reset_game();
     minimal_action_set_.clear();
     for (auto action_id : ale_.getMinimalActionSet()) { minimal_action_set_.insert(action_id); }
+    lives_ = ale_.lives();
     actions_.clear();
     observations_.clear();
     observations_.reserve(kAtariMaxNumFramesPerEpisode + 1);
@@ -55,6 +56,7 @@ bool AtariEnv::act(const AtariAction& action)
     reward_ = 0;
     for (int i = 0; i < kAtariFrameSkip; ++i) { reward_ += ale_.act(ale::Action(action.getActionID())); }
     total_reward_ += reward_;
+    lives_ = ale_.lives();
     actions_.push_back(action);
     observations_.push_back(getObservationString());
     // only keep the most recent N observations in atari games to save memory, N is determined by configuration
