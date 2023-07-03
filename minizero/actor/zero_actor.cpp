@@ -164,7 +164,9 @@ void ZeroActor::handleSearchDone()
         << "move number: " << env_.getActionHistory().size()
         << ", action: " << action.toConsoleString()
         << " (" << action.getActionID() << ")"
-        << ", player: " << env::playerToChar(action.getPlayer()) << std::endl
+        << ", reward: " << env_.getReward()
+        << ", player: " << env::playerToChar(action.getPlayer())
+        << ", value bound: (" << getMCTS()->getTreeValueBound().first << ", " << getMCTS()->getTreeValueBound().second << ")" << std::endl
         << "  root node info: " << getMCTS()->getRootNode()->toString() << std::endl
         << "action node info: " << mcts_search_data_.selected_node_->toString() << std::endl;
     mcts_search_data_.search_info_ = oss.str();
