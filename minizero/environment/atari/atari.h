@@ -19,7 +19,7 @@ const int kAtariNumPlayer = 1;
 const int kAtariActionSize = 18;
 const int kAtariFrameSkip = 4;
 const int kAtariResolution = 96;
-const int kAtariFeatureHistorySize = 32;
+const int kAtariFeatureHistorySize = 8;
 const int kAtariMaxNumFramesPerEpisode = 108000;
 const float kAtariRepeatActionProbability = 0.25f;
 
