@@ -31,7 +31,8 @@ void AtariEnv::reset(int seed)
     ale_.reset_game();
     minimal_action_set_.clear();
     for (auto action_id : ale_.getMinimalActionSet()) { minimal_action_set_.insert(action_id); }
-    lives_ = ale_.lives();
+    lives_history_.clear();
+    lives_history_.push_back(ale_.lives());
     actions_.clear();
     observations_.clear();
     observations_.reserve(kAtariMaxNumFramesPerEpisode + 1);
@@ -56,7 +57,7 @@ bool AtariEnv::act(const AtariAction& action)
     reward_ = 0;
     for (int i = 0; i < kAtariFrameSkip; ++i) { reward_ += ale_.act(ale::Action(action.getActionID())); }
     total_reward_ += reward_;
-    lives_ = ale_.lives();
+    lives_history_.push_back(ale_.lives());
     actions_.push_back(action);
     observations_.push_back(getObservationString());
     // only keep the most recent N observations in atari games to save memory, N is determined by configuration
@@ -155,6 +156,13 @@ void AtariEnvLoader::loadFromEnvironment(const AtariEnv& env, const std::vector<
 {
     BaseEnvLoader::loadFromEnvironment(env, action_info_history);
     addTag("SD", std::to_string(env.getSeed()));
+    int current_lives = env.getLivesHistory()[0];
+    for (size_t i = 0; i < action_pairs_.size(); ++i) {
+        int lives = env.getLivesHistory()[i];
+        if (lives == current_lives) { continue; }
+        current_lives = lives;
+        action_pairs_[i].second["L"] = std::to_string(lives);
+    }
 }
 
 std::vector<float> AtariEnvLoader::getFeatures(const int pos, utils::Rotation rotation /* = utils::Rotation::kRotationNone */) const
@@ -221,15 +229,19 @@ float AtariEnvLoader::calculateNStepValue(const int pos) const
 {
     assert(pos < static_cast<int>(action_pairs_.size()));
 
-    // calculate n-step return
+    // calculate n-step return by using EpisodicLifeEnv (end-of-life == end-of-episode)
+    // reference: https://github.com/DLR-RM/stable-baselines3/blob/472ff8edb815070c405da913dcbe64c1a06e0e7d/stable_baselines3/common/atari_wrappers.py#L98
     const int n_step = config::learner_n_step_return;
     const float discount = config::actor_mcts_reward_discount;
     size_t bootstrap_index = pos + n_step;
-    float value = (bootstrap_index < action_pairs_.size() ? std::pow(discount, n_step) * BaseEnvLoader::getValue(bootstrap_index)[0] : 0.0f);
+    float value = 0.0f;
+    float n_step_value = ((bootstrap_index < action_pairs_.size() && !action_pairs_[bootstrap_index].second.count("L")) ? std::pow(discount, n_step) * BaseEnvLoader::getValue(bootstrap_index)[0] : 0.0f);
     for (size_t index = pos; index < std::min(bootstrap_index, action_pairs_.size()); ++index) {
+        if (action_pairs_[index].second.count("L") && std::stoi(action_pairs_[index].second.at("L")) > 0) { n_step_value = 0.0; }
         float reward = BaseEnvLoader::getReward(index)[0];
         value += std::pow(discount, index - pos) * reward;
     }
+    value += n_step_value;
     return value;
 }
 

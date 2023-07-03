@@ -64,19 +64,20 @@ public:
 
     // atari environment states & settings
     inline int getSeed() const { return seed_; }
-    inline int getLives() const { return lives_; }
+    inline int getLives() const { return getLivesHistory().back(); }
     inline int getFrameNumber() const { return ale_.getFrameNumber(); }
     inline int getEpisodeFrameNumber() const { return ale_.getEpisodeFrameNumber(); }
+    inline const std::vector<int> getLivesHistory() const { return lives_history_; }
 
 private:
     std::vector<float> getObservation(bool scale_01 = true) const;
     std::string getObservationString() const;
 
     int seed_;
-    int lives_;
     float reward_;
     float total_reward_;
     ale::ALEInterface ale_;
+    std::vector<int> lives_history_;
     std::unordered_set<int> minimal_action_set_;
     std::deque<std::vector<float>> feature_history_;
     std::deque<std::vector<float>> action_feature_history_;
