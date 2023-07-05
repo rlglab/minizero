@@ -177,7 +177,7 @@ void ZeroServer::selfPlay()
     shared_data_.logger_.addTrainingLog("[Iteration] =====" + std::to_string(iteration_) + "=====");
     shared_data_.logger_.addTrainingLog("[SelfPlay] Start " + std::to_string(shared_data_.getModelIetration()));
 
-    float total_return = 0.0f, max_return = std::numeric_limits<float>::min(), min_return = std::numeric_limits<float>::max();
+    float total_return = 0.0f, max_return = -std::numeric_limits<float>::max(), min_return = std::numeric_limits<float>::max();
     int num_collect_game = 0, total_data_length = 0, total_game_length = 0, max_game_length = 0, num_finished_game = 0;
     while (num_collect_game < config::zero_num_games_per_iteration) {
         broadCastSelfPlayJob();
