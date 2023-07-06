@@ -8,8 +8,8 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <map>
 #include <string>
-#include <utility>
 #include <vector>
 
 namespace minizero::actor {
@@ -53,12 +53,14 @@ public:
         }
     }
 
-    virtual float getNormalizedMean(const std::pair<float, float>& tree_value_bound) const
+    virtual float getNormalizedMean(const std::map<float, int>& tree_value_bound) const
     {
         float value = reward_ + config::actor_mcts_reward_discount * mean_;
         if (config::actor_mcts_value_rescale) {
-            if (tree_value_bound.first == tree_value_bound.second) { return 1.0f; }
-            value = (value - tree_value_bound.first) / (tree_value_bound.second - tree_value_bound.first);
+            if (tree_value_bound.size() < 2) { return 1.0f; }
+            const float value_lower_bound = tree_value_bound.begin()->first;
+            const float value_upper_bound = tree_value_bound.rbegin()->first;
+            value = (value - value_lower_bound) / (value_upper_bound - value_lower_bound);
             value = fmin(1, fmax(-1, 2 * value - 1)); // normalize to [-1, 1]
         }
         value = (action_.getPlayer() == env::Player::kPlayer1 ? value : -value); // flip value according to player
@@ -66,7 +68,7 @@ public:
         return value;
     }
 
-    virtual float getNormalizedPUCTScore(int total_simulation, const std::pair<float, float>& tree_value_bound, float init_q_value = -1.0f) const
+    virtual float getNormalizedPUCTScore(int total_simulation, const std::map<float, int>& tree_value_bound, float init_q_value = -1.0f) const
     {
         float puct_bias = config::actor_mcts_puct_init + log((1 + total_simulation + config::actor_mcts_puct_base) / config::actor_mcts_puct_base);
         float value_u = (puct_bias * getPolicy() * sqrt(total_simulation)) / (1 + getCountWithVirtualLoss());
@@ -154,7 +156,7 @@ public:
     {
         Tree::reset();
         tree_hidden_state_data_.reset();
-        tree_value_bound_ = {0, 0};
+        tree_value_bound_.clear();
     }
 
     virtual bool isResign(const MCTSNode* selected_node) const
@@ -250,8 +252,9 @@ public:
         node_path.back()->setReward(reward);
         for (int i = static_cast<int>(node_path.size() - 1); i >= 0; --i) {
             MCTSNode* node = node_path[i];
+            float old_mean = node->getReward() + config::actor_mcts_reward_discount * node->getMean();
             node->add(updated_value);
-            updateTreeValueBound(node->getReward() + config::actor_mcts_reward_discount * node->getMean());
+            updateTreeValueBound(old_mean, node->getReward() + config::actor_mcts_reward_discount * node->getMean());
             updated_value = node->getReward() + config::actor_mcts_reward_discount * updated_value;
         }
     }
@@ -263,8 +266,8 @@ public:
     inline const MCTSNode* getRootNode() const { return static_cast<const MCTSNode*>(Tree::getRootNode()); }
     inline TreeHiddenStateData& getTreeHiddenStateData() { return tree_hidden_state_data_; }
     inline const TreeHiddenStateData& getTreeHiddenStateData() const { return tree_hidden_state_data_; }
-    inline std::pair<float, float>& getTreeValueBound() { return tree_value_bound_; }
-    inline const std::pair<float, float>& getTreeValueBound() const { return tree_value_bound_; }
+    inline std::map<float, int>& getTreeValueBound() { return tree_value_bound_; }
+    inline const std::map<float, int>& getTreeValueBound() const { return tree_value_bound_; }
 
 protected:
     TreeNode* createTreeNodes(uint64_t tree_node_size) override { return new MCTSNode[tree_node_size]; }
@@ -303,13 +306,18 @@ protected:
         return (sum_of_win - 1) / (sum + 1);
     }
 
-    virtual void updateTreeValueBound(float value)
+    virtual void updateTreeValueBound(float old_value, float new_value)
     {
-        tree_value_bound_.first = std::min(tree_value_bound_.first, value);
-        tree_value_bound_.second = std::max(tree_value_bound_.second, value);
+        if (!config::actor_mcts_value_rescale) { return; }
+        if (tree_value_bound_.count(old_value)) {
+            assert(tree_value_bound_[old_value] > 0);
+            --tree_value_bound_[old_value];
+            if (tree_value_bound_[old_value] == 0) { tree_value_bound_.erase(old_value); }
+        }
+        ++tree_value_bound_[new_value];
     }
 
-    std::pair<float, float> tree_value_bound_;
+    std::map<float, int> tree_value_bound_;
     TreeHiddenStateData tree_hidden_state_data_;
 };
 
