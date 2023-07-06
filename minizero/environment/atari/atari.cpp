@@ -161,7 +161,7 @@ void AtariEnvLoader::loadFromEnvironment(const AtariEnv& env, const std::vector<
         int lives = env.getLivesHistory()[i];
         if (lives == current_lives) { continue; }
         current_lives = lives;
-        action_pairs_[i].second["L"] = std::to_string(lives);
+        if (lives < current_lives) { action_pairs_[i].second["L"] = std::to_string(lives); }
     }
 }
 
@@ -237,7 +237,7 @@ float AtariEnvLoader::calculateNStepValue(const int pos) const
     float value = 0.0f;
     float n_step_value = ((bootstrap_index < action_pairs_.size() && !action_pairs_[bootstrap_index].second.count("L")) ? std::pow(discount, n_step) * BaseEnvLoader::getValue(bootstrap_index)[0] : 0.0f);
     for (size_t index = pos; index < std::min(bootstrap_index, action_pairs_.size()); ++index) {
-        if (action_pairs_[index].second.count("L") && std::stoi(action_pairs_[index].second.at("L")) > 0) { n_step_value = 0.0; }
+        if (action_pairs_[index].second.count("L") && std::stoi(action_pairs_[index].second.at("L")) > 0) { return value; }
         float reward = BaseEnvLoader::getReward(index)[0];
         value += std::pow(discount, index - pos) * reward;
     }
