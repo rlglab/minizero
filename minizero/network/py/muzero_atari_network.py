@@ -8,22 +8,25 @@ class MuZeroRepresentationNetwork(nn.Module):
     def __init__(self, num_input_channels, num_output_channels, num_blocks):
         super(MuZeroRepresentationNetwork, self).__init__()
         self.conv1 = nn.Conv2d(num_input_channels, num_output_channels // 2, kernel_size=3, stride=2, padding=1)
-        self.residual_blocks1 = nn.ModuleList([ResidualBlock(num_output_channels // 2) for _ in range(2)])
+        self.bn1 = nn.BatchNorm2d(num_output_channels // 2)
+        self.residual_blocks1 = nn.ModuleList([ResidualBlock(num_output_channels // 2) for _ in range(1)])
         self.conv2 = nn.Conv2d(num_output_channels // 2, num_output_channels, kernel_size=3, stride=2, padding=1)
-        self.residual_blocks2 = nn.ModuleList([ResidualBlock(num_output_channels) for _ in range(3)])
+        self.bn2 = nn.BatchNorm2d(num_output_channels)
+        self.residual_blocks2 = nn.ModuleList([ResidualBlock(num_output_channels) for _ in range(1)])
         self.avg_pooling1 = nn.AvgPool2d(kernel_size=3, stride=2, padding=1)
-        self.residual_blocks3 = nn.ModuleList([ResidualBlock(num_output_channels) for _ in range(3)])
+        self.residual_blocks3 = nn.ModuleList([ResidualBlock(num_output_channels) for _ in range(1)])
         self.avg_pooling2 = nn.AvgPool2d(kernel_size=3, stride=2, padding=1)
-
-        self.conv = nn.Conv2d(num_output_channels, num_output_channels, kernel_size=3, padding=1)
-        self.bn = nn.BatchNorm2d(num_output_channels)
         self.residual_blocks = nn.ModuleList([ResidualBlock(num_output_channels) for _ in range(num_blocks)])
 
     def forward(self, state):
         x = self.conv1(state)
+        x = self.bn1(x)
+        x = F.relu(x)
         for residual_block in self.residual_blocks1:
             x = residual_block(x)
         x = self.conv2(x)
+        x = self.bn2(x)
+        x = F.relu(x)
         for residual_block in self.residual_blocks2:
             x = residual_block(x)
         x = self.avg_pooling1(x)
@@ -31,9 +34,6 @@ class MuZeroRepresentationNetwork(nn.Module):
             x = residual_block(x)
         x = self.avg_pooling2(x)
 
-        x = self.conv(x)
-        x = self.bn(x)
-        x = F.relu(x)
         for residual_block in self.residual_blocks:
             x = residual_block(x)
         return x
