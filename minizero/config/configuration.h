@@ -81,6 +81,7 @@ extern int env_board_size;
 extern int env_atari_noop_start;
 extern float env_go_komi;
 extern std::string env_go_ko_rule;
+extern std::string env_gomoku_rule;
 
 void setConfiguration(ConfigureLoader& cl);
 

@@ -50,6 +50,10 @@ bool GomokuEnv::isLegalAction(const GomokuAction& action) const
 {
     assert(action.getActionID() >= 0 && action.getActionID() < board_size_ * board_size_);
     assert(action.getPlayer() == Player::kPlayer1 || action.getPlayer() == Player::kPlayer2);
+    if (actions_.empty() && config::env_gomoku_rule == "outer_open") {
+        int i = action.getActionID() / board_size_, j = action.getActionID() % board_size_;
+        return action.getActionID() >= 0 && ((i < 2 || i >= board_size_ - 2) || (j < 2 || j >= board_size_ - 2));
+    }
     return (action.getActionID() >= 0 && action.getActionID() < board_size_ * board_size_ && board_[action.getActionID()] == Player::kPlayerNone);
 }
 

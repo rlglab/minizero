@@ -33,7 +33,7 @@ public:
     std::vector<float> getFeatures(utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::vector<float> getActionFeatures(const GomokuAction& action, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::string toString() const override;
-    inline std::string name() const override { return kGomokuName + "_" + std::to_string(getBoardSize()) + "x" + std::to_string(getBoardSize()); }
+    inline std::string name() const override { return kGomokuName + (config::env_gomoku_rule == "outer_open" ? "_oo_" : "_") + std::to_string(getBoardSize()) + "x" + std::to_string(getBoardSize()); }
     inline int getNumPlayer() const override { return kGomokuNumPlayer; }
 
     inline int getRotatePosition(int position, utils::Rotation rotation) const override { return utils::getPositionByRotating(rotation, position, getBoardSize()); };
@@ -52,7 +52,7 @@ class GomokuEnvLoader : public BaseBoardEnvLoader<GomokuAction, GomokuEnv> {
 public:
     std::vector<float> getActionFeatures(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     inline std::vector<float> getValue(const int pos) const { return {getReturn()}; }
-    inline std::string name() const override { return kGomokuName + "_" + std::to_string(getBoardSize()) + "x" + std::to_string(getBoardSize()); }
+    inline std::string name() const override { return kGomokuName + (config::env_gomoku_rule == "outer_open" ? "_oo_" : "_") + std::to_string(getBoardSize()) + "x" + std::to_string(getBoardSize()); }
     inline int getPolicySize() const override { return getBoardSize() * getBoardSize(); }
     inline int getRotatePosition(int position, utils::Rotation rotation) const override { return utils::getPositionByRotating(rotation, position, getBoardSize()); };
     inline int getRotateAction(int action_id, utils::Rotation rotation) const override { return getRotatePosition(action_id, rotation); };

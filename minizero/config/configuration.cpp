@@ -79,6 +79,7 @@ int env_board_size = 0;
 int env_atari_noop_start = 0;
 float env_go_komi = 7.5;
 std::string env_go_ko_rule = "positional";
+std::string env_gomoku_rule = "normal";
 
 void setConfiguration(ConfigureLoader& cl)
 {
@@ -102,7 +103,7 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("actor_select_action_softmax_temperature", actor_select_action_softmax_temperature, "", "Actor");
     cl.addParameter("actor_use_random_rotation_features", actor_use_random_rotation_features, "randomly rotate input features, currently only supports alphazero mode", "Actor");
     cl.addParameter("actor_use_dirichlet_noise", actor_use_dirichlet_noise, "", "Actor");
-    cl.addParameter("actor_dirichlet_noise_alpha", actor_dirichlet_noise_alpha, "", "Actor");
+    cl.addParameter("actor_dirichlet_noise_alpha", actor_dirichlet_noise_alpha, "1 / sqrt(num of actions)", "Actor");
     cl.addParameter("actor_dirichlet_noise_epsilon", actor_dirichlet_noise_epsilon, "", "Actor");
     cl.addParameter("actor_use_gumbel", actor_use_gumbel, "", "Actor");
     cl.addParameter("actor_use_gumbel_noise", actor_use_gumbel_noise, "", "Actor");
@@ -169,6 +170,8 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("env_go_ko_rule", env_go_ko_rule, "positional/situational", "Environment");
 #elif KILLALLGO
     cl.addParameter("env_killallgo_ko_rule", env_go_ko_rule, "positional/situational", "Environment");
+#elif GOMOKU
+    cl.addParameter("env_gomoku_rule", env_gomoku_rule, "normal/outer_open", "Environment");
 #endif
     setDefaultBoardSize(cl);
 }
