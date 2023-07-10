@@ -103,7 +103,7 @@ public:
 protected:
     virtual void initialize();
     virtual void selfPlay();
-    virtual void broadCastSelfPlayJob();
+    virtual void broadcastSelfPlayJob();
     virtual void optimization();
     void stopJob(const std::string& job_type);
     void close();

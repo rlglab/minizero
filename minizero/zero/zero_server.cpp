@@ -180,7 +180,7 @@ void ZeroServer::selfPlay()
     float total_return = 0.0f, max_return = -std::numeric_limits<float>::max(), min_return = std::numeric_limits<float>::max();
     int num_collect_game = 0, total_data_length = 0, total_game_length = 0, max_game_length = 0, num_finished_game = 0;
     while (num_collect_game < config::zero_num_games_per_iteration) {
-        broadCastSelfPlayJob();
+        broadcastSelfPlayJob();
 
         // read one selfplay game
         ZeroSelfPlayData sp_data;
@@ -193,7 +193,7 @@ void ZeroServer::selfPlay()
         }
 
         // save record
-        shared_data_.logger_.getSelfPlayFileStream() << sp_data.game_record_ << std::endl;
+        shared_data_.logger_.getSelfPlayFileStream() << sp_data.game_record_ << (sp_data.is_terminal_ ? " #" : "") << std::endl;
         ++num_collect_game;
         total_data_length += sp_data.data_length_;
         if (sp_data.is_terminal_) {
@@ -227,7 +227,7 @@ void ZeroServer::selfPlay()
     if (num_finished_game != num_collect_game) { shared_data_.logger_.addTrainingLog("[SelfPlay Avg. Data Lengths] " + std::to_string(total_data_length * 1.0f / num_collect_game)); }
 }
 
-void ZeroServer::broadCastSelfPlayJob()
+void ZeroServer::broadcastSelfPlayJob()
 {
     boost::lock_guard<boost::mutex> lock(worker_mutex_);
     for (auto& worker : connections_) {
