@@ -27,11 +27,10 @@ void ReplayBuffer::addData(const EnvironmentLoader& env_loader)
 {
     std::pair<int, int> data_range = env_loader.getDataRange();
     std::deque<float> position_priorities(data_range.second + 1, 0.0f);
-    float max_priority = std::numeric_limits<float>::min();
+    float game_priority = 0.0f;
     for (int i = data_range.first; i <= data_range.second; ++i) {
-        float priority = env_loader.getPriority(i);
-        max_priority = std::max(max_priority, priority);
-        position_priorities[i] = priority;
+        position_priorities[i] = (config::learner_use_per ? env_loader.getPriority(i) : 1.0f);
+        game_priority += position_priorities[i];
     }
 
     std::lock_guard<std::mutex> lock(mutex_);
@@ -39,7 +38,7 @@ void ReplayBuffer::addData(const EnvironmentLoader& env_loader)
     // add new data to replay buffer
     num_data_ += (data_range.second - data_range.first + 1);
     position_priorities_.push_back(position_priorities);
-    game_priorities_.push_back(max_priority);
+    game_priorities_.push_back(game_priority);
     env_loaders_.push_back(env_loader);
 
     // remove old data if replay buffer is full
@@ -72,9 +71,8 @@ float ReplayBuffer::getLossScale(const std::pair<int, int>& p)
 
     // calculate importance sampling ratio
     int env_id = p.first, pos = p.second;
-    float game_prob = game_priorities_[env_id] / game_priority_sum_;
-    float pos_prob = position_priorities_[env_id][pos] / std::accumulate(position_priorities_[env_id].begin(), position_priorities_[env_id].end(), 0.0f);
-    return 1.0f / (num_data_ * game_prob * pos_prob);
+    float prob = position_priorities_[env_id][pos] / game_priority_sum_;
+    return 1.0f / (num_data_ * prob);
 }
 
 std::string DataLoaderSharedData::getNextEnvString()
@@ -242,21 +240,21 @@ void DataLoader::updatePriority(int* sampled_index, float* batch_v_first, float*
         int pos_id = sampled_index[2 * batch_index + 1];
         float v_first = utils::invertValue(batch_v_first[batch_index]);
         float v_last = utils::invertValue(batch_v_last[batch_index]);
+
         EnvironmentLoader& env_loader = getSharedData()->replay_buffer_.env_loaders_[env_id];
-        std::deque<float>& position_priorities = getSharedData()->replay_buffer_.position_priorities_[env_id];
+        int pos_last_id = pos_id + config::learner_muzero_unrolling_step;
+        std::string original_v_first = env_loader.getActionPairs()[pos_id].second.at("V");
+        std::string original_v_last = (pos_last_id < env_loader.getActionPairs().size() ? env_loader.getActionPairs()[pos_last_id].second.at("V") : "");
         env_loader.setActionPairInfo(pos_id, "V", std::to_string(v_first));
-        env_loader.setActionPairInfo(pos_id + config::learner_n_step_return - 1, "V", std::to_string(v_last));
-        const float old_priority = position_priorities[pos_id];
-        float new_priority = env_loader.getPriority(pos_id);
-        position_priorities[pos_id] = new_priority;
-        if (new_priority > getSharedData()->replay_buffer_.game_priorities_[env_id]) {
-            getSharedData()->replay_buffer_.game_priority_sum_ += new_priority - getSharedData()->replay_buffer_.game_priorities_[env_id];
-            getSharedData()->replay_buffer_.game_priorities_[env_id] = new_priority;
-        } else if (new_priority < old_priority && old_priority == getSharedData()->replay_buffer_.game_priorities_[env_id]) {
-            float max_priority = (*std::max_element(std::begin(position_priorities), std::end(position_priorities)));
-            getSharedData()->replay_buffer_.game_priority_sum_ += max_priority - getSharedData()->replay_buffer_.game_priorities_[env_id];
-            getSharedData()->replay_buffer_.game_priorities_[env_id] = max_priority;
-        }
+        env_loader.setActionPairInfo(pos_last_id, "V", std::to_string(v_last));
+        getSharedData()->replay_buffer_.position_priorities_[env_id][pos_id] = env_loader.getPriority(pos_id);
     }
+
+    // recalculate priority to correct floating number error (TODO: speedup this)
+    for (size_t i = 0; i < getSharedData()->replay_buffer_.game_priorities_.size(); ++i) {
+        getSharedData()->replay_buffer_.game_priorities_[i] = std::accumulate(getSharedData()->replay_buffer_.position_priorities_[i].begin(), getSharedData()->replay_buffer_.position_priorities_[i].end(), 0.0f);
+    }
+    getSharedData()->replay_buffer_.game_priority_sum_ = std::accumulate(getSharedData()->replay_buffer_.game_priorities_.begin(), getSharedData()->replay_buffer_.game_priorities_.end(), 0.0f);
 }
+
 } // namespace minizero::learner
