@@ -85,8 +85,13 @@ The server manages the training session and should be launched before other comp
 First, the script initialize a folder for storing training log and models. Based on the configuration, the folder name is automatically generated, e.g., `tictactoe_az_5bx256_n400-af37e1`.
 
 > **Note**
-> If the folder already exist, the script will prompt you to choose whether to retrain the model or to continue training. To train another model with the same settings, you should explicitly let the script use another folder name, e.g.,
+> If the folder already exist, the script will prompt you to choose whether to retrain the model or to continue training.
+> 
+> To train another model with the same settings, you should explicitly let the script use another folder name, e.g.,
 > `./scripts/zero-server.sh tictactoe tictactoe.cfg 100 -n tictactoe_test`
+>
+> To continue training, you should specify an end iteration greater than the model was trained (otherwise, the script will end immediately) and use `-n` to specify the folder, e.g.,
+> `./scripts/zero-server.sh tictactoe tictactoe.cfg 200 -n tictactoe_az_5bx256_n400-af37e1`
 
 Then, the program will print the current configuration and start printing training logs with time stamps. Once you have see this, it is ready to start other training components.
 
