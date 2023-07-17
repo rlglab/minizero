@@ -156,12 +156,11 @@ void AtariEnvLoader::loadFromEnvironment(const AtariEnv& env, const std::vector<
 {
     BaseEnvLoader::loadFromEnvironment(env, action_info_history);
     addTag("SD", std::to_string(env.getSeed()));
-    int current_lives = env.getLivesHistory()[0];
+    int previous_lives = env.getLivesHistory()[0];
     for (size_t i = 0; i < action_pairs_.size(); ++i) {
         int lives = env.getLivesHistory()[i];
-        if (lives == current_lives) { continue; }
-        current_lives = lives;
-        if (lives < current_lives) { action_pairs_[i].second["L"] = std::to_string(lives); }
+        if (lives < previous_lives) { action_pairs_[i].second["L"] = std::to_string(lives); }
+        previous_lives = lives;
     }
 }
 
