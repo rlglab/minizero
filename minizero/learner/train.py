@@ -73,48 +73,54 @@ class MinizeroDadaLoader:
         self.data_loader.update_priority(sampled_index, (v_first * accumulator).sum(axis=1), (v_last * accumulator).sum(axis=1))
 
 
-def load_model(game_type, training_dir, model_file, conf):
-    # training_step, network, device, optimizer, scheduler
-    training_step = 0
-    network = create_network(conf.get_game_name(),
-                             conf.get_nn_num_input_channels(),
-                             conf.get_nn_input_channel_height(),
-                             conf.get_nn_input_channel_width(),
-                             conf.get_nn_num_hidden_channels(),
-                             conf.get_nn_hidden_channel_height(),
-                             conf.get_nn_hidden_channel_width(),
-                             conf.get_nn_num_action_feature_channels(),
-                             conf.get_nn_num_blocks(),
-                             conf.get_nn_action_size(),
-                             conf.get_nn_num_value_hidden_channels(),
-                             conf.get_nn_discrete_value_size(),
-                             conf.get_nn_type_name())
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    network.to(device)
-    optimizer = optim.SGD(network.parameters(),
-                          lr=conf.get_learning_rate(),
-                          momentum=conf.get_momentum(),
-                          weight_decay=conf.get_weight_decay())
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1000000, gamma=0.1)
+class Model:
+    def __init__(self):
+        self.training_step = 0
+        self.network = None
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.optimizer = None
+        self.scheduler = None
 
-    if model_file:
-        snapshot = torch.load(f"{training_dir}/model/{model_file}", map_location=torch.device('cpu'))
-        training_step = snapshot['training_step']
-        network.load_state_dict(snapshot['network'])
-        optimizer.load_state_dict(snapshot['optimizer'])
-        optimizer.param_groups[0]["lr"] = conf.get_learning_rate()
-        scheduler.load_state_dict(snapshot['scheduler'])
+    def load_model(self, training_dir, model_file, conf):
+        self.training_step = 0
+        self.network = create_network(conf.get_game_name(),
+                                      conf.get_nn_num_input_channels(),
+                                      conf.get_nn_input_channel_height(),
+                                      conf.get_nn_input_channel_width(),
+                                      conf.get_nn_num_hidden_channels(),
+                                      conf.get_nn_hidden_channel_height(),
+                                      conf.get_nn_hidden_channel_width(),
+                                      conf.get_nn_num_action_feature_channels(),
+                                      conf.get_nn_num_blocks(),
+                                      conf.get_nn_action_size(),
+                                      conf.get_nn_num_value_hidden_channels(),
+                                      conf.get_nn_discrete_value_size(),
+                                      conf.get_nn_type_name())
+        self.network.to(self.device)
+        self.optimizer = optim.SGD(self.network.parameters(),
+                                   lr=conf.get_learning_rate(),
+                                   momentum=conf.get_momentum(),
+                                   weight_decay=conf.get_weight_decay())
+        self.scheduler = optim.lr_scheduler.StepLR(self.optimizer, step_size=1000000, gamma=0.1)
 
-    return training_step, network, device, optimizer, scheduler
+        if model_file:
+            snapshot = torch.load(f"{training_dir}/model/{model_file}", map_location=torch.device('cpu'))
+            self.training_step = snapshot['training_step']
+            self.network.load_state_dict(snapshot['network'])
+            self.optimizer.load_state_dict(snapshot['optimizer'])
+            self.optimizer.param_groups[0]["lr"] = conf.get_learning_rate()
+            self.scheduler.load_state_dict(snapshot['scheduler'])
 
+        # for multi-gpu
+        self.network = nn.DataParallel(self.network)
 
-def save_model(training_step, network, optimizer, scheduler, training_dir):
-    snapshot = {'training_step': training_step,
-                'network': network.module.state_dict(),
-                'optimizer': optimizer.state_dict(),
-                'scheduler': scheduler.state_dict()}
-    torch.save(snapshot, f"{training_dir}/model/weight_iter_{training_step}.pkl")
-    torch.jit.script(network.module).save(f"{training_dir}/model/weight_iter_{training_step}.pt")
+    def save_model(self, training_dir):
+        snapshot = {'training_step': self.training_step,
+                    'network': self.network.module.state_dict(),
+                    'optimizer': self.optimizer.state_dict(),
+                    'scheduler': self.scheduler.state_dict()}
+        torch.save(snapshot, f"{training_dir}/model/weight_iter_{self.training_step}.pkl")
+        torch.jit.script(self.network.module).save(f"{training_dir}/model/weight_iter_{self.training_step}.pt")
 
 
 def calculate_loss(conf, network_output, label_policy, label_value, label_reward, loss_scale):
@@ -150,12 +156,9 @@ def calculate_accuracy(output, label, batch_size):
     return (max_output == max_label).sum() / batch_size
 
 
-def train(game_type, training_dir, conf, model_file, data_loader, start_iter, end_iter):
-    training_step, network, device, optimizer, scheduler = load_model(game_type, training_dir, model_file, conf)
-    network = nn.DataParallel(network)
-
+def train(model, training_dir, conf, data_loader, start_iter, end_iter):
     if start_iter == -1:
-        save_model(training_step, network, optimizer, scheduler, training_dir)
+        model.save_model(training_dir)
         return
 
     # load data
@@ -163,12 +166,12 @@ def train(game_type, training_dir, conf, model_file, data_loader, start_iter, en
 
     training_info = {}
     for i in range(1, conf.get_training_step() + 1):
-        optimizer.zero_grad()
+        model.optimizer.zero_grad()
         features, action_features, label_policy, label_value, label_reward, loss_scale, sampled_index = data_loader.sample_data(conf)
 
         if conf.get_nn_type_name() == "alphazero":
-            network_output = network(features.to(device))
-            loss_policy, loss_value, _ = calculate_loss(conf, network_output, label_policy[:, 0].to(device), label_value[:, 0].to(device), None, loss_scale.to(device))
+            network_output = model.network(features.to(model.device))
+            loss_policy, loss_value, _ = calculate_loss(conf, network_output, label_policy[:, 0].to(model.device), label_value[:, 0].to(model.device), None, loss_scale.to(model.device))
             loss = loss_policy + loss_value
 
             # record training info
@@ -176,9 +179,10 @@ def train(game_type, training_dir, conf, model_file, data_loader, start_iter, en
             add_training_info(training_info, 'accuracy_policy', calculate_accuracy(network_output["policy_logit"], label_policy[:, 0], conf.get_batch_size()))
             add_training_info(training_info, 'loss_value', loss_value.item())
         elif conf.get_nn_type_name() == "muzero":
-            network_output = network(features.to(device))
+            network_output = model.network(features.to(model.device))
             v_first = network_output['value'].to('cpu').detach().numpy()
-            loss_step_policy, loss_step_value, loss_step_reward = calculate_loss(conf, network_output, label_policy[:, 0].to(device), label_value[:, 0].to(device), None, loss_scale.to(device))
+            loss_step_policy, loss_step_value, loss_step_reward = calculate_loss(conf, network_output, label_policy[:, 0].to(
+                model.device), label_value[:, 0].to(model.device), None, loss_scale.to(model.device))
             add_training_info(training_info, 'loss_policy_0', loss_step_policy.item())
             add_training_info(training_info, 'accuracy_policy_0', calculate_accuracy(network_output["policy_logit"], label_policy[:, 0], conf.get_batch_size()))
             add_training_info(training_info, 'loss_value_0', loss_step_value.item())
@@ -186,9 +190,9 @@ def train(game_type, training_dir, conf, model_file, data_loader, start_iter, en
             loss_value = loss_step_value
             loss_reward = loss_step_reward
             for i in range(conf.get_muzero_unrolling_step()):
-                network_output = network(network_output["hidden_state"], action_features[:, i].to(device))
+                network_output = model.network(network_output["hidden_state"], action_features[:, i].to(model.device))
                 loss_step_policy, loss_step_value, loss_step_reward = calculate_loss(
-                    conf, network_output, label_policy[:, i + 1].to(device), label_value[:, i + 1].to(device), label_reward[:, i].to(device), loss_scale.to(device))
+                    conf, network_output, label_policy[:, i + 1].to(model.device), label_value[:, i + 1].to(model.device), label_reward[:, i].to(model.device), loss_scale.to(model.device))
                 add_training_info(training_info, f'loss_policy_{i+1}', loss_step_policy.item() / conf.get_muzero_unrolling_step())
                 add_training_info(training_info, f'accuracy_policy_{i+1}', calculate_accuracy(network_output["policy_logit"], label_policy[:, i + 1], conf.get_batch_size()))
                 add_training_info(training_info, f'loss_value_{i+1}', loss_step_value.item() / conf.get_muzero_unrolling_step())
@@ -209,19 +213,19 @@ def train(game_type, training_dir, conf, model_file, data_loader, start_iter, en
                 add_training_info(training_info, 'loss_reward', loss_reward.item())
 
         loss.backward()
-        optimizer.step()
-        scheduler.step()
+        model.optimizer.step()
+        model.scheduler.step()
 
-        training_step += 1
-        if training_step != 0 and training_step % conf.get_training_display_step() == 0:
-            eprint("[{}] nn step {}, lr: {}.".format(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), training_step, round(optimizer.param_groups[0]["lr"], 6)))
+        model.training_step += 1
+        if model.training_step != 0 and model.training_step % conf.get_training_display_step() == 0:
+            eprint("[{}] nn step {}, lr: {}.".format(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), model.training_step, round(model.optimizer.param_groups[0]["lr"], 6)))
             for loss in training_info:
                 eprint("\t{}: {}".format(loss, round(training_info[loss] / conf.get_training_display_step(), 5)))
             training_info = {}
 
-    save_model(training_step, network, optimizer, scheduler, training_dir)
-    print("Optimization_Done", training_step)
-    eprint("Optimization_Done", training_step)
+    model.save_model(training_dir)
+    print("Optimization_Done", model.training_step)
+    eprint("Optimization_Done", model.training_step)
 
 
 if __name__ == '__main__':
@@ -239,6 +243,7 @@ if __name__ == '__main__':
 
     conf = minizero_py.Conf(conf_file_name)
     data_loader = MinizeroDadaLoader(conf_file_name)
+    model = Model()
 
     while True:
         try:
@@ -246,10 +251,17 @@ if __name__ == '__main__':
             if command == "keep_alive":
                 continue
             elif command == "quit":
-                eprint(f"[command] {command}")
+                eprint("[{}] [command] {}".format(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), command))
                 exit(0)
-            eprint(f"[command] {command}")
+
+            eprint("[{}] [command] {}".format(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), command))
             model_file, start_iter, end_iter = command.split()
-            train(game_type, training_dir, conf, model_file.replace('"', ''), data_loader, int(start_iter), int(end_iter))
+            model_file = model_file.replace('"', '')
+
+            # skip loading model if the model is loaded
+            if model.network is None:
+                model.load_model(training_dir, model_file, conf)
+
+            train(model, training_dir, conf, data_loader, int(start_iter), int(end_iter))
         except (KeyboardInterrupt, EOFError) as e:
             break
