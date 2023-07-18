@@ -244,7 +244,7 @@ void DataLoader::updatePriority(int* sampled_index, float* batch_v_first, float*
         EnvironmentLoader& env_loader = getSharedData()->replay_buffer_.env_loaders_[env_id];
         int pos_last_id = pos_id + config::learner_muzero_unrolling_step;
         std::string original_v_first = env_loader.getActionPairs()[pos_id].second.at("V");
-        std::string original_v_last = (pos_last_id < env_loader.getActionPairs().size() ? env_loader.getActionPairs()[pos_last_id].second.at("V") : "");
+        std::string original_v_last = (pos_last_id < static_cast<int>(env_loader.getActionPairs().size()) ? env_loader.getActionPairs()[pos_last_id].second.at("V") : "");
         env_loader.setActionPairInfo(pos_id, "V", std::to_string(v_first));
         env_loader.setActionPairInfo(pos_last_id, "V", std::to_string(v_last));
         getSharedData()->replay_buffer_.position_priorities_[env_id][pos_id] = env_loader.getPriority(pos_id);
