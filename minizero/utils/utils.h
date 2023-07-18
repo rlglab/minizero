@@ -6,6 +6,7 @@
 #include <boost/iostreams/filtering_streambuf.hpp>
 #include <cmath>
 #include <iomanip>
+#include <numeric>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -108,6 +109,16 @@ inline float invertValue(float value)
     const float epsilon = 0.001;
     const float sign_value = (value > 0.0f ? 1.0f : (value == 0.0f ? 0.0f : -1.0f));
     return sign_value * (powf((sqrt(1 + 4 * epsilon * (fabs(value) + 1 + epsilon)) - 1) / (2 * epsilon), 2.0f) - 1);
+}
+
+template <typename T>
+float stddev(const std::vector<T>& input)
+{
+    if (input.size() <= 1) { return 0.0f; }
+
+    double mean = std::accumulate(input.begin(), input.end(), 0.0) / input.size();
+    double variance = std::accumulate(input.begin(), input.end(), 0.0, [&](double sum, const T& value) { return sum + std::pow(static_cast<double>(value) - mean, 2); });
+    return std::sqrt(variance / (input.size() - 1));
 }
 
 } // namespace minizero::utils
