@@ -279,7 +279,7 @@ protected:
         MCTSNode* selected = nullptr;
         int total_simulation = node->getCountWithVirtualLoss() - 1;
         float init_q_value = calculateInitQValue(node);
-        float best_score = -std::numeric_limits<float>::max(), best_policy = -std::numeric_limits<float>::max();
+        float best_score = std::numeric_limits<float>::lowest(), best_policy = std::numeric_limits<float>::lowest();
         for (int i = 0; i < node->getNumChildren(); ++i) {
             MCTSNode* child = node->getChild(i);
             float score = child->getNormalizedPUCTScore(total_simulation, tree_value_bound_, init_q_value);
