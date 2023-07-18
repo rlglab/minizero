@@ -29,7 +29,7 @@ void ReplayBuffer::addData(const EnvironmentLoader& env_loader)
     std::deque<float> position_priorities(data_range.second + 1, 0.0f);
     float game_priority = 0.0f;
     for (int i = data_range.first; i <= data_range.second; ++i) {
-        position_priorities[i] = (config::learner_use_per ? env_loader.getPriority(i) : 1.0f);
+        position_priorities[i] = std::pow((config::learner_use_per ? env_loader.getPriority(i) : 1.0f), config::learner_per_alpha);
         game_priority += position_priorities[i];
     }
 
@@ -72,7 +72,7 @@ float ReplayBuffer::getLossScale(const std::pair<int, int>& p)
     // calculate importance sampling ratio
     int env_id = p.first, pos = p.second;
     float prob = position_priorities_[env_id][pos] / game_priority_sum_;
-    return 1.0f / (num_data_ * prob);
+    return std::pow((num_data_ * prob), (-config::learner_per_init_beta));
 }
 
 std::string DataLoaderSharedData::getNextEnvString()
@@ -247,7 +247,7 @@ void DataLoader::updatePriority(int* sampled_index, float* batch_v_first, float*
         std::string original_v_last = (pos_last_id < static_cast<int>(env_loader.getActionPairs().size()) ? env_loader.getActionPairs()[pos_last_id].second.at("V") : "");
         env_loader.setActionPairInfo(pos_id, "V", std::to_string(v_first));
         env_loader.setActionPairInfo(pos_last_id, "V", std::to_string(v_last));
-        getSharedData()->replay_buffer_.position_priorities_[env_id][pos_id] = env_loader.getPriority(pos_id);
+        getSharedData()->replay_buffer_.position_priorities_[env_id][pos_id] = std::pow(env_loader.getPriority(pos_id), config::learner_per_alpha);
     }
 
     // recalculate priority to correct floating number error (TODO: speedup this)

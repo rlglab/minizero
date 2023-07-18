@@ -49,6 +49,8 @@ extern bool zero_server_accept_different_model_games;
 
 // learner parameters
 extern bool learner_use_per;
+extern float learner_per_alpha;
+extern float learner_per_init_beta;
 extern int learner_training_step;
 extern int learner_training_display_step;
 extern int learner_batch_size;

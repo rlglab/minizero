@@ -47,6 +47,8 @@ bool zero_server_accept_different_model_games = true;
 
 // learner parameters
 bool learner_use_per = false;
+float learner_per_alpha = 1.0f;
+float learner_per_init_beta = 1.0f;
 int learner_training_step = 500;
 int learner_training_display_step = 100;
 int learner_batch_size = 1024;
@@ -127,6 +129,8 @@ void setConfiguration(ConfigureLoader& cl)
 
     // learner parameters
     cl.addParameter("learner_use_per", learner_use_per, "Prioritized Experience Replay", "Learner");
+    cl.addParameter("learner_per_alpha", learner_per_alpha, "Prioritized Experience Replay", "Learner");
+    cl.addParameter("learner_per_init_beta", learner_per_init_beta, "Prioritized Experience Replay", "Learner");
     cl.addParameter("learner_training_step", learner_training_step, "", "Learner");
     cl.addParameter("learner_training_display_step", learner_training_display_step, "", "Learner");
     cl.addParameter("learner_batch_size", learner_batch_size, "", "Learner");
