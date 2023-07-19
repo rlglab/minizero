@@ -16,27 +16,27 @@ def eprint(*args, **kwargs):
 class MinizeroDadaLoader:
     def __init__(self, conf_file_name):
         self.conf_file_name = conf_file_name
-        self.data_loader = minizero_py.DataLoader(self.conf_file_name)
+        self.data_loader = py.DataLoader(self.conf_file_name)
         self.data_loader.initialize()
         self.data_list = []
 
         # allocate memory
-        self.sampled_index = np.zeros(conf.get_batch_size() * 2, dtype=np.int32)
-        if conf.get_nn_type_name() == "alphazero":
-            self.features = np.zeros(conf.get_batch_size() * conf.get_nn_num_input_channels() * conf.get_nn_input_channel_height() * conf.get_nn_input_channel_width(), dtype=np.float32)
+        self.sampled_index = np.zeros(py.get_batch_size() * 2, dtype=np.int32)
+        if py.get_nn_type_name() == "alphazero":
+            self.features = np.zeros(py.get_batch_size() * py.get_nn_num_input_channels() * py.get_nn_input_channel_height() * py.get_nn_input_channel_width(), dtype=np.float32)
             self.action_features = None
-            self.policy = np.zeros(conf.get_batch_size() * conf.get_nn_action_size(), dtype=np.float32)
-            self.value = np.zeros(conf.get_batch_size() * conf.get_nn_discrete_value_size(), dtype=np.float32)
+            self.policy = np.zeros(py.get_batch_size() * py.get_nn_action_size(), dtype=np.float32)
+            self.value = np.zeros(py.get_batch_size() * py.get_nn_discrete_value_size(), dtype=np.float32)
             self.reward = None
-            self.loss_scale = np.zeros(conf.get_batch_size(), dtype=np.float32)
+            self.loss_scale = np.zeros(py.get_batch_size(), dtype=np.float32)
         else:
-            self.features = np.zeros(conf.get_batch_size() * conf.get_nn_num_input_channels() * conf.get_nn_input_channel_height() * conf.get_nn_input_channel_width(), dtype=np.float32)
-            self.action_features = np.zeros(conf.get_batch_size() * conf.get_muzero_unrolling_step() * conf.get_nn_num_action_feature_channels()
-                                            * conf.get_nn_hidden_channel_height() * conf.get_nn_hidden_channel_width(), dtype=np.float32)
-            self.policy = np.zeros(conf.get_batch_size() * (conf.get_muzero_unrolling_step() + 1) * conf.get_nn_action_size(), dtype=np.float32)
-            self.value = np.zeros(conf.get_batch_size() * (conf.get_muzero_unrolling_step() + 1) * conf.get_nn_discrete_value_size(), dtype=np.float32)
-            self.reward = np.zeros(conf.get_batch_size() * conf.get_muzero_unrolling_step() * conf.get_nn_discrete_value_size(), dtype=np.float32)
-            self.loss_scale = np.zeros(conf.get_batch_size(), dtype=np.float32)
+            self.features = np.zeros(py.get_batch_size() * py.get_nn_num_input_channels() * py.get_nn_input_channel_height() * py.get_nn_input_channel_width(), dtype=np.float32)
+            self.action_features = np.zeros(py.get_batch_size() * py.get_muzero_unrolling_step() * py.get_nn_num_action_feature_channels()
+                                            * py.get_nn_hidden_channel_height() * py.get_nn_hidden_channel_width(), dtype=np.float32)
+            self.policy = np.zeros(py.get_batch_size() * (py.get_muzero_unrolling_step() + 1) * py.get_nn_action_size(), dtype=np.float32)
+            self.value = np.zeros(py.get_batch_size() * (py.get_muzero_unrolling_step() + 1) * py.get_nn_discrete_value_size(), dtype=np.float32)
+            self.reward = np.zeros(py.get_batch_size() * py.get_muzero_unrolling_step() * py.get_nn_discrete_value_size(), dtype=np.float32)
+            self.loss_scale = np.zeros(py.get_batch_size(), dtype=np.float32)
 
     def load_data(self, training_dir, start_iter, end_iter):
         for i in range(start_iter, end_iter + 1):
@@ -45,30 +45,30 @@ class MinizeroDadaLoader:
                 continue
             self.data_loader.load_data_from_file(file_name)
             self.data_list.append(file_name)
-            if len(self.data_list) > conf.get_zero_replay_buffer():
+            if len(self.data_list) > py.get_zero_replay_buffer():
                 self.data_list.pop(0)
 
-    def sample_data(self, conf):
+    def sample_data(self):
         self.data_loader.sample_data(self.features, self.action_features, self.policy, self.value, self.reward, self.loss_scale, self.sampled_index)
-        features = torch.FloatTensor(self.features).view(conf.get_batch_size(),
-                                                         conf.get_nn_num_input_channels(),
-                                                         conf.get_nn_input_channel_height(),
-                                                         conf.get_nn_input_channel_width())
-        action_features = None if self.action_features is None else torch.FloatTensor(self.action_features).view(conf.get_batch_size(),
+        features = torch.FloatTensor(self.features).view(py.get_batch_size(),
+                                                         py.get_nn_num_input_channels(),
+                                                         py.get_nn_input_channel_height(),
+                                                         py.get_nn_input_channel_width())
+        action_features = None if self.action_features is None else torch.FloatTensor(self.action_features).view(py.get_batch_size(),
                                                                                                                  -1,
-                                                                                                                 conf.get_nn_num_action_feature_channels(),
-                                                                                                                 conf.get_nn_hidden_channel_height(),
-                                                                                                                 conf.get_nn_hidden_channel_width())
-        policy = torch.FloatTensor(self.policy).view(conf.get_batch_size(), -1, conf.get_nn_action_size())
-        value = torch.FloatTensor(self.value).view(conf.get_batch_size(), -1, conf.get_nn_discrete_value_size())
-        reward = None if self.reward is None else torch.FloatTensor(self.reward).view(conf.get_batch_size(), -1, conf.get_nn_discrete_value_size())
+                                                                                                                 py.get_nn_num_action_feature_channels(),
+                                                                                                                 py.get_nn_hidden_channel_height(),
+                                                                                                                 py.get_nn_hidden_channel_width())
+        policy = torch.FloatTensor(self.policy).view(py.get_batch_size(), -1, py.get_nn_action_size())
+        value = torch.FloatTensor(self.value).view(py.get_batch_size(), -1, py.get_nn_discrete_value_size())
+        reward = None if self.reward is None else torch.FloatTensor(self.reward).view(py.get_batch_size(), -1, py.get_nn_discrete_value_size())
         loss_scale = torch.FloatTensor(self.loss_scale / np.amax(self.loss_scale))
         sampled_index = self.sampled_index
 
         return features, action_features, policy, value, reward, loss_scale, sampled_index
 
     def update_priority(self, sampled_index, v_first, v_last):
-        start_value = -int(conf.get_nn_discrete_value_size() / 2)
+        start_value = -int(py.get_nn_discrete_value_size() / 2)
         accumulator = np.arange(start_value, start_value + v_first.shape[1])
         self.data_loader.update_priority(sampled_index, (v_first * accumulator).sum(axis=1), (v_last * accumulator).sum(axis=1))
 
@@ -81,26 +81,26 @@ class Model:
         self.optimizer = None
         self.scheduler = None
 
-    def load_model(self, training_dir, model_file, conf):
+    def load_model(self, training_dir, model_file):
         self.training_step = 0
-        self.network = create_network(conf.get_game_name(),
-                                      conf.get_nn_num_input_channels(),
-                                      conf.get_nn_input_channel_height(),
-                                      conf.get_nn_input_channel_width(),
-                                      conf.get_nn_num_hidden_channels(),
-                                      conf.get_nn_hidden_channel_height(),
-                                      conf.get_nn_hidden_channel_width(),
-                                      conf.get_nn_num_action_feature_channels(),
-                                      conf.get_nn_num_blocks(),
-                                      conf.get_nn_action_size(),
-                                      conf.get_nn_num_value_hidden_channels(),
-                                      conf.get_nn_discrete_value_size(),
-                                      conf.get_nn_type_name())
+        self.network = create_network(py.get_game_name(),
+                                      py.get_nn_num_input_channels(),
+                                      py.get_nn_input_channel_height(),
+                                      py.get_nn_input_channel_width(),
+                                      py.get_nn_num_hidden_channels(),
+                                      py.get_nn_hidden_channel_height(),
+                                      py.get_nn_hidden_channel_width(),
+                                      py.get_nn_num_action_feature_channels(),
+                                      py.get_nn_num_blocks(),
+                                      py.get_nn_action_size(),
+                                      py.get_nn_num_value_hidden_channels(),
+                                      py.get_nn_discrete_value_size(),
+                                      py.get_nn_type_name())
         self.network.to(self.device)
         self.optimizer = optim.SGD(self.network.parameters(),
-                                   lr=conf.get_learning_rate(),
-                                   momentum=conf.get_momentum(),
-                                   weight_decay=conf.get_weight_decay())
+                                   lr=py.get_learning_rate(),
+                                   momentum=py.get_momentum(),
+                                   weight_decay=py.get_weight_decay())
         self.scheduler = optim.lr_scheduler.StepLR(self.optimizer, step_size=1000000, gamma=0.1)
 
         if model_file:
@@ -108,7 +108,7 @@ class Model:
             self.training_step = snapshot['training_step']
             self.network.load_state_dict(snapshot['network'])
             self.optimizer.load_state_dict(snapshot['optimizer'])
-            self.optimizer.param_groups[0]["lr"] = conf.get_learning_rate()
+            self.optimizer.param_groups[0]["lr"] = py.get_learning_rate()
             self.scheduler.load_state_dict(snapshot['scheduler'])
 
         # for multi-gpu
@@ -123,15 +123,15 @@ class Model:
         torch.jit.script(self.network.module).save(f"{training_dir}/model/weight_iter_{self.training_step}.pt")
 
 
-def calculate_loss(conf, network_output, label_policy, label_value, label_reward, loss_scale):
+def calculate_loss(network_output, label_policy, label_value, label_reward, loss_scale):
     # policy
-    if conf.use_gumbel():
+    if py.use_gumbel():
         loss_policy = (nn.functional.kl_div(nn.functional.log_softmax(network_output["policy_logit"], dim=1), label_policy, reduction='none').sum(dim=1) * loss_scale).mean()
     else:
         loss_policy = -((label_policy * nn.functional.log_softmax(network_output["policy_logit"], dim=1)).sum(dim=1) * loss_scale).mean()
 
     # value
-    if conf.get_nn_discrete_value_size() == 1:
+    if py.get_nn_discrete_value_size() == 1:
         loss_value = (nn.functional.mse_loss(network_output["value"], label_value, reduction='none') * loss_scale).mean()
     else:
         loss_value = -((label_value * nn.functional.log_softmax(network_output["value_logit"], dim=1)).sum(dim=1) * loss_scale).mean()
@@ -156,7 +156,7 @@ def calculate_accuracy(output, label, batch_size):
     return (max_output == max_label).sum() / batch_size
 
 
-def train(model, training_dir, conf, data_loader, start_iter, end_iter):
+def train(model, training_dir, data_loader, start_iter, end_iter):
     if start_iter == -1:
         model.save_model(training_dir)
         return
@@ -165,45 +165,45 @@ def train(model, training_dir, conf, data_loader, start_iter, end_iter):
     data_loader.load_data(training_dir, start_iter, end_iter)
 
     training_info = {}
-    for i in range(1, conf.get_training_step() + 1):
+    for i in range(1, py.get_training_step() + 1):
         model.optimizer.zero_grad()
-        features, action_features, label_policy, label_value, label_reward, loss_scale, sampled_index = data_loader.sample_data(conf)
+        features, action_features, label_policy, label_value, label_reward, loss_scale, sampled_index = data_loader.sample_data()
 
-        if conf.get_nn_type_name() == "alphazero":
+        if py.get_nn_type_name() == "alphazero":
             network_output = model.network(features.to(model.device))
-            loss_policy, loss_value, _ = calculate_loss(conf, network_output, label_policy[:, 0].to(model.device), label_value[:, 0].to(model.device), None, loss_scale.to(model.device))
+            loss_policy, loss_value, _ = calculate_loss(network_output, label_policy[:, 0].to(model.device), label_value[:, 0].to(model.device), None, loss_scale.to(model.device))
             loss = loss_policy + loss_value
 
             # record training info
             add_training_info(training_info, 'loss_policy', loss_policy.item())
-            add_training_info(training_info, 'accuracy_policy', calculate_accuracy(network_output["policy_logit"], label_policy[:, 0], conf.get_batch_size()))
+            add_training_info(training_info, 'accuracy_policy', calculate_accuracy(network_output["policy_logit"], label_policy[:, 0], py.get_batch_size()))
             add_training_info(training_info, 'loss_value', loss_value.item())
-        elif conf.get_nn_type_name() == "muzero":
+        elif py.get_nn_type_name() == "muzero":
             network_output = model.network(features.to(model.device))
             v_first = network_output['value'].to('cpu').detach().numpy()
-            loss_step_policy, loss_step_value, loss_step_reward = calculate_loss(conf, network_output, label_policy[:, 0].to(
+            loss_step_policy, loss_step_value, loss_step_reward = calculate_loss(network_output, label_policy[:, 0].to(
                 model.device), label_value[:, 0].to(model.device), None, loss_scale.to(model.device))
             add_training_info(training_info, 'loss_policy_0', loss_step_policy.item())
-            add_training_info(training_info, 'accuracy_policy_0', calculate_accuracy(network_output["policy_logit"], label_policy[:, 0], conf.get_batch_size()))
+            add_training_info(training_info, 'accuracy_policy_0', calculate_accuracy(network_output["policy_logit"], label_policy[:, 0], py.get_batch_size()))
             add_training_info(training_info, 'loss_value_0', loss_step_value.item())
             loss_policy = loss_step_policy
             loss_value = loss_step_value
             loss_reward = loss_step_reward
-            for i in range(conf.get_muzero_unrolling_step()):
+            for i in range(py.get_muzero_unrolling_step()):
                 network_output = model.network(network_output["hidden_state"], action_features[:, i].to(model.device))
                 loss_step_policy, loss_step_value, loss_step_reward = calculate_loss(
-                    conf, network_output, label_policy[:, i + 1].to(model.device), label_value[:, i + 1].to(model.device), label_reward[:, i].to(model.device), loss_scale.to(model.device))
-                add_training_info(training_info, f'loss_policy_{i+1}', loss_step_policy.item() / conf.get_muzero_unrolling_step())
-                add_training_info(training_info, f'accuracy_policy_{i+1}', calculate_accuracy(network_output["policy_logit"], label_policy[:, i + 1], conf.get_batch_size()))
-                add_training_info(training_info, f'loss_value_{i+1}', loss_step_value.item() / conf.get_muzero_unrolling_step())
+                    network_output, label_policy[:, i + 1].to(model.device), label_value[:, i + 1].to(model.device), label_reward[:, i].to(model.device), loss_scale.to(model.device))
+                add_training_info(training_info, f'loss_policy_{i+1}', loss_step_policy.item() / py.get_muzero_unrolling_step())
+                add_training_info(training_info, f'accuracy_policy_{i+1}', calculate_accuracy(network_output["policy_logit"], label_policy[:, i + 1], py.get_batch_size()))
+                add_training_info(training_info, f'loss_value_{i+1}', loss_step_value.item() / py.get_muzero_unrolling_step())
                 if "reward_logit" in network_output:
-                    add_training_info(training_info, f'loss_reward_{i+1}', loss_step_reward.item() / conf.get_muzero_unrolling_step())
-                loss_policy += loss_step_policy / conf.get_muzero_unrolling_step()
-                loss_value += loss_step_value / conf.get_muzero_unrolling_step()
-                loss_reward += loss_step_reward / conf.get_muzero_unrolling_step()
+                    add_training_info(training_info, f'loss_reward_{i+1}', loss_step_reward.item() / py.get_muzero_unrolling_step())
+                loss_policy += loss_step_policy / py.get_muzero_unrolling_step()
+                loss_value += loss_step_value / py.get_muzero_unrolling_step()
+                loss_reward += loss_step_reward / py.get_muzero_unrolling_step()
                 network_output["hidden_state"].register_hook(lambda grad: grad / 2)
             v_last = network_output['value'].to('cpu').detach().numpy()
-            if conf.use_per():
+            if py.use_per():
                 data_loader.update_priority(sampled_index, v_first, v_last)
             loss = loss_policy + loss_value + loss_reward
 
@@ -217,10 +217,10 @@ def train(model, training_dir, conf, data_loader, start_iter, end_iter):
         model.scheduler.step()
 
         model.training_step += 1
-        if model.training_step != 0 and model.training_step % conf.get_training_display_step() == 0:
+        if model.training_step != 0 and model.training_step % py.get_training_display_step() == 0:
             eprint("[{}] nn step {}, lr: {}.".format(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), model.training_step, round(model.optimizer.param_groups[0]["lr"], 6)))
             for loss in training_info:
-                eprint("\t{}: {}".format(loss, round(training_info[loss] / conf.get_training_display_step(), 5)))
+                eprint("\t{}: {}".format(loss, round(training_info[loss] / py.get_training_display_step(), 5)))
             training_info = {}
 
     model.save_model(training_dir)
@@ -236,12 +236,12 @@ if __name__ == '__main__':
 
         # import pybind library
         _temps = __import__(f'build.{game_type}', globals(), locals(), ['minizero_py'], 0)
-        minizero_py = _temps.minizero_py
+        py = _temps.minizero_py
     else:
         eprint("python train.py game_type training_dir conf_file")
         exit(0)
 
-    conf = minizero_py.Conf(conf_file_name)
+    py.load_config_file(conf_file_name)
     data_loader = MinizeroDadaLoader(conf_file_name)
     model = Model()
 
@@ -255,7 +255,7 @@ if __name__ == '__main__':
             eprint("[{}] [command] {}".format(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), command))
             if command_prefix == "update_config":
                 conf_str = command.split(" ", 1)[-1]
-                if not conf.update_config(conf_str):
+                if not py.load_config_string(conf_str):
                     eprint("Failed to load configuration string.")
                     exit(0)
             elif command_prefix == "train":
@@ -264,9 +264,9 @@ if __name__ == '__main__':
 
                 # skip loading model if the model is loaded
                 if model.network is None:
-                    model.load_model(training_dir, model_file, conf)
+                    model.load_model(training_dir, model_file)
 
-                train(model, training_dir, conf, data_loader, int(start_iter), int(end_iter))
+                train(model, training_dir, data_loader, int(start_iter), int(end_iter))
             elif command_prefix == "quit":
                 exit(0)
 
