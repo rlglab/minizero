@@ -75,9 +75,29 @@ int nn_discrete_value_size = 1;
 std::string nn_type_name = "alphazero";
 
 // environment parameters
+#if GO
+int env_board_size = 9;
+#elif HEX
+int env_board_size = 11;
+#elif KILLALLGO
+int env_board_size = 7;
+#elif OTHELLO
+int env_board_size = 8;
+#elif GOMOKU
+int env_board_size = 15;
+#elif CHESS
+int env_board_size = 8;
+#elif TICTACTOE
+int env_board_size = 3;
+#elif PUZZLE2048
+int env_board_size = 4;
+#else
+int env_board_size = 0;
+#endif
+
+// environment parameters for specific game
 std::string env_atari_rom_dir = "/opt/atari57/";
 std::string env_atari_name = "ms_pacman";
-int env_board_size = 0;
 int env_atari_noop_start = 0;
 float env_go_komi = 7.5;
 std::string env_go_ko_rule = "positional";
@@ -158,6 +178,8 @@ void setConfiguration(ConfigureLoader& cl)
 
     // environment parameters
     cl.addParameter("env_board_size", env_board_size, "", "Environment");
+
+    // environment parameters for specific game
 #if ATARI
     cl.addParameter("env_atari_rom_dir", env_atari_rom_dir, "", "Environment");
     cl.addParameter("env_atari_name", env_atari_name, "Atari 57 Games:\n"
@@ -176,30 +198,6 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("env_killallgo_ko_rule", env_go_ko_rule, "positional/situational", "Environment");
 #elif GOMOKU
     cl.addParameter("env_gomoku_rule", env_gomoku_rule, "normal/outer_open", "Environment");
-#endif
-    setDefaultBoardSize(cl);
-}
-
-void setDefaultBoardSize(ConfigureLoader& cl)
-{
-#if GO
-    env_board_size = 9;
-#elif HEX
-    env_board_size = 11;
-#elif KILLALLGO
-    env_board_size = 7;
-#elif OTHELLO
-    env_board_size = 8;
-#elif GOMOKU
-    env_board_size = 15;
-#elif CHESS
-    env_board_size = 8;
-#elif TICTACTOE
-    env_board_size = 3;
-#elif PUZZLE2048
-    env_board_size = 4;
-#else
-    env_board_size = 0;
 #endif
 }
 
