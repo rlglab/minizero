@@ -241,6 +241,15 @@ void ActorGroup::handleCommand(const std::string& command_prefix, const std::str
         assert(args.size() == 2);
         config::nn_file_name = args[1];
         for (auto& network : getSharedData()->networks_) { network->loadModel(config::nn_file_name, network->getGPUID()); }
+    } else if (command_prefix == "update_config") {
+        std::cerr << "[command] " << command << std::endl;
+        assert(command.find(" ") != std::string::npos);
+        config::ConfigureLoader cl;
+        config::setConfiguration(cl);
+        if (!cl.loadFromString(command.substr(command.find(" ") + 1))) {
+            std::cerr << "Failed to load configuration string." << std::endl;
+            exit(0);
+        }
     } else if (command_prefix == "start") {
         std::cerr << "[command] " << command << std::endl;
         running_ = true;

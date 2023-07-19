@@ -92,6 +92,7 @@ void ZeroWorkerHandler::handleReceivedMessage(const std::string& message)
             job_command += ":program_auto_seed=false:program_seed=" + std::to_string(utils::Random::randInt());
             job_command += ":program_quiet=true";
             write(job_command);
+            syncConfig();
         } else if (type_ == "op") {
             if (shared_data_.num_op_worker_ >= 1) {
                 shared_data_.logger_.addWorkerLog("[Worker Error] Receive multiple op workers");
@@ -100,6 +101,7 @@ void ZeroWorkerHandler::handleReceivedMessage(const std::string& message)
             } else {
                 ++shared_data_.num_op_worker_;
                 write("Job_Optimization " + config::zero_training_directory);
+                syncConfig();
             }
         } else {
             shared_data_.logger_.addWorkerLog("[Worker Disconnection] " + getName() + " " + getType());
@@ -143,6 +145,12 @@ void ZeroWorkerHandler::close()
     if (getType() == "op") { --shared_data_.num_op_worker_; }
 }
 
+void ZeroWorkerHandler::syncConfig()
+{
+    if (shared_data_.updated_conf_str_.empty()) { return; }
+    write("update_config " + shared_data_.updated_conf_str_);
+}
+
 void ZeroServer::run()
 {
     initialize();
@@ -150,6 +158,7 @@ void ZeroServer::run()
     std::cerr << TimeSystem::getTimeString("[Y/m/d_H:i:s.f] ") << "Server initialize over." << std::endl;
 
     for (iteration_ = config::zero_start_iteration; iteration_ <= config::zero_end_iteration; ++iteration_) {
+        syncConfig();
         selfPlay();
         optimization();
     }
@@ -168,6 +177,7 @@ void ZeroServer::initialize()
     nn_file_name = nn_file_name.substr(0, nn_file_name.find("."));
     shared_data_.num_op_worker_ = 0;
     shared_data_.model_iteration_ = stoi(nn_file_name);
+    shared_data_.updated_conf_str_ = getUpdatedConfig();
 }
 
 void ZeroServer::selfPlay()
@@ -244,7 +254,7 @@ void ZeroServer::optimization()
 {
     shared_data_.logger_.addTrainingLog("[Optimization] Start.");
 
-    std::string job_command = "";
+    std::string job_command = "train ";
     job_command += "weight_iter_" + std::to_string(shared_data_.getModelIetration()) + ".pkl";
     job_command += " " + std::to_string(std::max(1, iteration_ - config::zero_replay_buffer + 1));
     job_command += " " + std::to_string(iteration_);
@@ -261,6 +271,25 @@ void ZeroServer::optimization()
     stopJob("op");
 
     shared_data_.logger_.addTrainingLog("[Optimization] Finished.");
+}
+
+std::string ZeroServer::getUpdatedConfig()
+{
+    std::string job_command = "";
+    if (config::learner_use_per && config::learner_per_beta_anneal) {
+        float per_beta = std::min(config::learner_per_init_beta + (iteration_ * 1.0f / config::zero_end_iteration) * (1.0f - config::learner_per_init_beta), 1.0f);
+        job_command += "learner_per_init_beta=" + std::to_string(per_beta) + ":";
+    }
+    if (!job_command.empty()) { job_command.pop_back(); } // remove last ":"
+    return job_command;
+}
+
+void ZeroServer::syncConfig()
+{
+    shared_data_.updated_conf_str_ = getUpdatedConfig();
+
+    boost::lock_guard<boost::mutex> lock(worker_mutex_);
+    for (auto worker : connections_) { worker->syncConfig(); }
 }
 
 void ZeroServer::stopJob(const std::string& job_type)

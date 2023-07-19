@@ -57,6 +57,7 @@ public:
     int total_games_;
     int model_iteration_;
     ZeroLogger logger_;
+    std::string updated_conf_str_;
     std::queue<ZeroSelfPlayData> sp_data_queue_;
     boost::mutex mutex_;
     boost::mutex& worker_mutex_;
@@ -73,6 +74,7 @@ public:
 
     void handleReceivedMessage(const std::string& message) override;
     void close() override;
+    void syncConfig();
 
     inline bool isIdle() const { return is_idle_; }
     inline std::string getName() const { return name_; }
@@ -105,6 +107,8 @@ protected:
     virtual void selfPlay();
     virtual void broadcastSelfPlayJob();
     virtual void optimization();
+    virtual std::string getUpdatedConfig();
+    void syncConfig();
     void stopJob(const std::string& job_type);
     void close();
     void keepAlive();

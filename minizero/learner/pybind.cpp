@@ -48,6 +48,11 @@ PYBIND11_MODULE(minizero_py, m)
 {
     py::class_<Conf>(m, "Conf")
         .def(py::init<std::string>())
+        .def("update_config", [](Conf& conf, const std::string& conf_str) {
+            minizero::config::ConfigureLoader cl;
+            minizero::config::setConfiguration(cl);
+            return cl.loadFromString(conf_str);
+        })
         .def("use_gumbel", &Conf::useGumbel)
         .def("get_zero_replay_buffer", &Conf::getZeroReplayBuffer)
         .def("use_per", &Conf::usePER)

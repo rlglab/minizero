@@ -248,20 +248,27 @@ if __name__ == '__main__':
     while True:
         try:
             command = input()
+            command_prefix = command.split()[0]
             if command == "keep_alive":
                 continue
-            elif command == "quit":
-                eprint("[{}] [command] {}".format(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), command))
-                exit(0)
 
             eprint("[{}] [command] {}".format(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), command))
-            model_file, start_iter, end_iter = command.split()
-            model_file = model_file.replace('"', '')
+            if command_prefix == "update_config":
+                conf_str = command.split(" ", 1)[-1]
+                if not conf.update_config(conf_str):
+                    eprint("Failed to load configuration string.")
+                    exit(0)
+            elif command_prefix == "train":
+                _, model_file, start_iter, end_iter = command.split()
+                model_file = model_file.replace('"', '')
 
-            # skip loading model if the model is loaded
-            if model.network is None:
-                model.load_model(training_dir, model_file, conf)
+                # skip loading model if the model is loaded
+                if model.network is None:
+                    model.load_model(training_dir, model_file, conf)
 
-            train(model, training_dir, conf, data_loader, int(start_iter), int(end_iter))
+                train(model, training_dir, conf, data_loader, int(start_iter), int(end_iter))
+            elif command_prefix == "quit":
+                exit(0)
+
         except (KeyboardInterrupt, EOFError) as e:
             break

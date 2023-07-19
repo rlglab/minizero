@@ -88,7 +88,7 @@ if [[ ${run_stage,} == "r" ]]; then
 	${sp_executable_file} -gen ${train_dir}/${new_configure_file} -conf_file ${configure_file} -conf_str "${overwrite_conf_str}" 2>/dev/null
 
 	# setup initial weight
-	echo "\"\" -1 -1" | PYTHONPATH=. python ${op_executable_file} ${game_type} ${train_dir} ${train_dir}/${new_configure_file} >/dev/null 2>&1
+	echo "train \"\" -1 -1" | PYTHONPATH=. python ${op_executable_file} ${game_type} ${train_dir} ${train_dir}/${new_configure_file} >/dev/null 2>&1
 elif [[ ${run_stage,} == "c" ]]; then
     zero_start_iteration=$(ls ${train_dir}/model/ | grep ".pt$" | wc -l)
     model_file=$(ls ${train_dir}/model/ | grep ".pt$" | sort -V | tail -n1)
