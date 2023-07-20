@@ -220,7 +220,7 @@ def train(model, training_dir, data_loader, start_iter, end_iter):
             training_info = {}
 
     model.save_model(training_dir)
-    print("Optimization_Done", model.training_step)
+    print("Optimization_Done", model.training_step, flush=True)
     eprint("Optimization_Done", model.training_step)
     analysis(training_dir, "analysis")
 
