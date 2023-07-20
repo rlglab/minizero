@@ -23,6 +23,7 @@ extern float actor_mcts_think_time_limit;
 extern bool actor_select_action_by_count;
 extern bool actor_select_action_by_softmax_count;
 extern float actor_select_action_softmax_temperature;
+extern bool actor_select_action_softmax_temperature_decay;
 extern bool actor_use_random_rotation_features;
 extern bool actor_use_dirichlet_noise;
 extern float actor_dirichlet_noise_alpha;

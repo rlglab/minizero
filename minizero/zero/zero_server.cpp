@@ -280,6 +280,11 @@ std::string ZeroServer::getUpdatedConfig()
         float per_beta = std::min(config::learner_per_init_beta + (iteration_ * 1.0f / config::zero_end_iteration) * (1.0f - config::learner_per_init_beta), 1.0f);
         job_command += "learner_per_init_beta=" + std::to_string(per_beta) + ":";
     }
+    if (config::actor_select_action_softmax_temperature_decay) {
+        float training_progress = iteration_ * 1.0f / config::zero_end_iteration;
+        float temperature = (training_progress < 0.5 ? 1.0f : (training_progress < 0.75 ? 0.5f : 0.25f));
+        job_command += "actor_select_action_softmax_temperature=" + std::to_string(temperature) + ":";
+    }
     if (!job_command.empty()) { job_command.pop_back(); } // remove last ":"
     return job_command;
 }

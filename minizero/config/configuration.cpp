@@ -21,6 +21,7 @@ bool actor_mcts_value_rescale = false;
 bool actor_select_action_by_count = false;
 bool actor_select_action_by_softmax_count = true;
 float actor_select_action_softmax_temperature = 1.0f;
+bool actor_select_action_softmax_temperature_decay = false;
 bool actor_use_random_rotation_features = true;
 bool actor_use_dirichlet_noise = true;
 float actor_dirichlet_noise_alpha = 0.03f;
@@ -124,6 +125,7 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("actor_select_action_by_count", actor_select_action_by_count, "", "Actor");
     cl.addParameter("actor_select_action_by_softmax_count", actor_select_action_by_softmax_count, "", "Actor");
     cl.addParameter("actor_select_action_softmax_temperature", actor_select_action_softmax_temperature, "", "Actor");
+    cl.addParameter("actor_select_action_softmax_temperature_decay", actor_select_action_softmax_temperature_decay, "decay temperature based on zero_end_iteration; use 1, 0.5, and 0.25 for 0%-50%, 50%-75%, and 75%-100% of total iterations, respectively", "Actor");
     cl.addParameter("actor_use_random_rotation_features", actor_use_random_rotation_features, "randomly rotate input features, currently only supports alphazero mode", "Actor");
     cl.addParameter("actor_use_dirichlet_noise", actor_use_dirichlet_noise, "", "Actor");
     cl.addParameter("actor_dirichlet_noise_alpha", actor_dirichlet_noise_alpha, "1 / sqrt(num of actions)", "Actor");
@@ -152,7 +154,7 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("learner_use_per", learner_use_per, "Prioritized Experience Replay", "Learner");
     cl.addParameter("learner_per_alpha", learner_per_alpha, "Prioritized Experience Replay", "Learner");
     cl.addParameter("learner_per_init_beta", learner_per_init_beta, "Prioritized Experience Replay", "Learner");
-    cl.addParameter("learner_per_beta_anneal", learner_per_beta_anneal, "Prioritized Experience Replay", "Learner");
+    cl.addParameter("learner_per_beta_anneal", learner_per_beta_anneal, "linearly anneal PER init beta to 1 based on zero_end_iteration", "Learner");
     cl.addParameter("learner_training_step", learner_training_step, "", "Learner");
     cl.addParameter("learner_training_display_step", learner_training_display_step, "", "Learner");
     cl.addParameter("learner_batch_size", learner_batch_size, "", "Learner");
