@@ -7,6 +7,7 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 from minizero.network.py.create_network import create_network
+from tools.analysis import analysis
 
 
 def eprint(*args, **kwargs):
@@ -221,6 +222,7 @@ def train(model, training_dir, data_loader, start_iter, end_iter):
     model.save_model(training_dir)
     print("Optimization_Done", model.training_step)
     eprint("Optimization_Done", model.training_step)
+    analysis(training_dir, "analysis")
 
 
 if __name__ == '__main__':
