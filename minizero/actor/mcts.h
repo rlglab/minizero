@@ -303,7 +303,12 @@ protected:
             sum_of_win += child->getNormalizedMean(tree_value_bound_);
             sum += 1;
         }
+#if ATARI
+        // explore more in Atari games (TODO: check if this method also performs better in board games)
+        return (sum > 0 ? sum_of_win / sum : 1.0f);
+#else
         return (sum_of_win - 1) / (sum + 1);
+#endif
     }
 
     virtual void updateTreeValueBound(float old_value, float new_value)
