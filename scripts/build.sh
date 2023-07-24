@@ -30,7 +30,7 @@ build_game() {
 
 	# create git info file
 	git_hash=$(git log -1 --format=%H)
-	git_short_hash=$(git describe --abbrev=6 --dirty --always --tags)
+	git_short_hash=$(git describe --abbrev=6 --dirty --always --exclude '*')
 	mkdir -p git_info
 	git_info=$(echo -e "#pragma once\n\n#define GIT_HASH \"${git_hash}\"\n#define GIT_SHORT_HASH \"${git_short_hash}\"")
 	if [ ! -f git_info/git_info.h ] || [ $(diff -q <(echo "${git_info}") <(cat git_info/git_info.h) | wc -l 2>/dev/null) -ne 0 ]; then
