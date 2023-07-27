@@ -75,13 +75,11 @@ if [[ ${run_stage,} == "r" ]]; then
 	rm -rf ${train_dir}
 
 	echo "create ${train_dir} ..."
-	mkdir -p ${train_dir}/model
+	mkdir -p ${train_dir}/model ${train_dir}/sgf
 	if [[ ! -z ${link_sgf} ]];
 	then
-		ln -sr ${link_sgf} ${train_dir}/sgf
+		ln ${link_sgf}/* ${train_dir}/sgf/
 		echo "link ${link_sgf} ..."
-	else
-		mkdir -p ${train_dir}/sgf
 	fi
 	touch ${train_dir}/op.log
 	new_configure_file=$(basename ${train_dir}).cfg
