@@ -42,7 +42,6 @@ class MuZeroRepresentationNetwork(nn.Module):
 class MuZeroDynamicsNetwork(nn.Module):
     def __init__(self, num_channels, channel_height, channel_width, num_action_feature_channels, num_blocks, reward_size):
         super(MuZeroDynamicsNetwork, self).__init__()
-        self.reward_size = reward_size
         self.conv = nn.Conv2d(num_channels + num_action_feature_channels, num_channels, kernel_size=3, padding=1)
         self.bn = nn.BatchNorm2d(num_channels)
         self.residual_blocks = nn.ModuleList([ResidualBlock(num_channels) for _ in range(num_blocks)])
@@ -101,7 +100,7 @@ class MuZeroAtariNetwork(nn.Module):
 
         self.representation_network = MuZeroRepresentationNetwork(num_input_channels, num_hidden_channels, num_blocks)
         self.dynamics_network = MuZeroDynamicsNetwork(num_hidden_channels, hidden_channel_height, hidden_channel_height, num_action_feature_channels, num_blocks, discrete_value_size)
-        self.prediction_network = MuZeroPredictionNetwork(num_hidden_channels, hidden_channel_height, hidden_channel_width, num_blocks, action_size, num_value_hidden_channels, discrete_value_size)
+        self.prediction_network = MuZeroPredictionNetwork(num_hidden_channels, hidden_channel_height, hidden_channel_width, action_size, num_value_hidden_channels, discrete_value_size)
 
     @torch.jit.export
     def get_type_name(self):

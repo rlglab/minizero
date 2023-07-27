@@ -79,7 +79,7 @@ class MuZeroNetwork(nn.Module):
 
         self.representation_network = MuZeroRepresentationNetwork(num_input_channels, num_hidden_channels, num_blocks)
         self.dynamics_network = MuZeroDynamicsNetwork(num_hidden_channels, num_action_feature_channels, num_blocks)
-        self.prediction_network = MuZeroPredictionNetwork(num_hidden_channels, hidden_channel_height, hidden_channel_width, num_blocks, action_size, num_value_hidden_channels)
+        self.prediction_network = MuZeroPredictionNetwork(num_hidden_channels, hidden_channel_height, hidden_channel_width, action_size, num_value_hidden_channels)
 
     @torch.jit.export
     def get_type_name(self):
