@@ -232,21 +232,18 @@ void DataLoader::sampleData()
     for (auto& t : slave_threads_) { t->finish(); }
 }
 
-void DataLoader::updatePriority(int* sampled_index, float* batch_v_first, float* batch_v_last)
+void DataLoader::updatePriority(int* sampled_index, float* batch_values)
 {
     // TODO: use multiple threads
     for (int batch_index = 0; batch_index < config::learner_batch_size; ++batch_index) {
         int env_id = sampled_index[2 * batch_index];
         int pos_id = sampled_index[2 * batch_index + 1];
-        float v_first = utils::invertValue(batch_v_first[batch_index]);
-        float v_last = utils::invertValue(batch_v_last[batch_index]);
 
         EnvironmentLoader& env_loader = getSharedData()->replay_buffer_.env_loaders_[env_id];
-        int pos_last_id = pos_id + config::learner_muzero_unrolling_step;
-        std::string original_v_first = env_loader.getActionPairs()[pos_id].second.at("V");
-        std::string original_v_last = (pos_last_id < static_cast<int>(env_loader.getActionPairs().size()) ? env_loader.getActionPairs()[pos_last_id].second.at("V") : "");
-        env_loader.setActionPairInfo(pos_id, "V", std::to_string(v_first));
-        env_loader.setActionPairInfo(pos_last_id, "V", std::to_string(v_last));
+        for (int step = 0; step <= config::learner_muzero_unrolling_step; ++step) {
+            float new_value = utils::invertValue(batch_values[step * config::learner_batch_size + batch_index]);
+            env_loader.setActionPairInfo(pos_id + step, "V", std::to_string(new_value));
+        }
         getSharedData()->replay_buffer_.position_priorities_[env_id][pos_id] = std::pow(env_loader.getPriority(pos_id), config::learner_per_alpha);
     }
 

@@ -90,7 +90,7 @@ public:
     void summarize() override {}
     virtual void loadDataFromFile(const std::string& file_name);
     virtual void sampleData();
-    virtual void updatePriority(int* sampled_index, float* batch_v_first, float* batch_v_last);
+    virtual void updatePriority(int* sampled_index, float* batch_values);
 
     void createSharedData() override { shared_data_ = std::make_shared<DataLoaderSharedData>(); }
     std::shared_ptr<utils::BaseSlaveThread> newSlaveThread(int id) override { return std::make_shared<DataLoaderThread>(id, shared_data_); }

@@ -30,6 +30,7 @@ class MinizeroDadaLoader:
             self.value = np.zeros(py.get_batch_size() * py.get_nn_discrete_value_size(), dtype=np.float32)
             self.reward = None
             self.loss_scale = np.zeros(py.get_batch_size(), dtype=np.float32)
+            self.value_accumulator = np.ones(1) if py.get_nn_discrete_value_size() == 1 else np.arange(-int(py.get_nn_discrete_value_size() / 2), int(py.get_nn_discrete_value_size() / 2) + 1)
         else:
             self.features = np.zeros(py.get_batch_size() * py.get_nn_num_input_channels() * py.get_nn_input_channel_height() * py.get_nn_input_channel_width(), dtype=np.float32)
             self.action_features = np.zeros(py.get_batch_size() * py.get_muzero_unrolling_step() * py.get_nn_num_action_feature_channels()
@@ -38,6 +39,7 @@ class MinizeroDadaLoader:
             self.value = np.zeros(py.get_batch_size() * (py.get_muzero_unrolling_step() + 1) * py.get_nn_discrete_value_size(), dtype=np.float32)
             self.reward = np.zeros(py.get_batch_size() * py.get_muzero_unrolling_step() * py.get_nn_discrete_value_size(), dtype=np.float32)
             self.loss_scale = np.zeros(py.get_batch_size(), dtype=np.float32)
+            self.value_accumulator = np.ones(1) if py.get_nn_discrete_value_size() == 1 else np.arange(-int(py.get_nn_discrete_value_size() / 2), int(py.get_nn_discrete_value_size() / 2) + 1)
 
     def load_data(self, training_dir, start_iter, end_iter):
         for i in range(start_iter, end_iter + 1):
@@ -65,10 +67,9 @@ class MinizeroDadaLoader:
 
         return features, action_features, policy, value, reward, loss_scale, sampled_index
 
-    def update_priority(self, sampled_index, v_first, v_last):
-        start_value = -int(py.get_nn_discrete_value_size() / 2)
-        accumulator = np.arange(start_value, start_value + v_first.shape[1])
-        self.data_loader.update_priority(sampled_index, (v_first * accumulator).sum(axis=1), (v_last * accumulator).sum(axis=1))
+    def update_priority(self, sampled_index, batch_values):
+        batch_values = (batch_values * self.value_accumulator).sum(axis=1)
+        self.data_loader.update_priority(sampled_index, batch_values)
 
 
 class Model:
@@ -178,7 +179,7 @@ def train(model, training_dir, data_loader, start_iter, end_iter):
             add_training_info(training_info, 'loss_value', loss_value.item())
         elif py.get_nn_type_name() == "muzero":
             network_output = model.network(features)
-            v_first = network_output['value'].to('cpu').detach().numpy()
+            batch_values = network_output['value'].to('cpu').detach().numpy()
             loss_step_policy, loss_step_value, loss_step_reward = calculate_loss(network_output, label_policy[:, 0], label_value[:, 0], None, loss_scale)
             add_training_info(training_info, 'loss_policy_0', loss_step_policy.item())
             add_training_info(training_info, 'accuracy_policy_0', calculate_accuracy(network_output["policy_logit"], label_policy[:, 0], py.get_batch_size()))
@@ -188,6 +189,7 @@ def train(model, training_dir, data_loader, start_iter, end_iter):
             loss_reward = loss_step_reward
             for i in range(py.get_muzero_unrolling_step()):
                 network_output = model.network(network_output["hidden_state"], action_features[:, i])
+                batch_values = np.concatenate((batch_values, network_output['value'].to('cpu').detach().numpy()), axis=0)
                 loss_step_policy, loss_step_value, loss_step_reward = calculate_loss(network_output, label_policy[:, i + 1], label_value[:, i + 1], label_reward[:, i], loss_scale)
                 add_training_info(training_info, f'loss_policy_{i+1}', loss_step_policy.item() / py.get_muzero_unrolling_step())
                 add_training_info(training_info, f'accuracy_policy_{i+1}', calculate_accuracy(network_output["policy_logit"], label_policy[:, i + 1], py.get_batch_size()))
@@ -198,10 +200,9 @@ def train(model, training_dir, data_loader, start_iter, end_iter):
                 loss_value += loss_step_value / py.get_muzero_unrolling_step()
                 loss_reward += loss_step_reward / py.get_muzero_unrolling_step()
                 network_output["hidden_state"].register_hook(lambda grad: grad / 2)
-            v_last = network_output['value'].to('cpu').detach().numpy()
             if py.use_per():
-                data_loader.update_priority(sampled_index, v_first, v_last)
-            loss = loss_policy + loss_value + loss_reward
+                data_loader.update_priority(sampled_index, batch_values)
+            loss = loss_policy + py.get_value_loss_scale() * loss_value + loss_reward
 
             add_training_info(training_info, 'loss_policy', loss_policy.item())
             add_training_info(training_info, 'loss_value', loss_value.item())

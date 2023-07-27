@@ -51,8 +51,8 @@ PYBIND11_MODULE(minizero_py, m)
         .def("initialize", &learner::DataLoader::initialize)
         .def("load_data_from_file", &learner::DataLoader::loadDataFromFile, py::call_guard<py::gil_scoped_release>())
         .def(
-            "update_priority", [](learner::DataLoader& data_loader, py::array_t<int>& sampled_index, py::array_t<float>& batch_v_first, py::array_t<float>& batch_v_last) {
-                data_loader.updatePriority(static_cast<int*>(sampled_index.request().ptr), static_cast<float*>(batch_v_first.request().ptr), static_cast<float*>(batch_v_last.request().ptr));
+            "update_priority", [](learner::DataLoader& data_loader, py::array_t<int>& sampled_index, py::array_t<float>& batch_values) {
+                data_loader.updatePriority(static_cast<int*>(sampled_index.request().ptr), static_cast<float*>(batch_values.request().ptr));
             },
             py::call_guard<py::gil_scoped_release>())
         .def(
