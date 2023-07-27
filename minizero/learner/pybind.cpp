@@ -32,6 +32,7 @@ PYBIND11_MODULE(minizero_py, m)
     m.def("get_learning_rate", []() { return config::learner_learning_rate; });
     m.def("get_momentum", []() { return config::learner_momentum; });
     m.def("get_weight_decay", []() { return config::learner_weight_decay; });
+    m.def("get_value_loss_scale", []() { return config::learner_value_loss_scale; });
     m.def("get_game_name", []() { return Environment().name(); });
     m.def("get_nn_num_input_channels", []() { return config::nn_num_input_channels; });
     m.def("get_nn_input_channel_height", []() { return config::nn_input_channel_height; });

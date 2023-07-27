@@ -59,6 +59,7 @@ int learner_n_step_return = 0;
 float learner_learning_rate = 0.02;
 float learner_momentum = 0.9;
 float learner_weight_decay = 0.0001;
+float learner_value_loss_scale = 1.0f;
 int learner_num_thread = 8;
 
 // network parameters
@@ -163,6 +164,7 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("learner_learning_rate", learner_learning_rate, "", "Learner");
     cl.addParameter("learner_momentum", learner_momentum, "", "Learner");
     cl.addParameter("learner_weight_decay", learner_weight_decay, "", "Learner");
+    cl.addParameter("learner_value_loss_scale", learner_value_loss_scale, "", "Learner");
     cl.addParameter("learner_num_thread", learner_num_thread, "", "Learner");
 
     // network parameters
