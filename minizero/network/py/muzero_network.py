@@ -38,7 +38,7 @@ class MuZeroDynamicsNetwork(nn.Module):
 
 
 class MuZeroPredictionNetwork(nn.Module):
-    def __init__(self, num_channels, channel_height, channel_width, num_blocks, action_size, num_value_hidden_channels):
+    def __init__(self, num_channels, channel_height, channel_width, action_size, num_value_hidden_channels):
         super(MuZeroPredictionNetwork, self).__init__()
         self.policy = PolicyNetwork(num_channels, channel_height, channel_width, action_size)
         self.value = ValueNetwork(num_channels, channel_height, channel_width, num_value_hidden_channels)
