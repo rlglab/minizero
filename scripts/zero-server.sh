@@ -79,7 +79,9 @@ if [[ ${run_stage,} == "r" ]]; then
 	if [[ ! -z ${link_sgf} ]];
 	then
 		ln ${link_sgf}/* ${train_dir}/sgf/
+		end_iteration=$(ls ${train_dir}/sgf/ | wc -l)
 		echo "link ${link_sgf} ..."
+		echo "end_iteration: ${end_iteration}"
 	fi
 	touch ${train_dir}/op.log
 	new_configure_file=$(basename ${train_dir}).cfg
