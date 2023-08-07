@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 import argparse
 import os
 import sys
@@ -141,6 +142,14 @@ def graph_print(tmp, iter):
         eprint("compare_graph")
 
 
+def format_y_axis_labels(value, pos):
+    if value >= 1000:
+        value /= 1000
+        return f'{value:.0f}k'
+    else:
+        return f'{value:.0f}'
+
+
 def analysis_(dir, path, iter, all: bool = False, name: bool = False):
     # read log
     op_log = open(os.path.join(dir, "op.log"), 'r')
@@ -171,8 +180,12 @@ def analysis_(dir, path, iter, all: bool = False, name: bool = False):
                 bool_print = True
                 if "Returns" in item or "Lengths" in item:
                     step_interval = learner_training_step
-                    ax1.plot([x * step_interval for x in myDict["[Iteration]"]], myDict[key], label=f'{key}', linewidth=width)
+                    if "[SelfPlay Avg. Game Returns]" in key:
+                        ax1.plot([x * step_interval for x in myDict["[Iteration]"]], myDict[key], color='red', label=f'{key}', linewidth=width)
+                    else:
+                        ax1.plot([x * step_interval for x in myDict["[Iteration]"]], myDict[key], label=f'{key}', linewidth=width)
                     axs[counter_fig].plot([x * step_interval for x in myDict["[Iteration]"]], myDict[key], label=f'{key}', linewidth=width)
+                    ax1.yaxis.set_major_formatter(ticker.FuncFormatter(format_y_axis_labels))
                 else:
                     step_interval = learner_training_display_step
                     if "Time" in item:
