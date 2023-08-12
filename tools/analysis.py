@@ -147,7 +147,7 @@ def format_y_axis_labels(value, pos):
         value /= 1000
         return f'{value:.0f}k'
     else:
-        return f'{value:.0f}'
+        return f'{value:.2f}'
 
 
 def analysis_(dir, path, iter, all: bool = False, name: bool = False):
