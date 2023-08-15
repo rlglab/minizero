@@ -99,7 +99,7 @@ std::vector<float> HexEnv::getFeatures(utils::Rotation rotation /* = utils::Rota
             if (channel == 0) {
                 vFeatures.push_back((board_[rotation_pos].player == turn_ ? 1.0f : 0.0f));
             } else if (channel == 1) {
-                vFeatures.push_back((board_[rotation_pos].player == getNextPlayer(turn_, board_size_) ? 1.0f : 0.0f));
+                vFeatures.push_back((board_[rotation_pos].player == getNextPlayer(turn_, kHexNumPlayer) ? 1.0f : 0.0f));
             } else if (channel == 2) {
                 vFeatures.push_back((turn_ == Player::kPlayer1 ? 1.0f : 0.0f));
             } else if (channel == 3) {
