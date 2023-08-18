@@ -64,7 +64,7 @@ bool GomokuEnv::isTerminal() const
 
 float GomokuEnv::getEvalScore(bool is_resign /*= false*/) const
 {
-    Player eval = (is_resign ? getNextPlayer(turn_, board_size_) : winner_);
+    Player eval = (is_resign ? getNextPlayer(turn_, kGomokuNumPlayer) : winner_);
     switch (eval) {
         case Player::kPlayer1: return 1.0f;
         case Player::kPlayer2: return -1.0f;
@@ -86,7 +86,7 @@ std::vector<float> GomokuEnv::getFeatures(utils::Rotation rotation /*= utils::Ro
             if (channel == 0) {
                 vFeatures.push_back((board_[rotation_pos] == turn_ ? 1.0f : 0.0f));
             } else if (channel == 1) {
-                vFeatures.push_back((board_[rotation_pos] == getNextPlayer(turn_, board_size_) ? 1.0f : 0.0f));
+                vFeatures.push_back((board_[rotation_pos] == getNextPlayer(turn_, kGomokuNumPlayer) ? 1.0f : 0.0f));
             } else if (channel == 2) {
                 vFeatures.push_back((turn_ == Player::kPlayer1 ? 1.0f : 0.0f));
             } else if (channel == 3) {
