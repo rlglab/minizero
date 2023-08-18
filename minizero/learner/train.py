@@ -168,7 +168,7 @@ def train(model, training_dir, data_loader, start_iter, end_iter):
         if py.get_nn_type_name() == "alphazero":
             network_output = model.network(features)
             loss_policy, loss_value, _ = calculate_loss(network_output, label_policy[:, 0], label_value[:, 0], None, loss_scale)
-            loss = loss_policy + loss_value
+            loss = loss_policy + py.get_value_loss_scale() * loss_value
 
             # record training info
             add_training_info(training_info, 'loss_policy', loss_policy.item())
