@@ -94,6 +94,8 @@ int env_board_size = 8;
 int env_board_size = 3;
 #elif PUZZLE2048
 int env_board_size = 4;
+#elif RUBIKS
+int env_board_size = 3;
 #else
 int env_board_size = 0;
 #endif
@@ -105,6 +107,7 @@ int env_atari_noop_start = 0;
 float env_go_komi = 7.5;
 std::string env_go_ko_rule = "positional";
 std::string env_gomoku_rule = "normal";
+int env_rubiks_scramble_rotate = 5;
 
 void setConfiguration(ConfigureLoader& cl)
 {
@@ -204,6 +207,8 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("env_killallgo_ko_rule", env_go_ko_rule, "positional/situational", "Environment");
 #elif GOMOKU
     cl.addParameter("env_gomoku_rule", env_gomoku_rule, "normal/outer_open", "Environment");
+#elif RUBIKS
+    cl.addParameter("env_rubiks_scramble_rotate", env_rubiks_scramble_rotate, "", "Enviroment");
 #endif
 }
 

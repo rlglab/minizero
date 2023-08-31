@@ -89,6 +89,7 @@ extern int env_atari_noop_start;
 extern float env_go_komi;
 extern std::string env_go_ko_rule;
 extern std::string env_gomoku_rule;
+extern int env_rubiks_scramble_rotate;
 
 void setConfiguration(ConfigureLoader& cl);
 

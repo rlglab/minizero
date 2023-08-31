@@ -12,6 +12,7 @@ target_include_directories(
     hex
     killallgo
     othello
+    rubiks
     tictactoe
     stochastic
     stochastic/puzzle2048
