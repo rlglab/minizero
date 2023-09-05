@@ -149,7 +149,6 @@ void ZeroActor::step()
         mcts_search_data_.node_path_ = std::move(evaluation.second);
         afterNNEvaluation(network_output[nn_evaluation_batch_id_]);
         auto virtual_loss = mcts_search_data_.node_path_.back()->getVirtualLoss();
-        assert(virtual_loss > 0);
         for (auto node : mcts_search_data_.node_path_) { node->removeVirtualLoss(virtual_loss); }
     }
 }
