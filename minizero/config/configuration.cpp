@@ -90,6 +90,8 @@ int env_board_size = 8;
 int env_board_size = 15;
 #elif CHESS
 int env_board_size = 8;
+#elif NOGO
+int env_board_size = 9;
 #elif TICTACTOE
 int env_board_size = 3;
 #elif PUZZLE2048

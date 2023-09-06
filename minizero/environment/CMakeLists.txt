@@ -11,6 +11,7 @@ target_include_directories(
     gomoku
     hex
     killallgo
+    nogo
     othello
     rubiks
     tictactoe

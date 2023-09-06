@@ -30,6 +30,11 @@ typedef minizero::env::hex::HexEnvLoader EnvironmentLoader;
 typedef minizero::env::killallgo::KillAllGoAction Action;
 typedef minizero::env::killallgo::KillAllGoEnv Environment;
 typedef minizero::env::killallgo::KillAllGoEnvLoader EnvironmentLoader;
+#elif NOGO
+#include "nogo.h"
+typedef minizero::env::nogo::NoGoAction Action;
+typedef minizero::env::nogo::NoGoEnv Environment;
+typedef minizero::env::nogo::NoGoEnvLoader EnvironmentLoader;
 #elif OTHELLO
 #include "othello.h"
 typedef minizero::env::othello::OthelloAction Action;
@@ -56,7 +61,7 @@ namespace minizero::env {
 
 inline void setUpEnv()
 {
-#if GO or KILLALLGO
+#if GO or KILLALLGO or NOGO
     go::initialize();
 #endif
 }
