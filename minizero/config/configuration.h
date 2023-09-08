@@ -66,8 +66,8 @@ extern int learner_num_thread;
 
 // network parameters
 extern std::string nn_file_name;
-extern int nn_num_hidden_channels;
 extern int nn_num_blocks;
+extern int nn_num_hidden_channels;
 extern int nn_num_value_hidden_channels;
 extern int nn_discrete_value_size;
 extern std::string nn_type_name;
@@ -84,7 +84,5 @@ extern std::string env_gomoku_rule;
 extern int env_rubiks_scramble_rotate;
 
 void setConfiguration(ConfigureLoader& cl);
-
-void setDefaultBoardSize(ConfigureLoader& cl);
 
 } // namespace minizero::config
