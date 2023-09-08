@@ -86,6 +86,13 @@ public:
     virtual float getEvalScore(bool is_resign = false) const = 0;
     virtual std::vector<float> getFeatures(utils::Rotation rotation = utils::Rotation::kRotationNone) const = 0;
     virtual std::vector<float> getActionFeatures(const Action& action, utils::Rotation rotation = utils::Rotation::kRotationNone) const = 0;
+    virtual int getNumInputChannels() const = 0;
+    virtual int getNumActionFeatureChannels() const = 0;
+    virtual int getInputChannelHeight() const = 0;
+    virtual int getInputChannelWidth() const = 0;
+    virtual int getHiddenChannelHeight() const = 0;
+    virtual int getHiddenChannelWidth() const = 0;
+    virtual int getPolicySize() const = 0;
     virtual int getRotatePosition(int position, utils::Rotation rotation) const = 0;
     virtual int getRotateAction(int action_id, utils::Rotation rotation) const = 0;
     virtual std::string toString() const = 0;
@@ -333,6 +340,11 @@ public:
     virtual ~BaseBoardEnv() = default;
 
     inline int getBoardSize() const { return board_size_; }
+    inline int getNumActionFeatureChannels() const override { return 1; }
+    inline int getInputChannelHeight() const override { return getBoardSize(); }
+    inline int getInputChannelWidth() const override { return getBoardSize(); }
+    inline int getHiddenChannelHeight() const override { return getBoardSize(); }
+    inline int getHiddenChannelWidth() const override { return getBoardSize(); }
 
 protected:
     int board_size_;

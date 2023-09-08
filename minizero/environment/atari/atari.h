@@ -19,6 +19,8 @@ const int kAtariNumPlayer = 1;
 const int kAtariActionSize = 18;
 const int kAtariFrameSkip = 4;
 const int kAtariResolution = 96;
+const int kAtariHiddenChannelHeight = 6;
+const int kAtariHiddenChannelWidth = 6;
 const int kAtariFeatureHistorySize = 8;
 const int kAtariMaxNumFramesPerEpisode = 108000;
 const float kAtariRepeatActionProbability = 0.25f;
@@ -56,6 +58,13 @@ public:
     float getEvalScore(bool is_resign = false) const override { return total_reward_; }
     std::vector<float> getFeatures(utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::vector<float> getActionFeatures(const AtariAction& action, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
+    inline int getNumInputChannels() const override { return kAtariFeatureHistorySize * 4; }
+    inline int getNumActionFeatureChannels() const override { return kAtariActionSize; }
+    inline int getInputChannelHeight() const override { return kAtariResolution; }
+    inline int getInputChannelWidth() const override { return kAtariResolution; }
+    inline int getHiddenChannelHeight() const override { return kAtariHiddenChannelHeight; }
+    inline int getHiddenChannelWidth() const override { return kAtariHiddenChannelWidth; }
+    inline int getPolicySize() const override { return kAtariActionSize; }
     std::string toString() const override { return ""; }
     inline std::string name() const override { return kAtariName + "_" + minizero::config::env_atari_name; }
     inline int getNumPlayer() const override { return kAtariNumPlayer; }

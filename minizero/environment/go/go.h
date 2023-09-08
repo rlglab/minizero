@@ -50,6 +50,8 @@ public:
     float getEvalScore(bool is_resign = false) const override;
     std::vector<float> getFeatures(utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::vector<float> getActionFeatures(const GoAction& action, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
+    inline int getNumInputChannels() const override { return 18; }
+    inline int getPolicySize() const override { return getBoardSize() * getBoardSize() + 1; }
     std::string toString() const override;
     GoBitboard dilateBitboard(const GoBitboard& bitboard) const;
 

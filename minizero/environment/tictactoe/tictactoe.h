@@ -26,6 +26,8 @@ public:
     float getEvalScore(bool is_resign = false) const override;
     std::vector<float> getFeatures(utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::vector<float> getActionFeatures(const TicTacToeAction& action, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
+    inline int getNumInputChannels() const override { return 4; }
+    inline int getPolicySize() const override { return getBoardSize() * getBoardSize(); }
     std::string toString() const override;
     inline std::string name() const override { return kTicTacToeName; }
     inline int getNumPlayer() const override { return kTicTacToeNumPlayer; }
@@ -43,7 +45,7 @@ public:
     std::vector<float> getActionFeatures(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     inline std::vector<float> getValue(const int pos) const { return {getReturn()}; }
     inline std::string name() const override { return kTicTacToeName; }
-    inline int getPolicySize() const override { return kTicTacToeBoardSize * kTicTacToeBoardSize; }
+    inline int getPolicySize() const override { return getBoardSize() * getBoardSize(); }
     inline int getRotatePosition(int position, utils::Rotation rotation) const override { return utils::getPositionByRotating(rotation, position, getBoardSize()); };
     inline int getRotateAction(int action_id, utils::Rotation rotation) const override { return getRotatePosition(action_id, rotation); };
 };

@@ -51,6 +51,13 @@ public:
     int getRotateAction(int action_id, utils::Rotation rotation) const override;
     std::vector<float> getFeatures(utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::vector<float> getActionFeatures(const Puzzle2048Action& action, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
+    inline int getNumInputChannels() const override { return 16; }
+    inline int getNumActionFeatureChannels() const override { return 1; }
+    inline int getInputChannelHeight() const override { return kPuzzle2048BoardSize; }
+    inline int getInputChannelWidth() const override { return kPuzzle2048BoardSize; }
+    inline int getHiddenChannelHeight() const override { return kPuzzle2048BoardSize; }
+    inline int getHiddenChannelWidth() const override { return kPuzzle2048BoardSize; }
+    inline int getPolicySize() const override { return 4; }
 
     std::string toString() const override;
     std::string name() const override { return kPuzzle2048Name; }

@@ -38,11 +38,11 @@ void AtariEnv::reset(int seed)
     observations_.reserve(kAtariMaxNumFramesPerEpisode + 1);
     observations_.push_back(getObservationString()); // initial observation
     feature_history_.clear();
-    feature_history_.resize(kAtariFeatureHistorySize, std::vector<float>(3 * config::nn_input_channel_height * config::nn_input_channel_width, 0.0f));
+    feature_history_.resize(kAtariFeatureHistorySize, std::vector<float>(3 * kAtariResolution * kAtariResolution, 0.0f));
     feature_history_.push_back(getObservation()); // initial screen
     feature_history_.pop_front();
     action_feature_history_.clear();
-    action_feature_history_.resize(kAtariFeatureHistorySize, std::vector<float>(config::nn_input_channel_height * config::nn_input_channel_width, 0.0f));
+    action_feature_history_.resize(kAtariFeatureHistorySize, std::vector<float>(kAtariResolution * kAtariResolution, 0.0f));
 }
 
 bool AtariEnv::act(const AtariAction& action)
@@ -64,7 +64,7 @@ bool AtariEnv::act(const AtariAction& action)
     }
 
     // action & observation history
-    action_feature_history_.push_back(std::vector<float>(config::nn_input_channel_height * config::nn_input_channel_width, action.getActionID() * 1.0f / kAtariActionSize));
+    action_feature_history_.push_back(std::vector<float>(kAtariResolution * kAtariResolution, action.getActionID() * 1.0f / kAtariActionSize));
     action_feature_history_.pop_front();
     feature_history_.push_back(getObservation());
     feature_history_.pop_front();
@@ -85,18 +85,18 @@ std::vector<AtariAction> AtariEnv::getLegalActions() const
 std::vector<float> AtariEnv::getFeatures(utils::Rotation rotation /* = utils::Rotation::kRotationNone */) const
 {
     std::vector<float> features;
-    features.reserve(kAtariFeatureHistorySize * 4 * config::nn_input_channel_height * config::nn_input_channel_width);
+    features.reserve(kAtariFeatureHistorySize * 4 * kAtariResolution * kAtariResolution);
     for (int i = 0; i < kAtariFeatureHistorySize; ++i) { // 1 for action; 3 for RGB, action first since the latest observation didn't have action yet
         features.insert(features.end(), action_feature_history_[i].begin(), action_feature_history_[i].end());
         features.insert(features.end(), feature_history_[i].begin(), feature_history_[i].end());
     }
-    assert(static_cast<int>(features.size()) == kAtariFeatureHistorySize * 4 * config::nn_input_channel_height * config::nn_input_channel_width);
+    assert(static_cast<int>(features.size()) == kAtariFeatureHistorySize * 4 * kAtariResolution * kAtariResolution);
     return features;
 }
 
 std::vector<float> AtariEnv::getActionFeatures(const AtariAction& action, utils::Rotation rotation /* = utils::Rotation::kRotationNone */) const
 {
-    int hidden_size = config::nn_hidden_channel_height * config::nn_hidden_channel_width;
+    int hidden_size = kAtariHiddenChannelHeight * kAtariHiddenChannelWidth;
     std::vector<float> action_features(kAtariActionSize * hidden_size, 0.0f);
     std::fill(action_features.begin() + action.getActionID() * hidden_size, action_features.begin() + (action.getActionID() + 1) * hidden_size, 1.0f);
     return action_features;
@@ -163,13 +163,13 @@ void AtariEnvLoader::loadFromEnvironment(const AtariEnv& env, const std::vector<
 std::vector<float> AtariEnvLoader::getFeatures(const int pos, utils::Rotation rotation /* = utils::Rotation::kRotationNone */) const
 {
     std::vector<float> features;
-    features.reserve(kAtariFeatureHistorySize * 4 * config::nn_input_channel_height * config::nn_input_channel_width);
+    features.reserve(kAtariFeatureHistorySize * 4 * kAtariResolution * kAtariResolution);
     int start = pos - kAtariFeatureHistorySize + 1, end = pos;
     for (int i = start; i <= end; ++i) { // 1 for action; 3 for RGB, action first since the latest observation didn't have action yet
         int action_id = (i - 1 < 0 ? 0
                                    : (i - 1 >= static_cast<int>(action_pairs_.size()) ? utils::Random::randInt() % kAtariActionSize : action_pairs_[i - 1].first.getActionID()));
         assert(action_id >= 0 && action_id < kAtariActionSize);
-        std::vector<float> action_features(config::nn_input_channel_height * config::nn_input_channel_width, action_id * 1.0f / kAtariActionSize);
+        std::vector<float> action_features(kAtariResolution * kAtariResolution, action_id * 1.0f / kAtariActionSize);
         features.insert(features.end(), action_features.begin(), action_features.end());
         if (i >= 0) {
             const std::string& observation = (i < static_cast<int>(observations_.size()) ? observations_[i] : observations_.back());
@@ -180,13 +180,13 @@ std::vector<float> AtariEnvLoader::getFeatures(const int pos, utils::Rotation ro
             features.insert(features.end(), f.begin(), f.end());
         }
     }
-    assert(static_cast<int>(features.size()) == kAtariFeatureHistorySize * 4 * config::nn_input_channel_height * config::nn_input_channel_width);
+    assert(static_cast<int>(features.size()) == kAtariFeatureHistorySize * 4 * kAtariResolution * kAtariResolution);
     return features;
 }
 
 std::vector<float> AtariEnvLoader::getActionFeatures(const int pos, utils::Rotation rotation /* = utils::Rotation::kRotationNone */) const
 {
-    int hidden_size = config::nn_hidden_channel_height * config::nn_hidden_channel_width;
+    int hidden_size = kAtariHiddenChannelHeight * kAtariHiddenChannelWidth;
     std::vector<float> action_features(kAtariActionSize * hidden_size, 0.0f);
     if (pos < static_cast<int>(action_pairs_.size())) {
         const AtariAction& action = action_pairs_[pos].first;

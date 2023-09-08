@@ -64,15 +64,8 @@ int learner_num_thread = 8;
 
 // network parameters
 std::string nn_file_name = "";
-int nn_num_input_channels = 4;
-int nn_input_channel_height = 3;
-int nn_input_channel_width = 3;
 int nn_num_hidden_channels = 16;
-int nn_hidden_channel_height = 3;
-int nn_hidden_channel_width = 3;
-int nn_num_action_feature_channels = 1;
 int nn_num_blocks = 1;
-int nn_action_size = 9;
 int nn_num_value_hidden_channels = 256;
 int nn_discrete_value_size = 1;
 std::string nn_type_name = "alphazero";
@@ -173,15 +166,8 @@ void setConfiguration(ConfigureLoader& cl)
 
     // network parameters
     cl.addParameter("nn_file_name", nn_file_name, "", "Network");
-    cl.addParameter("nn_num_input_channels", nn_num_input_channels, "", "Network");
-    cl.addParameter("nn_input_channel_height", nn_input_channel_height, "", "Network");
-    cl.addParameter("nn_input_channel_width", nn_input_channel_width, "", "Network");
     cl.addParameter("nn_num_hidden_channels", nn_num_hidden_channels, "", "Network");
-    cl.addParameter("nn_hidden_channel_height", nn_hidden_channel_height, "", "Network");
-    cl.addParameter("nn_hidden_channel_width", nn_hidden_channel_width, "", "Network");
-    cl.addParameter("nn_num_action_feature_channels", nn_num_action_feature_channels, "", "Network");
     cl.addParameter("nn_num_blocks", nn_num_blocks, "", "Network");
-    cl.addParameter("nn_action_size", nn_action_size, "", "Network");
     cl.addParameter("nn_num_value_hidden_channels", nn_num_value_hidden_channels, "", "Network");
     cl.addParameter("nn_discrete_value_size", nn_discrete_value_size, "set to 1 for the games which doesn't use discrete value", "Network");
     cl.addParameter("nn_type_name", nn_type_name, "alphazero/muzero", "Network");

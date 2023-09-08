@@ -8,6 +8,8 @@
 namespace py = pybind11;
 using namespace minizero;
 
+std::shared_ptr<Environment> kEnvInstance = std::make_shared<Environment>();
+
 PYBIND11_MODULE(minizero_py, m)
 {
     m.def("load_config_file", [](std::string file_name) {
@@ -15,11 +17,14 @@ PYBIND11_MODULE(minizero_py, m)
         minizero::config::ConfigureLoader cl;
         minizero::config::setConfiguration(cl);
         cl.loadFromFile(file_name);
+        kEnvInstance = std::make_shared<Environment>();
     });
     m.def("load_config_string", [](std::string conf_str) {
         minizero::config::ConfigureLoader cl;
         minizero::config::setConfiguration(cl);
-        return cl.loadFromString(conf_str);
+        bool success = cl.loadFromString(conf_str);
+        if (success) { kEnvInstance = std::make_shared<Environment>(); }
+        return success;
     });
     m.def("use_gumbel", []() { return config::actor_use_gumbel; });
     m.def("get_zero_replay_buffer", []() { return config::zero_replay_buffer; });
@@ -33,16 +38,16 @@ PYBIND11_MODULE(minizero_py, m)
     m.def("get_momentum", []() { return config::learner_momentum; });
     m.def("get_weight_decay", []() { return config::learner_weight_decay; });
     m.def("get_value_loss_scale", []() { return config::learner_value_loss_scale; });
-    m.def("get_game_name", []() { return Environment().name(); });
-    m.def("get_nn_num_input_channels", []() { return config::nn_num_input_channels; });
-    m.def("get_nn_input_channel_height", []() { return config::nn_input_channel_height; });
-    m.def("get_nn_input_channel_width", []() { return config::nn_input_channel_width; });
+    m.def("get_game_name", []() { return kEnvInstance->name(); });
+    m.def("get_nn_num_input_channels", []() { return kEnvInstance->getNumInputChannels(); });
+    m.def("get_nn_input_channel_height", []() { return kEnvInstance->getInputChannelHeight(); });
+    m.def("get_nn_input_channel_width", []() { return kEnvInstance->getInputChannelWidth(); });
     m.def("get_nn_num_hidden_channels", []() { return config::nn_num_hidden_channels; });
-    m.def("get_nn_hidden_channel_height", []() { return config::nn_hidden_channel_height; });
-    m.def("get_nn_hidden_channel_width", []() { return config::nn_hidden_channel_width; });
-    m.def("get_nn_num_action_feature_channels", []() { return config::nn_num_action_feature_channels; });
+    m.def("get_nn_hidden_channel_height", []() { return kEnvInstance->getHiddenChannelHeight(); });
+    m.def("get_nn_hidden_channel_width", []() { return kEnvInstance->getHiddenChannelWidth(); });
+    m.def("get_nn_num_action_feature_channels", []() { return kEnvInstance->getNumActionFeatureChannels(); });
     m.def("get_nn_num_blocks", []() { return config::nn_num_blocks; });
-    m.def("get_nn_action_size", []() { return config::nn_action_size; });
+    m.def("get_nn_action_size", []() { return kEnvInstance->getPolicySize(); });
     m.def("get_nn_num_value_hidden_channels", []() { return config::nn_num_value_hidden_channels; });
     m.def("get_nn_discrete_value_size", []() { return config::nn_discrete_value_size; });
     m.def("get_nn_type_name", []() { return config::nn_type_name; });

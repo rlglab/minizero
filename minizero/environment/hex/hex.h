@@ -50,6 +50,8 @@ public:
     float getEvalScore(bool is_resign = false) const override;
     std::vector<float> getFeatures(utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::vector<float> getActionFeatures(const HexAction& action, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
+    inline int getNumInputChannels() const override { return 4; }
+    inline int getPolicySize() const override { return getBoardSize() * getBoardSize(); }
     std::string toString() const override;
     std::string toStringDebug() const;
     inline std::string name() const override { return kHexName + "_" + std::to_string(getBoardSize()) + "x" + std::to_string(getBoardSize()); }

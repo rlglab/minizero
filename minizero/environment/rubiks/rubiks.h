@@ -143,6 +143,13 @@ public:
     float getEvalScore(bool is_resign = false) const override;
     std::vector<float> getFeatures(utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::vector<float> getActionFeatures(const RubiksAction& action, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
+    inline int getNumInputChannels() const override { return kCubeFace; }
+    inline int getNumActionFeatureChannels() const override { return 0; } // TODO
+    inline int getInputChannelHeight() const override { return kCubeFace; }
+    inline int getInputChannelWidth() const override { return getBoardSize() * getBoardSize(); }
+    inline int getHiddenChannelHeight() const override { return kCubeFace; }
+    inline int getHiddenChannelWidth() const override { return getBoardSize() * getBoardSize(); }
+    inline int getPolicySize() const override { return getBoardSize() / 2 * 12; }
     std::string toString() const override;
     inline std::string name() const override { return kRubiksName + std::to_string(getBoardSize()) + "x" + std::to_string(getBoardSize()); }
     inline int getNumPlayer() const override { return kRubiksNumPlayer; }

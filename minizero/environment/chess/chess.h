@@ -204,6 +204,9 @@ public:
         // TODO
         return {};
     }
+    inline int getNumInputChannels() const override { return 120; }
+    inline int getNumActionFeatureChannels() const override { return 0; } // TODO
+    inline int getPolicySize() const override { return 4672; }
     std::string toString() const override;
     inline std::string name() const override { return kChessName; }
     inline int getNumPlayer() const override { return kChessNumPlayer; }

@@ -66,15 +66,8 @@ extern int learner_num_thread;
 
 // network parameters
 extern std::string nn_file_name;
-extern int nn_num_input_channels;
-extern int nn_input_channel_height;
-extern int nn_input_channel_width;
 extern int nn_num_hidden_channels;
-extern int nn_hidden_channel_height;
-extern int nn_hidden_channel_width;
-extern int nn_num_action_feature_channels;
 extern int nn_num_blocks;
-extern int nn_action_size;
 extern int nn_num_value_hidden_channels;
 extern int nn_discrete_value_size;
 extern std::string nn_type_name;
