@@ -2,6 +2,7 @@
 #include "actor_group.h"
 #include "console.h"
 #include "git_info.h"
+#include "ostream_redirector.h"
 #include "random.h"
 #include "zero_server.h"
 #include <string>
@@ -51,6 +52,7 @@ void ModeHandler::run(int argc, char* argv[])
     }
 
     if (!readConfiguration(cl, config_file, config_string)) { exit(-1); }
+    utils::OstreamRedirector::silence(std::cerr, config::program_quiet);                                  // silence std::cerr if program_quiet
     utils::Random::seed(config::program_auto_seed ? static_cast<int>(time(NULL)) : config::program_seed); // setup random seed
 
     if (!gen_config.empty()) {
@@ -127,7 +129,7 @@ void ModeHandler::runConsole()
     console::Console console;
     std::string command;
     console.initialize();
-    if (!config::program_quiet) { std::cerr << "Successfully started console mode" << std::endl; }
+    std::cerr << "Successfully started console mode" << std::endl;
     while (getline(std::cin, command)) {
         if (command == "quit") { break; }
         console.executeCommand(command);
