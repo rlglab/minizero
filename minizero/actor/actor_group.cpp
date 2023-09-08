@@ -156,7 +156,7 @@ void ActorGroup::run()
 
 void ActorGroup::initialize()
 {
-    int num_threads = std::max(static_cast<int>(torch::cuda::device_count()), config::actor_num_threads);
+    int num_threads = std::max(static_cast<int>(torch::cuda::device_count()), config::zero_num_threads);
     createSlaveThreads(num_threads);
     createNeuralNetworks();
     createActors();
@@ -174,7 +174,7 @@ void ActorGroup::initialize()
 
 void ActorGroup::createNeuralNetworks()
 {
-    int num_networks = std::min(static_cast<int>(torch::cuda::device_count()), config::actor_num_parallel_games);
+    int num_networks = std::min(static_cast<int>(torch::cuda::device_count()), config::zero_num_parallel_games);
     assert(num_networks > 0);
     getSharedData()->networks_.resize(num_networks);
     getSharedData()->network_outputs_.resize(num_networks);
@@ -189,9 +189,9 @@ void ActorGroup::createActors()
     std::shared_ptr<Network>& network = getSharedData()->networks_[0];
     uint64_t tree_node_size = static_cast<uint64_t>(config::actor_num_simulation + 1) * network->getActionSize();
     getSharedData()->game_index_ = 0;
-    getSharedData()->actors_game_index_.resize(config::actor_num_parallel_games);
+    getSharedData()->actors_game_index_.resize(config::zero_num_parallel_games);
     for (size_t actor_id = 0; actor_id < getSharedData()->actors_.size(); ++actor_id) { getSharedData()->resetActor(actor_id); }
-    for (int i = 0; i < config::actor_num_parallel_games; ++i) {
+    for (int i = 0; i < config::zero_num_parallel_games; ++i) {
         getSharedData()->actors_.emplace_back(createActor(tree_node_size, getSharedData()->networks_[i % getSharedData()->networks_.size()]));
     }
 }

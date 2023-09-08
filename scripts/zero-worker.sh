@@ -141,7 +141,7 @@ do
 					# format: Self-play train_dir conf_str
 					var=(${BASH_REMATCH[1]})
 					CONF_FILE=$(ls ${var[0]}/*.cfg)
-					CONF_STR="${var[1]}:zero_training_directory=${var[0]}:actor_num_threads=${num_cpu_thread}:actor_num_parallel_games=$((${batch_size}*${num_gpu}))${additional_conf_str}"
+					CONF_STR="${var[1]}:zero_training_directory=${var[0]}:zero_num_threads=${num_cpu_thread}:zero_num_parallel_games=$((${batch_size}*${num_gpu}))${additional_conf_str}"
 					echo "CUDA_VISIBLE_DEVICES=${cuda_devices} ${sp_executable_file} -mode sp -conf_file ${CONF_FILE} -conf_str \"${CONF_STR}\""
 					CUDA_VISIBLE_DEVICES=${cuda_devices} ${sp_executable_file} -conf_file ${CONF_FILE} -conf_str "${CONF_STR}" -mode sp 0<&$broker_fd 1>&$broker_fd
 				elif [[ $line =~ ^Job_Optimization\ (.+) ]]

@@ -11,8 +11,6 @@ extern bool program_auto_seed;
 extern bool program_quiet;
 
 // actor parameters
-extern int actor_num_threads;
-extern int actor_num_parallel_games;
 extern int actor_num_simulation;
 extern float actor_mcts_puct_base;
 extern float actor_mcts_puct_init;
@@ -36,6 +34,8 @@ extern float actor_gumbel_sigma_scale_c;
 extern float actor_resign_threshold;
 
 // zero parameters
+extern int zero_num_threads;
+extern int zero_num_parallel_games;
 extern int zero_server_port;
 extern std::string zero_training_directory;
 extern int zero_num_games_per_iteration;
@@ -85,7 +85,6 @@ extern int env_board_size;
 // environment parameters for specific game
 extern std::string env_atari_rom_dir;
 extern std::string env_atari_name;
-extern int env_atari_noop_start;
 extern float env_go_komi;
 extern std::string env_go_ko_rule;
 extern std::string env_gomoku_rule;

@@ -9,8 +9,6 @@ bool program_auto_seed = false;
 bool program_quiet = false;
 
 // actor parameters
-int actor_num_threads = 4;
-int actor_num_parallel_games = 32;
 int actor_num_simulation = 50;
 float actor_mcts_puct_base = 19652;
 float actor_mcts_puct_init = 1.25;
@@ -34,6 +32,8 @@ float actor_gumbel_sigma_scale_c = 1;
 float actor_resign_threshold = -0.9f;
 
 // zero parameters
+int zero_num_threads = 4;
+int zero_num_parallel_games = 32;
 int zero_server_port = 9999;
 std::string zero_training_directory = "";
 int zero_num_games_per_iteration = 5000;
@@ -105,7 +105,6 @@ int env_board_size = 0;
 // environment parameters for specific game
 std::string env_atari_rom_dir = "/opt/atari57/";
 std::string env_atari_name = "ms_pacman";
-int env_atari_noop_start = 0;
 float env_go_komi = 7.5;
 std::string env_go_ko_rule = "positional";
 std::string env_gomoku_rule = "normal";
@@ -119,8 +118,6 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("program_quiet", program_quiet, "", "Program");
 
     // actor parameters
-    cl.addParameter("actor_num_threads", actor_num_threads, "", "Actor");
-    cl.addParameter("actor_num_parallel_games", actor_num_parallel_games, "", "Actor");
     cl.addParameter("actor_num_simulation", actor_num_simulation, "", "Actor");
     cl.addParameter("actor_mcts_puct_base", actor_mcts_puct_base, "", "Actor");
     cl.addParameter("actor_mcts_puct_init", actor_mcts_puct_init, "", "Actor");
@@ -144,6 +141,8 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("actor_resign_threshold", actor_resign_threshold, "", "Actor");
 
     // zero parameters
+    cl.addParameter("zero_num_threads", zero_num_threads, "", "Zero");
+    cl.addParameter("zero_num_parallel_games", zero_num_parallel_games, "", "Zero");
     cl.addParameter("zero_server_port", zero_server_port, "", "Zero");
     cl.addParameter("zero_training_directory", zero_training_directory, "", "Zero");
     cl.addParameter("zero_num_games_per_iteration", zero_num_games_per_iteration, "", "Zero");
@@ -201,7 +200,6 @@ void setConfiguration(ConfigureLoader& cl)
                                                       "#\troad_runner robotank seaquest skiing solaris space_invaders star_gunner surround tennis time_pilot\n"
                                                       "#\ttutankham up_n_down venture video_pinball wizard_of_wor yars_revenge zaxxon",
                     "Environment");
-    cl.addParameter("env_atari_noop_start", env_atari_noop_start, "", "Environment");
 #elif GO
     cl.addParameter("env_go_komi", env_go_komi, "", "Environment");
     cl.addParameter("env_go_ko_rule", env_go_ko_rule, "positional/situational", "Environment");
