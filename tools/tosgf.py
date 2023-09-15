@@ -53,9 +53,9 @@ def tosgf(source):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', dest='fin_name', type=str,
+    parser.add_argument('-in_file', dest='fin_name', type=str,
                         help='input flie')
-    parser.add_argument('-o', dest='fout_name', type=str,
+    parser.add_argument('-out_file', dest='fout_name', type=str,
                         help='output flie')
     parser.add_argument('--force', action='store_true',
                         dest='force', help='overwrite files')

@@ -225,9 +225,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-in_dir', dest='in_dir', default='', help='dir to anaylisis')
     parser.add_argument('-out_dir', dest='out_dir', type=str, default="analysis_", help='output directory (default: analysis_{iter})')
-    parser.add_argument('-i', dest='iter', default=-1, type=int, help='iteration to anaylisis')
-    parser.add_argument('-a', dest='all', default=False, action="store_true", help='all analysis in a graph, default false')
-    parser.add_argument('-c', dest='compare', default='', type=str, help='compare many version of same game, use commas as separators. ex: -c a,b')
+    parser.add_argument('-iter', dest='iter', default=-1, type=int, help='iteration to anaylisis')
+    parser.add_argument('-compare', dest='compare', default='', type=str, help='compare many version of same game, use commas as separators. ex: -compare a,b')
+    parser.add_argument('--all', dest='all', default=False, action="store_true", help='all analysis in a graph, default false')
     args = parser.parse_args()
     if args.iter != -1:
         out_dir = args.out_dir + str(args.iter)

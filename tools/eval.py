@@ -150,13 +150,13 @@ def eval(dir, fout_name, player1_elo_file, game0_white, step_num, plot_elo):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-d', '--dir', dest='dir', type=str,
+    parser.add_argument('-in_dir', dest='dir', type=str,
                         help='dir to eval')
-    parser.add_argument('-o', '--out', dest='fout_name', type=str, default='elo',
+    parser.add_argument('-out_file', dest='fout_name', type=str, default='elo',
                         help='output flie')
-    parser.add_argument('-e', '--elo', dest='player1_elo_file', type=str,
+    parser.add_argument('-elo', dest='player1_elo_file', type=str,
                         help='elo flie of player 1')
-    parser.add_argument('-w', '--white', action='store_true', dest='game0_white',
+    parser.add_argument('--white', action='store_true', dest='game0_white',
                         help='print player2\'s stats')
     parser.add_argument('--step', dest='step_num', type=int, default=1,
                         help='training step')

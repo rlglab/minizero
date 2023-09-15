@@ -70,9 +70,8 @@ def eval(dir, fout_name, isplot):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-d', '--dir', dest='dir', type=str,
-                        help='dir')
-    parser.add_argument('-o', '--out', dest='fout_name', type=str, default='reward',
+    parser.add_argument('-in_dir', dest='dir', type=str, help='dir')
+    parser.add_argument('-out_file', dest='fout_name', type=str, default='reward',
                         help='output flie')
     parser.add_argument('--plot', action='store_true', dest='isplot',
                         help='plot return curve')

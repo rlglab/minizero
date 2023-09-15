@@ -113,8 +113,8 @@ def mkdir(dir):
 if __name__ == '__main__':
     warnings.filterwarnings("ignore")
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', dest='fin_name', type=str, help='input flie')
-    parser.add_argument('-d', dest='dir_name', type=str, default=time.strftime(
+    parser.add_argument('-in_file', dest='fin_name', type=str, help='input flie')
+    parser.add_argument('-out_dir', dest='dir_name', type=str, default=time.strftime(
         '%Y-%m-%d %H:%M:%S', time.localtime()), help='output directory (default: current time)')
     parser.add_argument('-c', dest='num_processes', type=int,
                         default=8, help='process number (default: 8)')
