@@ -5,11 +5,6 @@
 typedef minizero::env::atari::AtariAction Action;
 typedef minizero::env::atari::AtariEnv Environment;
 typedef minizero::env::atari::AtariEnvLoader EnvironmentLoader;
-#elif CHESS
-#include "chess.h"
-typedef minizero::env::chess::ChessAction Action;
-typedef minizero::env::chess::ChessEnv Environment;
-typedef minizero::env::chess::ChessEnvLoader EnvironmentLoader;
 #elif GO
 #include "go.h"
 typedef minizero::env::go::GoAction Action;
