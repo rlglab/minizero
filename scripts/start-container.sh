@@ -14,7 +14,7 @@ usage()
 }
 
 image_name=kds285/minizero:latest
-container_volume="-v .:/workspace -v /mnt/nfs/work/zero/tutorial:/Tutorial"
+container_volume="-v .:/workspace"
 container_argumenets=""
 while :; do
 	case $1 in
