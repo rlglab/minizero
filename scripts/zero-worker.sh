@@ -2,15 +2,22 @@
 
 usage()
 {
-	echo "Usage: ./zero-worker.sh game_type host port [sp|op] [OPTION...]"
+	echo "Usage: $0 GAME_TYPE HOST PORT WORKER_TYPE [OPTION]..."
+	echo "The zero-worker connects to a zero-server and performs either self-play or optimization."
 	echo ""
-	echo "  -h, --help                 Give this help list"
-	echo "  -g, --gpu                  Assign available GPUs for worker, e.g. 0123"
-	echo "  -b, --batch_size           Assign the batch size in self-play worker (default = 64)"
-	echo "  -c, --cpu_thread_per_gpu   Assign the number of CPUs for each GPU in self-play worker (default = 4)"
-	echo "    , --conf_str             Add additional configure string in self-play worker"
-	echo "    , --sp_executable_file   Assign the path for self-play executable file"
-	echo "    , --op_executable_file   Assign the path for optimization executable file"
+	echo "Required arguments:"
+	echo "  GAME_TYPE: $(find ./ ../ -maxdepth 2 -name build.sh -exec grep -m1 support_games {} \; -quit | sed -E 's/.+\("|"\).*//g;s/" "/, /g')"
+	echo "  HOST, PORT: the host and port to connect the zero-server"
+	echo "  WORKER_TYPE: sp, op"
+	echo ""
+	echo "Optional arguments:"
+	echo "  -h,        --help                 Give this help list"
+	echo "  -g,        --gpu                  Assign available GPUs for worker, e.g. 0123"
+	echo "  -b,        --batch_size           Assign the batch size in self-play worker (default = 64)"
+	echo "  -c,        --cpu_thread_per_gpu   Assign the number of CPUs for each GPU in self-play worker (default = 4)"
+	echo "  -conf_str                         Add additional configure string in self-play worker"
+	echo "             --sp_executable_file   Assign the path for self-play executable file"
+	echo "             --op_executable_file   Assign the path for optimization executable file"
 	exit 1
 }
 
@@ -43,7 +50,7 @@ while :; do
 		;;
 		-c|--cpu_thread_per_gpu) shift; max_num_cpu_thread_per_gpu=$1
 		;;
-		--conf_str) shift; additional_conf_str=":$1"
+		-conf_str) shift; additional_conf_str=":$1"
 		;;
 		--sp_executable_file) shift; sp_executable_file=$1
 		;;

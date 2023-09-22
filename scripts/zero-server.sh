@@ -3,16 +3,23 @@ set -e
 
 usage()
 {
-	echo "Usage: ./zero-server.sh game_type configure_file end_iteration [OPTION...]"
+	echo "Usage: $0 GAME_TYPE CONFIGURE_FILE END_ITERATION [OPTION]..."
+	echo "The zero-server manages the training session and organizes connected zero-workers."
 	echo ""
-	echo "  -h        , --help                 Give this help list"
-	echo "  -n        , --name                 Assign name for training directory"
-	echo "  -np       , --name_prefix          Add prefix name for default training directory name"
-	echo "  -ns       , --name_suffix          Add suffix name for default training directory name"
-	echo "            , --sp_executable_file   Assign the path for self-play executable file"
-	echo "            , --op_executable_file   Assign the path for optimization executable file"
-	echo "            , --link_sgf   	   	   Assign the path of sgf for training without self play (only op)"
-	echo "  -conf_str ,                        Overwrite configuration file"
+	echo "Required arguments:"
+	echo "  GAME_TYPE: $(find ./ ../ -maxdepth 2 -name build.sh -exec grep -m1 support_games {} \; -quit | sed -E 's/.+\("|"\).*//g;s/" "/, /g')"
+	echo "  CONFIGURE_FILE: the configure file (*.cfg) to use"
+	echo "  END_ITERATION: the total number of iterations for training"
+	echo ""
+	echo "Optional arguments:"
+	echo "  -h,        --help                 Give this help list"
+	echo "  -n,        --name                 Assign name for training directory"
+	echo "  -np,       --name_prefix          Add prefix name for default training directory name"
+	echo "  -ns,       --name_suffix          Add suffix name for default training directory name"
+	echo "             --sp_executable_file   Assign the path for self-play executable file"
+	echo "             --op_executable_file   Assign the path for optimization executable file"
+	echo "             --link_sgf             Assign the path of sgf for training without self play (only op)"
+	echo "  -conf_str                         Overwrite settings in the configure file"
 	exit 1
 }
 
@@ -90,9 +97,9 @@ if [[ ${run_stage,} == "r" ]]; then
 	# setup initial weight
 	echo "train \"\" -1 -1" | PYTHONPATH=. python ${op_executable_file} ${game_type} ${train_dir} ${train_dir}/${new_configure_file} >/dev/null 2>&1
 elif [[ ${run_stage,} == "c" ]]; then
-    zero_start_iteration=$(ls ${train_dir}/model/ | grep ".pt$" | wc -l)
-    model_file=$(ls ${train_dir}/model/ | grep ".pt$" | sort -V | tail -n1)
-    new_configure_file=$(basename ${train_dir}/*.cfg)
+	zero_start_iteration=$(ls ${train_dir}/model/ | grep ".pt$" | wc -l)
+	model_file=$(ls ${train_dir}/model/ | grep ".pt$" | sort -V | tail -n1)
+	new_configure_file=$(basename ${train_dir}/*.cfg)
 	echo y | ${sp_executable_file} -gen ${train_dir}/${new_configure_file} -conf_file ${train_dir}/${new_configure_file} -conf_str "${overwrite_conf_str}" 2>/dev/null
 
 	# friendly notification if continuing training
