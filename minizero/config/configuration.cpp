@@ -36,7 +36,7 @@ int zero_num_threads = 4;
 int zero_num_parallel_games = 32;
 int zero_server_port = 9999;
 std::string zero_training_directory = "";
-int zero_num_games_per_iteration = 5000;
+int zero_num_games_per_iteration = 2000;
 int zero_start_iteration = 0;
 int zero_end_iteration = 100;
 int zero_replay_buffer = 20;
@@ -67,11 +67,6 @@ std::string nn_file_name = "";
 int nn_num_blocks = 1;
 int nn_num_hidden_channels = 256;
 int nn_num_value_hidden_channels = 256;
-#if !defined(ATARI) && !defined(PUZZLE2048)
-int nn_discrete_value_size = 1;
-#else
-int nn_discrete_value_size = 601;
-#endif
 std::string nn_type_name = "alphazero";
 
 // environment parameters
@@ -173,7 +168,6 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("nn_num_blocks", nn_num_blocks, "", "Network");
     cl.addParameter("nn_num_hidden_channels", nn_num_hidden_channels, "", "Network");
     cl.addParameter("nn_num_value_hidden_channels", nn_num_value_hidden_channels, "", "Network");
-    cl.addParameter("nn_discrete_value_size", nn_discrete_value_size, "set to 1 for the games which doesn't use discrete value", "Network");
     cl.addParameter("nn_type_name", nn_type_name, "alphazero/muzero", "Network");
 
     // environment parameters

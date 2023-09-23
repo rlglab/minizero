@@ -22,8 +22,9 @@ PYBIND11_MODULE(minizero_py, m)
         minizero::env::setUpEnv();
         minizero::config::ConfigureLoader cl;
         minizero::config::setConfiguration(cl);
-        cl.loadFromFile(file_name);
-        kEnvInstance = std::make_shared<Environment>();
+        bool success = cl.loadFromFile(file_name);
+        if (success) { kEnvInstance = std::make_shared<Environment>(); }
+        return success;
     });
     m.def("load_config_string", [](std::string conf_str) {
         minizero::config::ConfigureLoader cl;
@@ -55,7 +56,7 @@ PYBIND11_MODULE(minizero_py, m)
     m.def("get_nn_num_blocks", []() { return config::nn_num_blocks; });
     m.def("get_nn_action_size", []() { return getEnvInstance().getPolicySize(); });
     m.def("get_nn_num_value_hidden_channels", []() { return config::nn_num_value_hidden_channels; });
-    m.def("get_nn_discrete_value_size", []() { return config::nn_discrete_value_size; });
+    m.def("get_nn_discrete_value_size", []() { return kEnvInstance->getDiscreteValueSize(); });
     m.def("get_nn_type_name", []() { return config::nn_type_name; });
 
     py::class_<learner::DataLoader>(m, "DataLoader")

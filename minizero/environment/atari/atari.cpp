@@ -242,12 +242,12 @@ float AtariEnvLoader::calculateNStepValue(const int pos) const
 
 std::vector<float> AtariEnvLoader::toDiscreteValue(float value) const
 {
-    std::vector<float> discrete_value(config::nn_discrete_value_size, 0.0f);
+    std::vector<float> discrete_value(kAtariDiscreteValueSize, 0.0f);
     int value_floor = floor(value);
     int value_ceil = ceil(value);
-    int shift = config::nn_discrete_value_size / 2;
-    int value_floor_shift = std::min(std::max(value_floor + shift, 0), config::nn_discrete_value_size - 1);
-    int value_ceil_shift = std::min(std::max(value_ceil + shift, 0), config::nn_discrete_value_size - 1);
+    int shift = kAtariDiscreteValueSize / 2;
+    int value_floor_shift = std::min(std::max(value_floor + shift, 0), kAtariDiscreteValueSize - 1);
+    int value_ceil_shift = std::min(std::max(value_ceil + shift, 0), kAtariDiscreteValueSize - 1);
     if (value_floor == value_ceil) {
         discrete_value[value_floor_shift] = 1.0f;
     } else {

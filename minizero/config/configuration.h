@@ -69,7 +69,6 @@ extern std::string nn_file_name;
 extern int nn_num_blocks;
 extern int nn_num_hidden_channels;
 extern int nn_num_value_hidden_channels;
-extern int nn_discrete_value_size;
 extern std::string nn_type_name;
 
 // environment parameters

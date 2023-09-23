@@ -93,6 +93,7 @@ public:
     virtual int getHiddenChannelHeight() const = 0;
     virtual int getHiddenChannelWidth() const = 0;
     virtual int getPolicySize() const = 0;
+    virtual int getDiscreteValueSize() const = 0;
     virtual int getRotatePosition(int position, utils::Rotation rotation) const = 0;
     virtual int getRotateAction(int action_id, utils::Rotation rotation) const = 0;
     virtual std::string toString() const = 0;
@@ -345,6 +346,7 @@ public:
     inline int getInputChannelWidth() const override { return getBoardSize(); }
     inline int getHiddenChannelHeight() const override { return getBoardSize(); }
     inline int getHiddenChannelWidth() const override { return getBoardSize(); }
+    inline int getDiscreteValueSize() const override { return 1; }
 
 protected:
     int board_size_;
