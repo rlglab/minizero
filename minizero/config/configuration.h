@@ -45,7 +45,6 @@ extern int zero_replay_buffer;
 extern float zero_disable_resign_ratio;
 extern int zero_actor_intermediate_sequence_length;
 extern std::string zero_actor_ignored_command;
-extern bool zero_actor_stop_after_enough_games;
 extern bool zero_server_accept_different_model_games;
 
 // learner parameters

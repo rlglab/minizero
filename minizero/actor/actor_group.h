@@ -16,15 +16,12 @@ namespace minizero::actor {
 class ThreadSharedData : public utils::BaseSharedData {
 public:
     int getAvailableActorIndex();
-    void resetActor(int actor_id);
     void outputGame(const std::shared_ptr<BaseActor>& actor);
     std::pair<int, int> calculateTrainingDataRange(const std::shared_ptr<BaseActor>& actor);
 
     bool do_cpu_job_;
     int actor_index_;
-    int game_index_;
-    std::recursive_mutex mutex_;
-    std::vector<int> actors_game_index_;
+    std::mutex mutex_;
     std::vector<std::shared_ptr<BaseActor>> actors_;
     std::vector<std::shared_ptr<network::Network>> networks_;
     std::vector<std::vector<std::shared_ptr<network::NetworkOutput>>> network_outputs_;
