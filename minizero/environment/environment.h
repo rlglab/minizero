@@ -1,5 +1,7 @@
 #pragma once
 
+#include "configuration.h"
+
 #if ATARI
 #include "atari.h"
 typedef minizero::env::atari::AtariAction Action;
@@ -58,6 +60,33 @@ inline void setUpEnv()
 {
 #if GO or KILLALLGO or NOGO
     go::initialize();
+#endif
+
+#if ATARI or PUZZLE2048
+    config::learner_n_step_return = 10;
+    config::zero_actor_intermediate_sequence_length = 200;
+#endif
+
+#if GO
+    config::env_board_size = 9;
+#elif HEX
+    config::env_board_size = 11;
+#elif KILLALLGO
+    config::env_board_size = 7;
+#elif OTHELLO
+    config::env_board_size = 8;
+#elif GOMOKU
+    config::env_board_size = 15;
+#elif CHESS
+    config::env_board_size = 8;
+#elif NOGO
+    config::env_board_size = 9;
+#elif TICTACTOE
+    config::env_board_size = 3;
+#elif PUZZLE2048
+    config::env_board_size = 4;
+#elif RUBIKS
+    config::env_board_size = 3;
 #endif
 }
 

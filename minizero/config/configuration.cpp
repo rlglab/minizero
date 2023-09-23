@@ -70,31 +70,7 @@ int nn_num_value_hidden_channels = 256;
 std::string nn_type_name = "alphazero";
 
 // environment parameters
-#if GO
-int env_board_size = 9;
-#elif HEX
-int env_board_size = 11;
-#elif KILLALLGO
-int env_board_size = 7;
-#elif OTHELLO
-int env_board_size = 8;
-#elif GOMOKU
-int env_board_size = 15;
-#elif CHESS
-int env_board_size = 8;
-#elif NOGO
-int env_board_size = 9;
-#elif TICTACTOE
-int env_board_size = 3;
-#elif PUZZLE2048
-int env_board_size = 4;
-#elif RUBIKS
-int env_board_size = 3;
-#else
 int env_board_size = 0;
-#endif
-
-// environment parameters for specific game
 std::string env_atari_rom_dir = "/opt/atari57/";
 std::string env_atari_name = "ms_pacman";
 float env_go_komi = 7.5;
@@ -172,8 +148,6 @@ void setConfiguration(ConfigureLoader& cl)
 
     // environment parameters
     cl.addParameter("env_board_size", env_board_size, "", "Environment");
-
-    // environment parameters for specific game
 #if ATARI
     cl.addParameter("env_atari_rom_dir", env_atari_rom_dir, "", "Environment");
     cl.addParameter("env_atari_name", env_atari_name, "Atari 57 Games:\n"
