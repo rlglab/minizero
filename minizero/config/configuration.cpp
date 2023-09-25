@@ -105,6 +105,7 @@ std::string env_atari_name = "ms_pacman";
 float env_go_komi = 7.5;
 std::string env_go_ko_rule = "positional";
 std::string env_gomoku_rule = "normal";
+bool env_hex_use_swap_rule = true;
 int env_rubiks_scramble_rotate = 5;
 
 void setConfiguration(ConfigureLoader& cl)
@@ -193,6 +194,8 @@ void setConfiguration(ConfigureLoader& cl)
 #elif GO
     cl.addParameter("env_go_komi", env_go_komi, "", "Environment");
     cl.addParameter("env_go_ko_rule", env_go_ko_rule, "positional/situational", "Environment");
+#elif HEX
+    cl.addParameter("env_hex_use_swap_rule", env_hex_use_swap_rule, "", "Environment");
 #elif KILLALLGO
     cl.addParameter("env_killallgo_ko_rule", env_go_ko_rule, "positional/situational", "Environment");
 #elif GOMOKU
