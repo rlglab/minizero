@@ -14,10 +14,9 @@ const int kMaxHexBoardSize = 19;
 typedef BaseBoardAction<kHexNumPlayer> HexAction;
 
 enum class Flag {
-    BLACK_LEFT = 0x1,
-    BLACK_RIGHT = 0x2,
-    WHITE_BOTTOM = 0x4,
-    WHITE_TOP = 0x10
+    NONE = 0x0,
+    EDGE1_CONNECTION = 0x1, // edge1 represents left and bottom for Black and White players, respectively
+    EDGE2_CONNECTION = 0x2, // edge2 represents right and top for Black and White players, respectively
 };
 inline Flag operator|(Flag a, Flag b)
 {
