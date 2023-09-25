@@ -17,6 +17,7 @@ namespace minizero::env::atari {
 const std::string kAtariName = "atari";
 const int kAtariNumPlayer = 1;
 const int kAtariActionSize = 18;
+const int kAtariDiscreteValueSize = 601;
 const int kAtariFrameSkip = 4;
 const int kAtariResolution = 96;
 const int kAtariHiddenChannelHeight = 6;
@@ -65,6 +66,7 @@ public:
     inline int getHiddenChannelHeight() const override { return kAtariHiddenChannelHeight; }
     inline int getHiddenChannelWidth() const override { return kAtariHiddenChannelWidth; }
     inline int getPolicySize() const override { return kAtariActionSize; }
+    inline int getDiscreteValueSize() const override { return kAtariDiscreteValueSize; }
     std::string toString() const override { return ""; }
     inline std::string name() const override { return kAtariName + "_" + minizero::config::env_atari_name; }
     inline int getNumPlayer() const override { return kAtariNumPlayer; }

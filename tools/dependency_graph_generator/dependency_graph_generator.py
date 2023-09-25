@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from fileinput import filename
 import os
 from glob import glob

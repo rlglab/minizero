@@ -3,65 +3,73 @@ set -e
 
 usage()
 {
-	echo "Usage: ./fight-eval.sh GAME_TYPE FOLDER1 FOLDER2 CONF_FILE1 INTERVAL GAMENUM [OPTION...]"
-	echo ""
-	echo "  -h        , --help                 Give this help list"
-    echo "  -s                                 Start from which file in the folder (default 0)"
-	echo "  -f                                 The configure file of FOLDER2 (default Config 1)"
-	echo "  -b                                 Board size (default 9)"
-	echo "  -g, --gpu                          Assign available GPUs, e.g. 0123"
-    echo "            , --num_threads          Number of threads to play games"
-	echo "  -d                                 Result Folder Name (default [Folder1]_vs_[Folder2]_eval)"
-	echo "            , --sp_executable_file   Assign the path for fighting executable file (default 2)"
-	exit 1
+    echo "Usage: $0 GAME_TYPE FOLDER1 FOLDER2 CONF_FILE1 [CONF_FILE2] INTERVAL GAMENUM [OPTION]..."
+    echo "Launch fight evaluation to evaluate the relative strengths between same iterations of two trained models."
+    echo ""
+    echo "Required arguments:"
+    echo "  GAME_TYPE: $(find ./ ../ -maxdepth 2 -name build.sh -exec grep -m1 support_games {} \; -quit | sed -E 's/.+\("|"\).*//g;s/" "/, /g')"
+    echo "  FOLDER1, FOLDER2: the two model folders to be evaluated"
+    echo "  CONF_FILE1, CONF_FILE2: the configure files (*.cfg) to use; if CONF_FILE2 is unspecified, CONF_FILE1 is used"
+    echo "  INTERVAL: the iteration interval between each evaluated model pair"
+    echo "  GAMENUM: the number of games to play for each model pair"
+    echo ""
+    echo "Optional arguments:"
+    echo "  -h, --help                 Give this help list"
+    echo "  -s                         Start from which file in the folder (default 0)"
+    echo "  -b                         Board size (default is env_board_size in CONF_FILE)"
+    echo "  -g, --gpu                  Assign available GPUs, e.g. 0123"
+    echo "      --num_threads          Number of threads to play games"
+    echo "  -d                         Result Folder Name (default [Folder1]_vs_[Folder2]_eval)"
+    echo "      --sp_executable_file   Assign the path for fighting executable file"
+    exit 1
 }
 
 # check arguments
 if [ $# -lt 6 ] || [ $(($# % 2)) -eq 1 ];
 then
-	usage
+    usage
 else
     GAME_TYPE=$1; shift
     FOLDER1=$1; shift
     FOLDER2=$1; shift
     CONF_FILE1=$1; shift
+    [[ $1 == *.cfg ]] && { CONF_FILE2=$1; shift; } || CONF_FILE2=$CONF_FILE1
     INTERVAL=$1; shift
     GAMENUM=$1; shift
 fi
 
 # default arguments
 START=0
-CONF_FILE2=$CONF_FILE1
 NUM_GPU=$(nvidia-smi -L | wc -l)
 GPU_LIST=$(echo $NUM_GPU | awk '{for(i=0;i<$1;i++)printf i}')
 num_threads=2
-BOARD_SIZE=9
+BOARD_SIZE=$({ grep env_board_size= $CONF_FILE || echo =9; } | cut -d= -f2)
 NAME="$(basename ${FOLDER1})_vs_$(basename ${FOLDER2})_eval"
 sp_executable_file=build/${GAME_TYPE}/minizero_${GAME_TYPE}
 while :; do
-	case $1 in
+    case $1 in
         -h|--help) shift; usage
-		;;
-		-g|--gpu) shift; GPU_LIST=$1; NUM_GPU=${#GPU_LIST}
-		;;
+        ;;
+        -g|--gpu) shift; GPU_LIST=$1; NUM_GPU=${#GPU_LIST}
+        ;;
         -f) shift; CONF_FILE2=$1
         ;;
         -b) shift; BOARD_SIZE=$1
-		;;
+        ;;
         -s) shift; START=$1
-		;;
+        ;;
         -d) shift; NAME=$1
-		;;
+        ;;
         --num_threads) shift; num_threads=$1
         ;;
         --sp_executable_file) shift; sp_executable_file=$1
-		;;
-		"") break
-		;;
-		*) echo "Unknown argument: $1"; usage
-		;;
-	esac
-	shift
+        ;;
+        "") break
+        ;;
+        *) echo "Unknown argument: $1"; usage
+        ;;
+    esac
+    shift
 done
 
 echo "./fight-eval.sh $GAME_TYPE $FOLDER1 $FOLDER2 $CONF_FILE1 $INTERVAL $GAMENUM -s $START -f $CONF_FILE2 -b $BOARD_SIZE -g $GPU_LIST -d $NAME --num_threads $num_threads --sp_executable_file $sp_executable_file"

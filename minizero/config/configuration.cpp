@@ -36,14 +36,13 @@ int zero_num_threads = 4;
 int zero_num_parallel_games = 32;
 int zero_server_port = 9999;
 std::string zero_training_directory = "";
-int zero_num_games_per_iteration = 5000;
+int zero_num_games_per_iteration = 2000;
 int zero_start_iteration = 0;
 int zero_end_iteration = 100;
 int zero_replay_buffer = 20;
 float zero_disable_resign_ratio = 0.1;
 int zero_actor_intermediate_sequence_length = 0;
 std::string zero_actor_ignored_command = "reset_actors";
-bool zero_actor_stop_after_enough_games = false;
 bool zero_server_accept_different_model_games = true;
 
 // learner parameters
@@ -67,39 +66,10 @@ std::string nn_file_name = "";
 int nn_num_blocks = 1;
 int nn_num_hidden_channels = 256;
 int nn_num_value_hidden_channels = 256;
-#if !defined(ATARI) && !defined(PUZZLE2048)
-int nn_discrete_value_size = 1;
-#else
-int nn_discrete_value_size = 601;
-#endif
 std::string nn_type_name = "alphazero";
 
 // environment parameters
-#if GO
-int env_board_size = 9;
-#elif HEX
-int env_board_size = 11;
-#elif KILLALLGO
-int env_board_size = 7;
-#elif OTHELLO
-int env_board_size = 8;
-#elif GOMOKU
-int env_board_size = 15;
-#elif CHESS
-int env_board_size = 8;
-#elif NOGO
-int env_board_size = 9;
-#elif TICTACTOE
-int env_board_size = 3;
-#elif PUZZLE2048
-int env_board_size = 4;
-#elif RUBIKS
-int env_board_size = 3;
-#else
 int env_board_size = 0;
-#endif
-
-// environment parameters for specific game
 std::string env_atari_rom_dir = "/opt/atari57/";
 std::string env_atari_name = "ms_pacman";
 float env_go_komi = 7.5;
@@ -150,7 +120,6 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("zero_disable_resign_ratio", zero_disable_resign_ratio, "", "Zero");
     cl.addParameter("zero_actor_intermediate_sequence_length", zero_actor_intermediate_sequence_length, "board games: 0; atari: 200", "Zero");
     cl.addParameter("zero_actor_ignored_command", zero_actor_ignored_command, "format: command1 command2 ...", "Zero");
-    cl.addParameter("zero_actor_stop_after_enough_games", zero_actor_stop_after_enough_games, "", "Zero");
     cl.addParameter("zero_server_accept_different_model_games", zero_server_accept_different_model_games, "", "Zero");
 
     // learner parameters
@@ -174,13 +143,10 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("nn_num_blocks", nn_num_blocks, "", "Network");
     cl.addParameter("nn_num_hidden_channels", nn_num_hidden_channels, "", "Network");
     cl.addParameter("nn_num_value_hidden_channels", nn_num_value_hidden_channels, "", "Network");
-    cl.addParameter("nn_discrete_value_size", nn_discrete_value_size, "set to 1 for the games which doesn't use discrete value", "Network");
     cl.addParameter("nn_type_name", nn_type_name, "alphazero/muzero", "Network");
 
     // environment parameters
     cl.addParameter("env_board_size", env_board_size, "", "Environment");
-
-    // environment parameters for specific game
 #if ATARI
     cl.addParameter("env_atari_rom_dir", env_atari_rom_dir, "", "Environment");
     cl.addParameter("env_atari_name", env_atari_name, "Atari 57 Games:\n"

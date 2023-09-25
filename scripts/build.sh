@@ -1,12 +1,14 @@
 #!/bin/bash
 set -e
 
-support_games=("atari" "chess" "go" "gomoku" "hex" "killallgo" "nogo" "othello" "puzzle2048" "rubiks" "tictactoe")
+support_games=("atari" "go" "gomoku" "hex" "killallgo" "nogo" "othello" "puzzle2048" "rubiks" "tictactoe")
 
 usage() {
-	echo "Usage: build.sh game_type build_type"
-	echo "  game_type: $(echo ${support_games[@]} | sed 's/ /, /g')"
-	echo "  build_type: release(default), debug"
+	echo "Usage: $0 GAME_TYPE BUILD_TYPE"
+	echo ""
+	echo "Required arguments:"
+	echo "  GAME_TYPE: $(echo ${support_games[@]} | sed 's/ /, /g')"
+	echo "  BUILD_TYPE: release(default), debug"
 	exit 1
 }
 

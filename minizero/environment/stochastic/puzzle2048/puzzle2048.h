@@ -11,6 +11,8 @@ namespace minizero::env::puzzle2048 {
 const std::string kPuzzle2048Name = "puzzle2048";
 const int kPuzzle2048NumPlayer = 1;
 const int kPuzzle2048BoardSize = 4;
+const int kPuzzle2048ActionSize = 4;
+const int kPuzzle2048DiscreteValueSize = 601;
 const std::string kPuzzle2048ActionName[] = {"up", "right", "down", "left", "null"};
 
 class Puzzle2048Action : public BaseAction {
@@ -57,7 +59,8 @@ public:
     inline int getInputChannelWidth() const override { return kPuzzle2048BoardSize; }
     inline int getHiddenChannelHeight() const override { return kPuzzle2048BoardSize; }
     inline int getHiddenChannelWidth() const override { return kPuzzle2048BoardSize; }
-    inline int getPolicySize() const override { return 4; }
+    inline int getPolicySize() const override { return kPuzzle2048ActionSize; }
+    inline int getDiscreteValueSize() const override { return kPuzzle2048DiscreteValueSize; }
 
     std::string toString() const override;
     std::string name() const override { return kPuzzle2048Name; }

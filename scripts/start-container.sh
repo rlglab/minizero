@@ -3,18 +3,19 @@ set -e
 
 usage()
 {
-    echo "Usage: ./start_container.sh [OPTION...]"
+    echo "Usage: $0 [OPTION]..."
     echo ""
-    echo "  -h, --help        Give this help list"
-    echo "    , --image       Select the image name of the container"
-    echo "  -v, --volume      Bind mount a volume into the container"
-    echo "    , --name        Assign a name to the container"
-	echo "  -d, --detach      Run container in background and print container ID"
+    echo "Optional arguments:"
+    echo "  -h, --help     Give this help list"
+    echo "      --image    Select the image name of the container"
+    echo "  -v, --volume   Bind mount a volume into the container"
+    echo "      --name     Assign a name to the container"
+    echo "  -d, --detach   Run container in background and print container ID"
     exit 1
 }
 
 image_name=kds285/minizero:latest
-container_volume="-v .:/workspace -v /mnt/nfs/work/zero/tutorial:/Tutorial"
+container_volume="-v .:/workspace"
 container_argumenets=""
 while :; do
 	case $1 in

@@ -17,17 +17,8 @@ using namespace utils;
 
 int ThreadSharedData::getAvailableActorIndex()
 {
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     return (actor_index_ < static_cast<int>(actors_.size()) ? actor_index_++ : actors_.size());
-}
-
-void ThreadSharedData::resetActor(int actor_id)
-{
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
-    actors_[actor_id]->reset();
-    if (config::zero_actor_stop_after_enough_games) {
-        actors_game_index_[actor_id] = game_index_ < config::zero_num_games_per_iteration ? game_index_++ : game_index_;
-    }
 }
 
 void ThreadSharedData::outputGame(const std::shared_ptr<BaseActor>& actor)
@@ -54,7 +45,7 @@ void ThreadSharedData::outputGame(const std::shared_ptr<BaseActor>& actor)
         }
     }
 
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     std::cout << oss.str() << std::endl;
 }
 
@@ -88,7 +79,6 @@ bool SlaveThread::doCPUJob()
 {
     size_t actor_id = getSharedData()->getAvailableActorIndex();
     if (actor_id >= getSharedData()->actors_.size()) { return false; }
-    if (config::zero_actor_stop_after_enough_games && getSharedData()->actors_game_index_[actor_id] >= config::zero_num_games_per_iteration) { return true; }
 
     std::shared_ptr<BaseActor>& actor = getSharedData()->actors_[actor_id];
     int network_id = actor_id % getSharedData()->networks_.size();
@@ -131,7 +121,7 @@ void SlaveThread::handleSearchDone(int actor_id)
     if (display_game) { std::cerr << actor->getEnvironment().toString() << actor->getSearchInfo() << std::endl; }
     if (is_endgame) {
         getSharedData()->outputGame(actor);
-        getSharedData()->resetActor(actor_id);
+        actor->reset();
     } else {
         int game_length = actor->getEnvironment().getActionHistory().size();
         int sequence_length = config::zero_actor_intermediate_sequence_length;
@@ -188,9 +178,6 @@ void ActorGroup::createActors()
     assert(getSharedData()->networks_.size() > 0);
     std::shared_ptr<Network>& network = getSharedData()->networks_[0];
     uint64_t tree_node_size = static_cast<uint64_t>(config::actor_num_simulation + 1) * network->getActionSize();
-    getSharedData()->game_index_ = 0;
-    getSharedData()->actors_game_index_.resize(config::zero_num_parallel_games);
-    for (size_t actor_id = 0; actor_id < getSharedData()->actors_.size(); ++actor_id) { getSharedData()->resetActor(actor_id); }
     for (int i = 0; i < config::zero_num_parallel_games; ++i) {
         getSharedData()->actors_.emplace_back(createActor(tree_node_size, getSharedData()->networks_[i % getSharedData()->networks_.size()]));
     }
@@ -202,7 +189,7 @@ void ActorGroup::handleIO()
     const int buffer_size = 10000000;
     command.reserve(buffer_size);
     while (getline(std::cin, command)) {
-        std::lock_guard<std::recursive_mutex> lock(getSharedData()->mutex_);
+        std::lock_guard lock(getSharedData()->mutex_);
         commands_.push_back(command);
     }
 }
@@ -211,7 +198,7 @@ void ActorGroup::handleCommand()
 {
     if (commands_.empty() || !getSharedData()->do_cpu_job_) { return; }
 
-    std::lock_guard<std::recursive_mutex> lock(getSharedData()->mutex_);
+    std::lock_guard lock(getSharedData()->mutex_);
     while (!commands_.empty()) {
         const std::string command = commands_.front();
         commands_.pop_front();
@@ -232,8 +219,7 @@ void ActorGroup::handleCommand(const std::string& command_prefix, const std::str
 {
     if (command_prefix == "reset_actors") {
         std::cerr << "[command] " << command << std::endl;
-        getSharedData()->game_index_ = 0;
-        for (size_t actor_id = 0; actor_id < getSharedData()->actors_.size(); ++actor_id) { getSharedData()->resetActor(actor_id); }
+        for (auto& actor : getSharedData()->actors_) { actor->reset(); }
         getSharedData()->do_cpu_job_ = true;
     } else if (command_prefix == "load_model") {
         std::cerr << "[command] " << command << std::endl;
