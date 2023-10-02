@@ -128,7 +128,7 @@ void Console::cmdShowBoard(const std::vector<std::string>& args)
 
 void Console::cmdPlay(const std::vector<std::string>& args)
 {
-    if (!checkArgument(args, 2, INT_MAX)) { return; }
+    if (!checkArgument(args, 3, INT_MAX)) { return; }
     std::string action_string = args[2];
     std::vector<std::string> act_args;
     for (unsigned int i = 1; i < args.size(); i++) { act_args.push_back(args[i]); }
