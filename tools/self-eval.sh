@@ -13,18 +13,19 @@ usage()
     echo "  GAMENUM: the number of games to play for each model pair"
     echo ""
     echo "Optional arguments:"
-    echo "  -h, --help                 Give this help list"
-    echo "  -s                         Start from which file in the folder (default 0)"
-    echo "  -b                         Board size (default is env_board_size in CONF_FILE)"
-    echo "  -g, --gpu                  Assign available GPUs, e.g. 0123"
-    echo "      --num_threads          Number of threads to play games"
-    echo "  -d                         Result Folder Name (default self_eval)"
-    echo "      --sp_executable_file   Assign the path for fighting executable file"
+    echo "  -h,        --help                 Give this help list"
+    echo "  -s                                Start from which file in the folder (default 0)"
+    echo "  -b                                Board size (default is env_board_size in CONF_FILE)"
+    echo "  -g,        --gpu                  Assign available GPUs, e.g. 0123"
+    echo "             --num_threads          Number of threads to play games"
+    echo "  -d                                Result Folder Name (default self_eval)"
+    echo "  -conf_str                         Add additional configure string for program"
+    echo "             --sp_executable_file   Assign the path of executable file"
     exit 1
 }
 
 # check arguments
-if [ $# -lt 5 ] || [ $(($# % 2)) -eq 0 ];
+if [ $# -lt 5 ];
 then
     usage
 else
@@ -58,6 +59,8 @@ while :; do
         ;;
         --num_threads) shift; num_threads=$1
         ;;
+        -conf_str) shift; conf_str=$1
+        ;;
         --sp_executable_file) shift; sp_executable_file=$1
         ;;
         "") break
@@ -67,7 +70,7 @@ while :; do
     esac
     shift
 done
-echo "./self-eval.sh $GAME_TYPE $FOLDER $CONF_FILE $INTERVAL $GAMENUM -s $START -b $BOARD_SIZE -g $GPU_LIST -d $NAME --num_threads $num_threads --sp_executable_file $sp_executable_file"
+echo "$0 $GAME_TYPE $FOLDER $CONF_FILE $INTERVAL $GAMENUM -s $START -b $BOARD_SIZE -g $GPU_LIST -d $NAME --num_threads $num_threads ${conf_str:+-conf_str $conf_str} --sp_executable_file $sp_executable_file"
 if [ ! -d "${FOLDER}" ]; then
     echo "${FOLDER} not exists!"
     exit 1
@@ -78,8 +81,8 @@ if [ ! -d "${FOLDER}/$NAME" ]; then
 fi
 
 function run_twogtp(){
-    BLACK="$sp_executable_file -conf_file $CONF_FILE -conf_str \"nn_file_name=$FOLDER/model/$3\""
-    WHITE="$sp_executable_file -conf_file $CONF_FILE -conf_str \"nn_file_name=$FOLDER/model/$2\""
+    BLACK="$sp_executable_file -conf_file $CONF_FILE -conf_str \"${conf_str:+$conf_str:}nn_file_name=$FOLDER/model/$3\""
+    WHITE="$sp_executable_file -conf_file $CONF_FILE -conf_str \"${conf_str:+$conf_str:}nn_file_name=$FOLDER/model/$2\""
     EVAL_FOLDER="${FOLDER}/$NAME/${3:12:-3}_vs_${2:12:-3}"
     SGFFILE="${EVAL_FOLDER}/${3:12:-3}_vs_${2:12:-3}"
     if [ ! -d "${EVAL_FOLDER}" ];then
