@@ -149,10 +149,12 @@ Through MiniZero, the performance of each zero algorithm has been systematically
 For more details, check [this paper](https://arxiv.org/abs/2310.11305).
 
 Zero algorithms on board games (click to enlarge):
-[![Go 9x9](docs/imgs/minizero_go_9x9.svg =50%x)](docs/imgs/minizero_go_9x9.svg)[![Othello 8x8](docs/imgs/minizero_othello_8x8.svg =50%x)](docs/imgs/minizero_othello_8x8.svg)
+
+<img src="docs/imgs/minizero_go_9x9.svg" alt="Go 9x9" width="50%"><img src="docs/imgs/minizero_othello_8x8.svg" alt="Othello 8x8" width="50%">
 
 Zero algorithms on Atari games (click to enlarge):
-[![Atari](docs/imgs/minizero_atari.svg =100%x)](docs/imgs/minizero_atari.svg)
+
+<img src="docs/imgs/minizero_atari.svg" alt="Atari" width="100%">
 
 Trained game-playing AI models for these games will be released soon.
 
