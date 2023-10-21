@@ -15,6 +15,11 @@ usage()
 }
 
 image_name=kds285/minizero:latest
+container_tool=$(basename $(which podman || which docker) 2>/dev/null)
+if [[ ! $container_tool ]]; then
+	echo "Neither podman nor docker is installed." >&2
+	exit 1
+fi
 container_volume="-v .:/workspace"
 container_argumenets=""
 while :; do
@@ -38,5 +43,5 @@ while :; do
 done
 
 container_argumenets=$(echo ${container_argumenets} | xargs)
-echo "podman run ${container_argumenets} --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --network=host --ipc=host --rm -it ${container_volume} ${image_name}"
-podman run ${container_argumenets} --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --network=host --ipc=host --rm -it ${container_volume} ${image_name}
+echo "$container_tool run ${container_argumenets} --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --network=host --ipc=host --rm -it ${container_volume} ${image_name}"
+$container_tool run ${container_argumenets} --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --network=host --ipc=host --rm -it ${container_volume} ${image_name}
