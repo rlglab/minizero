@@ -151,12 +151,12 @@ The training result and the log files are stored in the folder created by the ze
 
 After training, you may visualize the training process from `Training.log` and `op.log`. A script is provided to plot the curves of accuracy, loss, return, and other metrics. Run it as follows.
 ```bash
-python tools/analysis.py -d [TRAIN_DIR] # check [TRAIN_DIR]/analysis/ for images
+python tools/analysis.py -in_dir [TRAIN_DIR] # check [TRAIN_DIR]/analysis/ for images
 ```
 
-In addition, to open the game records in `sgf/` by [GoGui](https://github.com/Remi-Coulom/gogui), you should use `tools/tosgf.py` to convert them to general SGF files as follows.
+In addition, to open the game records in `sgf/` by [GoGui](https://github.com/Remi-Coulom/gogui), you should use `tools/to-sgf.py` to convert them to general SGF files as follows.
 ```bash
-python tools/tosgf.py -i [FIN_NAME] -o [FOUT_NAME]
+python tools/to-sgf.py -in_file [FIN_NAME] -out_file [FOUT_NAME]
 ```
 
 Furthermore, you may follow [these instructions](Testing.md) to further analyze the log files and run testing to assess model performance.

@@ -10,7 +10,7 @@ This section introduces how to obtain the project source code, how to launch the
 
 To clone the project repository from GitHub, run
 ```bash!
-git clone git@github.com:iis-rlg-lab/minizero.git
+git clone git@github.com:rlglab/minizero.git
 ```
 
 A successful clone produces a folder named `minizero` containing source code, scripts, and tools.
@@ -31,11 +31,7 @@ To launch a container instance, use the provided script as shown below.
 > **Note**
 > Before the first launch (on each machine), the script will automatically download and cache the container image. Afterwards, the script will use the cached image to launch.
 > 
-> However, the cached image is not refreshed automatically. When the image is updated (you will be advised), you should manually download the image again (on each machine) by `podman pull kds285/minizero:latest`
-
-> **Note**
-> The `start-container.sh` script requires the properly installed NVIDIA and CUDA drivers, the `podman` command, and the path `/mnt/nfs/work/zero/tutorial` for mounting.
-> For configured internal machines, e.g., `NVxx` or `RLGxx`, the script is ready to run; otherwise, you must set up dependencies first.
+> However, the cached image is not refreshed automatically. When the image is updated, you should manually download the image again (on each machine) by `podman pull kds285/minizero:latest`
 
 ### Build program
 
