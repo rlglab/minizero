@@ -473,7 +473,12 @@ elif [[ $mode == self-eval ]]; then # ================================ SELF-EVAL
     $launch tools/self-eval.sh $game $eval_dir $conf_file $eval_interval $eval_game_num ${opts[@]} 2>&1 | colorize OUT_EVAL
     code=${PIPESTATUS[0]}
     if [[ $code == 0 ]] && [ -d "$eval_dir/$eval_folder_name" ]; then
-        log INFO "Evaluation results: $eval_dir/$eval_folder_name"
+        echo P1 | $launch tools/eval.py -in_dir "$eval_dir/$eval_folder_name" --plot
+        if [ -e "$eval_dir/$eval_folder_name/elo.png" ]; then
+            log INFO "Evaluation results: $eval_dir/$eval_folder_name/elo.png"
+        else
+            log INFO "Evaluation results: $eval_dir/$eval_folder_name"
+        fi
     else
         log ERR "Evaluation failed to complete"
         code=1
@@ -513,7 +518,16 @@ elif [[ $mode == fight-eval ]]; then # ================================ FIGHT-EV
     $launch tools/fight-eval.sh $game $eval_dir $eval_dir_2 $conf_file $conf_file_2 $eval_interval $eval_game_num ${opts[@]} 2>&1 | colorize OUT_EVAL
     code=${PIPESTATUS[0]}
     if [[ $code == 0 ]] && [ -d "$eval_dir/$eval_folder_name" ]; then
-        log INFO "Evaluation results: $eval_dir/$eval_folder_name"
+        if [ -e "$eval_dir/self_eval/elo.csv" ]; then
+            { echo P1; echo P2; } | $launch tools/eval.py -in_dir "$eval_dir/$eval_folder_name" -elo "$eval_dir/self_eval/elo.csv" --plot
+        else
+            log WARN "Elo rating of self-eval unavailable, cannot calculate Elo rating for fight-eval"
+        fi
+        if [ -e "$eval_dir/$eval_folder_name/elo.png" ]; then
+            log INFO "Evaluation results: $eval_dir/$eval_folder_name/elo.png"
+        else
+            log INFO "Evaluation results: $eval_dir/$eval_folder_name"
+        fi
     else
         log ERR "Evaluation failed to complete"
         code=1
