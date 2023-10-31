@@ -8,7 +8,7 @@ import sys
 import time
 import re
 from datetime import datetime
-plt.rcParams.update({'figure.max_open_warning': 0})
+plt.rcParams.update({'figure.max_open_warning': 100})
 
 
 def eprint(*args, **kwargs):
@@ -220,7 +220,7 @@ def analysis_(dir, path, iter, all: bool = False, name: bool = False):
         fig.tight_layout()
         fig.savefig(os.path.join(f'{path}', f'{str(dir.split("/")[-1])}.png'))
         eprint(os.path.join(f'{path}', f'{str(dir.split("/")[-1])}.png'))
-    plt.close(fig)
+    plt.close('all')
 
 
 if __name__ == '__main__':
