@@ -1,7 +1,6 @@
-#!/usr/bin/env python
-
-import matplotlib.pyplot as plt
 from matplotlib.patches import RegularPolygon
+import matplotlib.patches as patches
+import matplotlib.pyplot as plt
 from PIL import Image
 import numpy as np
 import argparse
@@ -146,7 +145,7 @@ class PlotBoard:
                 ax.text(0.5, fix_text_height + fix_text_height*text_idx, text_item, transform=ax.transAxes,
                     fontsize=12, color='black', ha='center', va='center')
             
-    def plot_hex_board(boardsize, blackboard, whiteboard, cardinality = None, addtext = None):
+    def plot_hex_board(boardsize, blackboard, whiteboard, cardinality = None, addtext = None, border = True):
         board = []
         for x in range(boardsize):
             for y in range(boardsize):
@@ -182,16 +181,38 @@ class PlotBoard:
 
         # Add some coloured hexagons
         adjusted_linewidth = 0.5*(11/boardsize)
+        radius = 2. / 3
+        
+        border_edge_width = 0.2
+        for x in range(boardsize):
+            PlotBoard.draw_half_hexagon(coord_tuples[x*boardsize], radius+border_edge_width, 90, color="black")
+        
+        for x in range(boardsize):
+            PlotBoard.draw_half_hexagon(coord_tuples[(boardsize-1)*boardsize+x], radius+border_edge_width, 30, color="white")
+        
+        for x in range(boardsize):
+            PlotBoard.draw_half_hexagon(coord_tuples[x*boardsize+(boardsize-1)], radius+border_edge_width, 270, color="black")
+
+        for x in range(boardsize):
+            PlotBoard.draw_half_hexagon(coord_tuples[x], radius+border_edge_width, 210, color="white")
+        
+        PlotBoard.draw_rotated_rectangle(coord_tuples[0], radius+adjusted_linewidth/2.5, (radius)*2+adjusted_linewidth/2.5, -30, color="black")
+        PlotBoard.draw_rotated_rectangle(coord_tuples[(boardsize-1)*boardsize+(boardsize-1)], radius+adjusted_linewidth/2.5, (radius)*2+adjusted_linewidth/2.5, -30, color="white")
+        
+        PlotBoard.draw_half_hexagon(coord_tuples[(boardsize-1)*boardsize], radius+border_edge_width, 150, color="black")
+        PlotBoard.draw_half_hexagon(coord_tuples[boardsize-1], radius+border_edge_width, 330, color="black")
+        
         for coord in coord_tuples:
-            hex = RegularPolygon(coord, numVertices=6, radius=2. / 3, 
-                                orientation=np.radians(120),
+            hex = RegularPolygon(coord, numVertices=6, radius=radius, 
+                                orientation=np.radians(0),
                                 edgecolor='k', linewidth=adjusted_linewidth, facecolor=boardcolor)
             ax.add_patch(hex)
             # Also add a text label
-        
+            
         # Also add scatter points in hexagon centres
         ax.scatter([c[0] for c in coord_tuples], [c[1] for c in coord_tuples], alpha=0)
-
+        
+        # add hex pieces
         for coord, i in zip(coord_tuples, range(boardsize*boardsize)):
             
             whitepiecevalue = max(min(whiteboard[i],1),0)
@@ -217,7 +238,7 @@ class PlotBoard:
 
         # Set axis labels
         for y in range(boardsize):
-            ax.text(coord_tuples[y*boardsize][0]-1.1, y, str(y+1), ha='center', va='center', fontsize=adjusted_fontsize-0.5, color='k')
+            ax.text(coord_tuples[y*boardsize][0]-1.2, y, str(y+1), ha='center', va='center', fontsize=adjusted_fontsize-0.5, color='k')
         for x, t in zip(x_coord_tuples[:boardsize],[chr(ord('A') + i + (i >= 8)) for i in range(boardsize)]):
             ax.text(x, -1.2, t, ha='center', va='center', fontsize=adjusted_fontsize-0.5, color='k')
         
@@ -244,6 +265,45 @@ class PlotBoard:
         for h,v in zip(hcoord, vcoord):
             coord_tuples.append((h,v))
         return coord_tuples
+    
+    def draw_half_hexagon(center, size, angle, color="blue"):
+
+        # Define the vertices of the half hexagon
+        vertices = [(np.cos(np.radians(angle + 60 * i)) * size + center[0],
+                     np.sin(np.radians(angle + 60 * i)) * size + center[1])
+                    for i in range(4)]
+
+        # Create a Polygon patch for the half hexagon
+        from matplotlib.patches import Polygon
+        hexagon = Polygon(vertices, closed=True, edgecolor=None, facecolor=color)
+
+        # Plot the half hexagon
+        plt.gca().add_patch(hexagon)
+    
+    def draw_rotated_rectangle(center, width, height, angle, color="blue"):
+
+        angle = np.radians(angle)  # Rotation angle in radians
+
+        # Create a rotation matrix
+        rotation_matrix = np.array([[np.cos(angle), -np.sin(angle)],
+                                    [np.sin(angle), np.cos(angle)]])
+
+        # Define the vertices of the unrotated rectangle
+        half_width = width / 2
+        half_height = height / 2
+        vertices = np.array([[-half_width, -half_height],
+                             [0, -half_height],
+                             [0, half_height],
+                             [-half_width, half_height]])
+
+        # Apply the rotation to the vertices
+        rotated_vertices = np.dot(vertices, rotation_matrix.T) + center
+
+        # Create a Polygon patch for the rotated rectangle
+        rotated_rectangle = patches.Polygon(rotated_vertices, closed=True, edgecolor=None, facecolor=color)
+
+        # Plot the rotated rectangle
+        plt.gca().add_patch(rotated_rectangle)
 
     def savefig(out_dir, out_file = None, game = ''):
         if(out_file is not None):
