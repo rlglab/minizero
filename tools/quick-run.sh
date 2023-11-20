@@ -24,6 +24,9 @@ usage() {
         echo "  -c,        --cpu_thread_per_gpu   Assign the number of CPUs for each GPU for self-play workers (default 4)"
         echo "             --sp_progress          Show the self-play progress (default hidden)"
         echo "             --sp_conf_str          Set additional settings for self-play workers"
+        echo "             --sp_gpu               Assign available GPUs for self-play workers, e.g. 0123"
+        echo "             --op_conf_str          Set additional settings for optimization worker"
+        echo "             --op_gpu               Assign available GPUs for optimization worker, e.g. 0123"
         ;;
     self-eval)
         echo "Usage: $0 self-eval GAME_TYPE FOLDER [CONF_FILE] [INTERVAL] [GAMENUM] [OPTION]..."
@@ -190,6 +193,9 @@ while [[ $1 ]]; do
     --color)            color=$2; shift; ;;
     --sp_progress)      [[ $2 =~ true|false ]] && { sp_progress=$2; shift; } || { sp_progress=true; } ;;
     --sp_conf_str)      sp_conf_str=$2; shift; ;;
+    --op_conf_str)      op_conf_str=$2; shift; ;;
+    --sp_gpu)           SP_CUDA_VISIBLE_DEVICES=$(echo ${2//,/} | grep -o . | xargs | tr ' ' ','); shift; ;;
+    --op_gpu)           OP_CUDA_VISIBLE_DEVICES=$(echo ${2//,/} | grep -o . | xargs | tr ' ' ','); shift; ;;
     -gen)               gen_conf_file=$2; shift; ;;
     -s)                 eval_start_index=$2; shift; ;;
     -d)                 eval_folder_name=$2; shift; ;;
@@ -320,11 +326,13 @@ if [[ $mode == train ]]; then # ================================ TRAIN =========
     fi
 
     if [[ $train_algorithm ]]; then
+        [[ $game != atari ]] && gxx_actor_num_simulation=16 || gxx_actor_num_simulation=18
         case "$train_algorithm" in
-        g*)  alg_conf_str+=${alg_conf_str:+:}actor_num_simulation=16:actor_use_dirichlet_noise=false:actor_use_gumbel=true:actor_use_gumbel_noise=true; ;;& # resume!
+        g*)  alg_conf_str+=${alg_conf_str:+:}actor_num_simulation=$gxx_actor_num_simulation:actor_use_dirichlet_noise=false:actor_use_gumbel=true:actor_use_gumbel_noise=true; ;;& # resume!
         *az) alg_conf_str+=${alg_conf_str:+:}nn_type_name=alphazero; ;;
         *mz) alg_conf_str+=${alg_conf_str:+:}nn_type_name=muzero; ;;
         esac
+        unset gxx_actor_num_simulation
         if [[ $train_algorithm == *az && $game == atari ]]; then
             log ERR "Unsupported training algorithm: $train_algorithm"
             exit 1
@@ -333,24 +341,24 @@ if [[ $mode == train ]]; then # ================================ TRAIN =========
         log INFO "Use training algorithm $train_algorithm, set additional config: $alg_conf_str"
     elif [[ ! $auto_conf_file ]]; then
         : # Config file provided
-        env_atari_name=$({ grep env_atari_name= $conf_file || echo =; } | cut -d= -f2)
+        env_atari_name=$({ grep env_atari_name= $conf_file || echo =; } | sed -E "s/^[^=]*=| *[#].*$//g")
     else
         log WARN "Neither config file nor training algorithm is specified"
     fi
 
     if [[ $game == atari ]] && [[ ! $env_atari_name ]]; then
-        log WARN "Config env_atari_name unspecified, will use default game: $({ grep env_atari_name= $conf_file || echo =unknown; } | cut -d= -f2)"
+        log WARN "Config env_atari_name unspecified, will use default game: $({ grep env_atari_name= $conf_file || echo =unknown; } | sed -E "s/^[^=]*=| *[#].*$//g")"
     fi
 
     if [[ ! $zero_server_port ]]; then
-        zero_server_port=$({ grep zero_server_port= $conf_file || echo =$((58000+RANDOM%2000)); } | cut -d= -f2)
+        zero_server_port=$({ grep zero_server_port= $conf_file || echo =$((58000+RANDOM%2000)); } | sed -E "s/^[^=]*=| *[#].*$//g")
     fi
     if [[ ! $conf_str == *zero_server_port=* ]]; then
         conf_str+=${conf_str:+:}zero_server_port=$zero_server_port
     fi
     
     if [[ ! $zero_end_iteration ]]; then
-        zero_end_iteration=$({ grep zero_end_iteration= $conf_file || echo =100; } | cut -d= -f2)
+        zero_end_iteration=$({ grep zero_end_iteration= $conf_file || echo =100; } | sed -E "s/^[^=]*=| *[#].*$//g")
     fi
 
     if [[ $gen_conf_file ]]; then
@@ -412,21 +420,23 @@ if [[ $mode == train ]]; then # ================================ TRAIN =========
     fi
 
     # launch zero sp workers (one per available GPU)
-    for GPU in ${CUDA_VISIBLE_DEVICES//,/ }; do
+    SP_CUDA_VISIBLE_DEVICES=${SP_CUDA_VISIBLE_DEVICES:-$CUDA_VISIBLE_DEVICES}
+    for GPU in ${SP_CUDA_VISIBLE_DEVICES//,/ }; do
         {
             [[ $sp_progress == true ]] && sp_program_quiet=false || sp_program_quiet=true
             [[ $sp_conf_str != *program_quiet* ]] && sp_conf_str+=${sp_conf_str:+:}program_quiet=$sp_program_quiet
             $launch scripts/zero-worker.sh $game $(hostname) $zero_server_port sp -b ${batch_size:-64} -c ${num_threads:-4} -g $GPU ${sp_conf_str:+-conf_str "$sp_conf_str"}
-        } 2>&1 | tee >(watchdog "^Failed to|Segmentation fault|Killed|Aborted|RuntimeError") | colorize OUT_TRAIN_SP &
+        } 2>&1 | tee >(watchdog "^Failed to|Segmentation fault|Killed|Aborted|RuntimeError|OutOfMemoryError") | colorize OUT_TRAIN_SP &
         PID[$!]=sp$GPU
         unset sp_progress # only show the progress of the first sp
         sleep 1
     done
 
     # launch zero op worker
+    OP_CUDA_VISIBLE_DEVICES=${OP_CUDA_VISIBLE_DEVICES:-$CUDA_VISIBLE_DEVICES}
     {
-        $launch scripts/zero-worker.sh $game $(hostname) $zero_server_port op -g ${CUDA_VISIBLE_DEVICES//,/}
-    } 2>&1 | tee >(watchdog "^Failed to|Segmentation fault|Killed|Aborted|RuntimeError") | colorize OUT_TRAIN_OP &
+        $launch scripts/zero-worker.sh $game $(hostname) $zero_server_port op -g ${OP_CUDA_VISIBLE_DEVICES//,/} ${op_conf_str:+-conf_str "$op_conf_str"}
+    } 2>&1 | tee >(watchdog "^Failed to|Segmentation fault|Killed|Aborted|RuntimeError|OutOfMemoryError") | colorize OUT_TRAIN_OP &
     PID[$!]=op
 
     trap 'eval "log() { echo -en \"\r\" >&2; $(type log | tail -n+3); echo -en \"\r\" >&2; }"' SIGUSR1 # workaround for exec -it issue
@@ -539,7 +549,7 @@ elif [[ $mode == console ]]; then # ================================ CONSOLE ===
 
     if [[ ! $nn_file_name ]]; then
         if [[ ! $eval_dir ]]; then
-            [ -e "$conf_file" ] && env_board_size=$({ grep env_board_size= $conf_file || echo =0; } | cut -d= -f2)
+            [ -e "$conf_file" ] && env_board_size=$({ grep env_board_size= $conf_file || echo =0; } | sed -E "s/^[^=]*=| *[#].*$//g")
             eval_dir=$(ls -dt ${game}_${env_board_size}x${env_board_size}_*/model ${game}_*/model 2>/dev/null | head -n1)
             nn_autoprob=true
         fi
@@ -606,7 +616,7 @@ elif [[ $mode == console ]]; then # ================================ CONSOLE ===
         log INFO "Launch console with gogui-server at tcp://0.0.0.0:$port" # displaying this will trigger VS code to automatically start port forwarding
         {
             $launch gogui-server -port $port -loop -verbose "$executable -mode console -conf_file ${conf_file} -conf_str ${conf_str}"
-        } 2>&1 | tee >(watchdog "^Address already in use|^Failed to|Segmentation fault|Killed|Aborted|RuntimeError") | colorize OUT_CONSOLE_GOGUI &
+        } 2>&1 | tee >(watchdog "^Address already in use|^Failed to|Segmentation fault|Killed|Aborted|RuntimeError|OutOfMemoryError") | colorize OUT_CONSOLE_GOGUI &
         PID[$!]=console
 
         trap 'log ERR "Console failed to start correctly"' SIGUSR1

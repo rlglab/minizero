@@ -43,7 +43,7 @@ START=0
 NUM_GPU=$(nvidia-smi -L | wc -l)
 GPU_LIST=$(echo $NUM_GPU | awk '{for(i=0;i<$1;i++)printf i}')
 num_threads=2
-BOARD_SIZE=$({ grep env_board_size= $CONF_FILE1 || echo =9; } | cut -d= -f2)
+BOARD_SIZE=$({ grep env_board_size= $CONF_FILE1 || echo =9; } | sed -E "s/^[^=]*=| *[#].*$//g")
 NAME="$(basename ${FOLDER1})_vs_$(basename ${FOLDER2})_eval"
 sp_executable_file=build/${GAME_TYPE}/minizero_${GAME_TYPE}
 while :; do
