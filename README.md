@@ -2,6 +2,8 @@
 
 MiniZero is a zero-knowledge learning framework that supports AlphaZero, MuZero, Gumbel AlphaZero, and Gumbel MuZero algorithms.
 
+This is the official repository of the paper [MiniZero: Comparative Analysis of AlphaZero and MuZero on Go, Othello, and Atari Games](https://rlg.iis.sinica.edu.tw/papers/minizero).
+
 If you use MiniZero for research, please consider citing our paper as follows:
 ```
 @misc{wu2023minizero,
@@ -100,7 +102,7 @@ This is an implementation choice; a simpler file system can suffice if distribut
 ### Results
 
 The performance of each zero-knowledge learning algorithm on board games and Atari games are shown as follows, where α<sub>0</sub>, μ<sub>0</sub>, g-α<sub>0</sub>, and g-μ<sub>0</sub> represent AlphaZero, MuZero, Gumbel AlphaZero, and Gumbel MuZero, and $n$ represents simulation count.
-Check [our paper](https://arxiv.org/abs/2310.11305) for more details.
+More details and publicly released AI models are available [here](https://rlg.iis.sinica.edu.tw/papers/minizero).
 
 Results on board games:
 
@@ -109,8 +111,6 @@ Results on board games:
 Results on Atari games:
 
 <img src="docs/imgs/minizero_atari.svg" alt="Atari" width="100%">
-
-Trained game-playing AI models for these games will be released soon.
 
 ### Prerequisites
 
