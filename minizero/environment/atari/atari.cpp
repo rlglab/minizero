@@ -57,7 +57,7 @@ bool AtariEnv::act(const AtariAction& action)
     actions_.push_back(action);
     observations_.push_back(getObservationString());
     // only keep the most recent N observations in atari games to save memory, N is determined by configuration
-    size_t recent_observation_length = (config::zero_actor_intermediate_sequence_length == 0 ? kAtariMaxNumFramesPerEpisode : config::zero_actor_intermediate_sequence_length + kAtariFeatureHistorySize + config::learner_n_step_return) + 1; // plus 1 for initial observation
+    size_t recent_observation_length = (config::zero_actor_intermediate_sequence_length == 0 ? kAtariMaxNumFramesPerEpisode : config::zero_actor_intermediate_sequence_length + kAtariFeatureHistorySize + config::learner_n_step_return + config::learner_muzero_unrolling_step) + 1; // plus 1 for initial observation
     if (observations_.size() > recent_observation_length) {
         observations_[observations_.size() - recent_observation_length].clear();
         observations_[observations_.size() - recent_observation_length].shrink_to_fit();

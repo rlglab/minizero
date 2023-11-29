@@ -54,7 +54,7 @@ std::pair<int, int> ThreadSharedData::calculateTrainingDataRange(const std::shar
     int game_length = actor->getEnvironment().getActionHistory().size();
     int data_start = 0, data_end = game_length - 1;
     if (config::zero_actor_intermediate_sequence_length > 0) {
-        data_end = std::max(0, (actor->getEnvironment().isTerminal() ? data_end : data_end - config::learner_n_step_return));
+        data_end = std::max(0, (actor->getEnvironment().isTerminal() ? data_end : data_end - config::learner_muzero_unrolling_step - config::learner_n_step_return));
         data_start = std::max(0, (actor->getEnvironment().isTerminal() ? data_end - data_end % config::zero_actor_intermediate_sequence_length : data_end + 1 - config::zero_actor_intermediate_sequence_length));
     }
     return {data_start, data_end};
@@ -125,7 +125,7 @@ void SlaveThread::handleSearchDone(int actor_id)
     } else {
         int game_length = actor->getEnvironment().getActionHistory().size();
         int sequence_length = config::zero_actor_intermediate_sequence_length;
-        if (sequence_length > 0 && game_length >= sequence_length && (game_length - config::learner_n_step_return) % sequence_length == 0) { getSharedData()->outputGame(actor); }
+        if (sequence_length > 0 && game_length >= sequence_length && (game_length - config::learner_n_step_return - config::learner_muzero_unrolling_step) % sequence_length == 0) { getSharedData()->outputGame(actor); }
         actor->resetSearch();
     }
 }
