@@ -29,7 +29,7 @@ void MCTSNode::add(float value, float weight /* = 1.0f */)
 
 void MCTSNode::remove(float value, float weight /* = 1.0f */)
 {
-    if (count_ + weight <= 0) {
+    if (count_ - weight <= 0) {
         reset();
     } else {
         count_ -= weight;
