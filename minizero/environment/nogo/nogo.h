@@ -13,6 +13,8 @@ const int kNoGoBoardSize = 9;
 
 typedef go::GoAction NoGoAction;
 
+inline void initialize() { go::initialize(); }
+
 class NoGoEnv : public go::GoEnv {
 public:
     NoGoEnv() : go::GoEnv()

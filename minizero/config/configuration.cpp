@@ -74,6 +74,7 @@ std::string env_atari_rom_dir = "/opt/atari57/";
 std::string env_atari_name = "ms_pacman";
 float env_go_komi = 7.5;
 std::string env_go_ko_rule = "positional";
+bool env_killallgo_use_seki = false;
 std::string env_gomoku_rule = "normal";
 bool env_hex_use_swap_rule = true;
 int env_rubiks_scramble_rotate = 5;
@@ -164,6 +165,7 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("env_hex_use_swap_rule", env_hex_use_swap_rule, "the swap rule in Hex", "Environment");
 #elif KILLALLGO
     cl.addParameter("env_killallgo_ko_rule", env_go_ko_rule, "the ko rules in Killall-Go: positional (only consider stones), situational (consider stones and the turn)", "Environment");
+    cl.addParameter("env_killallgo_use_seki", env_killallgo_use_seki, "true for enabling seki", "Environment");
 #elif GOMOKU
     cl.addParameter("env_gomoku_rule", env_gomoku_rule, "the rules of gomoku: normal (standard gomoku rule), outer_open (restricted first Black move)", "Environment");
 #elif RUBIKS

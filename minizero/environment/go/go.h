@@ -31,7 +31,8 @@ class GoEnv : public BaseBoardEnv<GoAction> {
 public:
     friend class GoBenson;
 
-    GoEnv()
+    GoEnv(int board_size = minizero::config::env_board_size)
+        : BaseBoardEnv<GoAction>(board_size)
     {
         assert(getBoardSize() <= kMaxGoBoardSize);
         initialize();

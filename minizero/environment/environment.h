@@ -58,8 +58,16 @@ namespace minizero::env {
 
 inline void setUpEnv()
 {
-#if GO or KILLALLGO or NOGO
+#if GO
     go::initialize();
+#endif
+
+#if KILLALLGO
+    killallgo::initialize();
+#endif
+
+#if NOGO
+    nogo::initialize();
 #endif
 
 #if ATARI or PUZZLE2048
