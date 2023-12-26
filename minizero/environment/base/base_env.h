@@ -63,7 +63,7 @@ public:
         black_ = black;
         white_ = white;
     }
-    inline bool operator==(const GamePair& rhs) { return (black_ == rhs.black_ && white_ == rhs.white_); }
+    inline bool operator==(const GamePair<T>& rhs) const { return (black_ == rhs.black_ && white_ == rhs.white_); }
 
 private:
     T black_;
