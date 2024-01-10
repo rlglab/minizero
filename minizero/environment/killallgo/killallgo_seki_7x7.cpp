@@ -401,70 +401,129 @@ GamePair<GoBitboard> SekiSearch::searchSekiBitboard(const KillAllGoEnv& env, con
 
 bool SekiSearch::isEnclosedSeki(const KillAllGoEnv& env, const GoArea* area)
 {
-    assert(area && area->getPlayer() == Player::kPlayer2);
-    if (area->getNeighborBlockIDBitboard().count() != 1) { return false; }
+    assert(area);
 
-    const GoBlock* surrounding_block = &env.getBlock(area->getNeighborBlockIDBitboard()._Find_first());
-    if ((surrounding_block->getLibertyBitboard() & area->getAreaBitboard()).count() != 2) { return false; }
-
-    std::vector<const GoBlock*> inner_blocks;
-    GoBitboard inner_stone_bitboard = area->getAreaBitboard() & env.getStoneBitboard().get(Player::kPlayer1);
-    while (!inner_stone_bitboard.none()) {
-        int pos = inner_stone_bitboard._Find_first();
-        const GoBlock* block = env.getGrid(pos).getBlock();
-        if (block->getNumLiberty() != 2) { return false; }
-        if (block->getNumLiberty() <= 1 || block->getNumLiberty() >= 4) { return false; }
-        inner_blocks.push_back(block);
-        inner_stone_bitboard &= ~block->getGridBitboard();
-    }
-    if (inner_blocks.size() > 2) { return false; }
-
-    if (inner_blocks.size() == 1) {
-        const GoBlock* inner_block = inner_blocks[0];
-        if (!(area->getAreaBitboard() & ~inner_block->getGridBitboard() & ~surrounding_block->getLibertyBitboard()).none()) { return false; }
-    } else if (inner_blocks.size() == 2) {
-        GoBitboard remaining_empty_bitboard = (area->getAreaBitboard() & ~surrounding_block->getLibertyBitboard() & ~env.getStoneBitboard().get(Player::kPlayer1));
-        if (remaining_empty_bitboard.count() != 1) { return false; }
-        if (env.getGrid(remaining_empty_bitboard._Find_first()).getNeighbors().size() != 2) { return false; }
-        if ((inner_blocks[0]->getLibertyBitboard() | inner_blocks[1]->getLibertyBitboard()).count() == 2) { return false; }
-    }
-    return enclosedSekiSearch(env, surrounding_block, area, Player::kPlayer1);
-}
-
-bool SekiSearch::enclosedSekiSearch(const KillAllGoEnv& env, const GoBlock* block, const GoArea* area, Player turn)
-{
-    assert(block && area);
-
-    if (!env.getBensonBitboard().get(Player::kPlayer2).none()) { // white win if is Benson
-        return true;
-    } else if ((block->getGridBitboard() & env.getStoneBitboard().get(Player::kPlayer2)).none()) { // black win if white block has been eaten
-        return false;
-    }
-
-    int block_pos = block->getGridBitboard()._Find_first();
-    GoBitboard area_bitboard = area->getAreaBitboard();
-    // only white can choose to play PASS
-    if (turn == Player::kPlayer2) { area_bitboard.set(kKillAllGoBoardSize * kKillAllGoBoardSize); }
-    while (!area_bitboard.none()) {
-        int pos = area_bitboard._Find_first();
-        area_bitboard.reset(pos);
-
-        KillAllGoAction action(pos, turn);
-        if (!env.isLegalAction(action)) { continue; }
-
-        KillAllGoEnv env_copy = env;
-        env_copy.act(action);
-        const GoBlock* new_block = env_copy.getGrid(block_pos).getBlock();
-        if (turn == Player::kPlayer2 && new_block && (new_block->getLibertyBitboard() & area->getAreaBitboard()).count() < 2) { continue; }
-
-        bool is_seki = enclosedSekiSearch(env_copy, block, area, getNextPlayer(turn, kKillAllGoNumPlayer));
-        if (!is_seki && turn == Player::kPlayer1) {
-            return false;
-        } else if (is_seki && turn == Player::kPlayer2) {
-            return true;
+    // find the white surrounding block with maximum stones
+    GoBitboard neighbor_block_id = area->getNeighborBlockIDBitboard(); // find white surrounding blocks
+    const GoBlock* surrounding_block = &env.getBlock(neighbor_block_id._Find_first());
+    while (!neighbor_block_id.none()) {
+        int block_id = neighbor_block_id._Find_first();
+        neighbor_block_id.reset(block_id);
+        const GoBlock* neighbor_block = &env.getBlock(block_id);
+        if (neighbor_block->getPlayer() == Player::kPlayer2) {
+            if (neighbor_block->getGridBitboard().count() > surrounding_block->getGridBitboard().count()) {
+                surrounding_block = neighbor_block;
+            }
         }
     }
-    return (turn == Player::kPlayer1 ? true : false);
+
+    // not seki if there are no black stones in the area
+    GoBitboard inner_stone_bitboard = area->getAreaBitboard() & env.getStoneBitboard().get(Player::kPlayer1);
+    if (inner_stone_bitboard.none()) { return false; } // no black stone inside
+
+    // find black stones and their libarities bitboard
+    GoBitboard inner_bitboard = env.dilateBitboard(inner_stone_bitboard) & ~env.getStoneBitboard().get(Player::kPlayer2); // remove while loop, inner black stone and their liberty
+
+    // search_area_bitboard is composed of neighbor white blocks and their liberties and dilate bitboard of inner black stone
+    GoBitboard search_area_bitboard;
+    GoBitboard area_neighbor_block_id = area->getNeighborBlockIDBitboard(); // find white surrounding block
+    while (!area_neighbor_block_id.none()) {
+        int area_block_id = area_neighbor_block_id._Find_first();
+        area_neighbor_block_id.reset(area_block_id);
+        const GoBlock* neighbor_block = &env.getBlock(area_block_id);
+        if (neighbor_block->getPlayer() == Player::kPlayer2) {
+            search_area_bitboard |= (neighbor_block->getGridBitboard());
+            search_area_bitboard |= neighbor_block->getLibertyBitboard();
+        }
+    }
+    search_area_bitboard |= inner_bitboard;
+
+    // if the area is too sparse, stop the search. It must be the combination of inner bitboard and white block's liberty
+    if (!(area->getAreaBitboard() & ~inner_bitboard & ~surrounding_block->getLibertyBitboard()).none()) { return false; } 
+    return enclosedSekiSearch(env, surrounding_block, search_area_bitboard, Player::kPlayer2, Player::kPlayer2) & enclosedSekiSearch(env, surrounding_block, search_area_bitboard, Player::kPlayer1, Player::kPlayer1);
+}
+
+bool SekiSearch::enclosedSekiSearch(const KillAllGoEnv& env, const GoBlock* block, const GoBitboard& search_area_bitboard, Player turn, Player attacker)
+{
+    assert(block);
+    if (!env.getBensonBitboard().get(Player::kPlayer2).none()) { // white win if is Benson
+        return turn == Player::kPlayer1 ? (turn == attacker ? true : false) : (turn == attacker ? false : true);
+    } else if ((block->getGridBitboard() & env.getStoneBitboard().get(Player::kPlayer2)).none() ||
+               !(search_area_bitboard & env.getBensonBitboard().get(Player::kPlayer1)).none()) { // black win if white block has been eaten or inner block become benson
+        return turn == Player::kPlayer1 ? (turn == attacker ? false : true) : (turn == attacker ? true : false);
+    }
+
+    GoBitboard area_bitboard = search_area_bitboard;
+    area_bitboard |= block->getGridBitboard(); // search area adds the new block
+    area_bitboard = area_bitboard & ~env.getStoneBitboard().get(Player::kPlayer1) & ~env.getStoneBitboard().get(Player::kPlayer2);
+    if (area_bitboard.count() > 7) { // too complex not search, assume not seki
+        return turn == attacker ? false : true;
+    }
+
+    GoBitboard liberty_area_bitboard = block->getLibertyBitboard(); // only black can act on liberty board
+    if (turn == Player::kPlayer1) { area_bitboard |= liberty_area_bitboard; }
+
+    if (turn != attacker) { area_bitboard.set(kKillAllGoBoardSize * kKillAllGoBoardSize); } // defend player can choose to play PASS
+
+    GoBitboard act_area_bitboard = area_bitboard;
+    GoBitboard eat_stone_act_bitboard = act_area_bitboard.reset();
+    while (!act_area_bitboard.none()) { // 1. find a pos that can eat stone, store in eat_stone_area_bitboard
+        int pos = act_area_bitboard._Find_first();
+        act_area_bitboard.reset(pos);
+        KillAllGoAction action(pos, turn);
+        if (!env.isLegalAction(action)) { continue; }
+        if (env.isPassAction(action)) { continue; }
+        const GoGrid& grid = env.getGrid(pos);
+        for (const auto& neighbor_pos : grid.getNeighbors()) {
+            const GoGrid& neighbor_grid = env.getGrid(neighbor_pos);
+            if (neighbor_grid.getPlayer() == Player::kPlayerNone) {
+                continue;
+            } else {
+                const GoBlock* neighbor_block = neighbor_grid.getBlock();
+                if (neighbor_block->getNumLiberty() == 1) {
+                    eat_stone_act_bitboard.set(pos);
+                }
+            }
+        }
+    }
+    
+    GoBitboard block_liberty_bitboard = block->getLibertyBitboard() | eat_stone_act_bitboard;
+    while (!area_bitboard.none()) {
+        int pos = area_bitboard._Find_first(); // first order: action that can eat stone
+        if (!eat_stone_act_bitboard.none()) {
+            pos = eat_stone_act_bitboard._Find_first();
+            eat_stone_act_bitboard.reset(pos);
+        } else if (!block_liberty_bitboard.none()) { // second order: action that can reduce the block's liberty
+            pos = block_liberty_bitboard._Find_first();
+        }
+        block_liberty_bitboard.reset(pos);
+        area_bitboard.reset(pos);
+        KillAllGoAction action(pos, turn);
+        if (!env.isLegalAction(action)) { continue; }
+        KillAllGoEnv env_copy = env;
+        env_copy.act(action);
+
+        int block_pos = block->getGridBitboard()._Find_first();
+        const GoBlock* new_block = env.getGrid(block_pos).getBlock();
+
+        if (turn == attacker) { // attack player
+            bool defender_win = enclosedSekiSearch(env_copy, new_block, search_area_bitboard, getNextPlayer(turn, kKillAllGoNumPlayer), attacker);
+            if (defender_win) {
+                continue;
+            } else {
+                return false;
+            }
+        } else { // defend player
+            bool attacker_lose = enclosedSekiSearch(env_copy, new_block, search_area_bitboard, getNextPlayer(turn, kKillAllGoNumPlayer), attacker);
+            if (attacker_lose) {
+                return true;
+            } else {
+                continue;
+            }
+        }
+    }
+
+    return turn == attacker ? true : false;
 }
 
 } // namespace minizero::env::killallgo
