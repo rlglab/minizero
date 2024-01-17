@@ -1,5 +1,6 @@
 #include "killallgo_seki_7x7.h"
 #include "killallgo_7x7_bitboard.h"
+#include "tqdm.h"
 #include <algorithm>
 #include <fstream>
 #include <functional>
@@ -10,6 +11,7 @@
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 namespace minizero::env::killallgo {
@@ -286,7 +288,7 @@ void SekiSearch::generateSekiTable(Seki7x7Table& seki_table, int min_area_size, 
     assert(min_area_size >= 1);
     assert(max_area_size >= min_area_size);
     KillAllGoEnv env(7);
-    for (const auto& area_bitboard : generateBlockCombinations(min_area_size, max_area_size)) {
+    for (const auto& area_bitboard : tqdm::tqdm(generateBlockCombinations(min_area_size, max_area_size), "Generate seki table: {percentage}|{pbar}| {step}/{size} [{es;h:m:s}<{ps;h:m:s}]")) {
         // Generate all possible seki patterns from given area bitboard
         for (const auto& game_pair : generateSekiPatterns(area_bitboard)) {
             env.reset();
@@ -439,7 +441,7 @@ bool SekiSearch::isEnclosedSeki(const KillAllGoEnv& env, const GoArea* area)
     search_area_bitboard |= inner_bitboard;
 
     // if the area is too sparse, stop the search. It must be the combination of inner bitboard and white block's liberty
-    if (!(area->getAreaBitboard() & ~inner_bitboard & ~surrounding_block->getLibertyBitboard()).none()) { return false; } 
+    if (!(area->getAreaBitboard() & ~inner_bitboard & ~surrounding_block->getLibertyBitboard()).none()) { return false; }
     return enclosedSekiSearch(env, surrounding_block, search_area_bitboard, Player::kPlayer2, Player::kPlayer2) & enclosedSekiSearch(env, surrounding_block, search_area_bitboard, Player::kPlayer1, Player::kPlayer1);
 }
 
@@ -486,7 +488,7 @@ bool SekiSearch::enclosedSekiSearch(const KillAllGoEnv& env, const GoBlock* bloc
             }
         }
     }
-    
+
     GoBitboard block_liberty_bitboard = block->getLibertyBitboard() | eat_stone_act_bitboard;
     while (!area_bitboard.none()) {
         int pos = area_bitboard._Find_first(); // first order: action that can eat stone
