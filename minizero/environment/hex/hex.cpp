@@ -22,7 +22,6 @@ void HexEnv::reset()
 bool HexEnv::act(const HexAction& action)
 {
     if (!isLegalAction(action)) { return false; }
-    actions_.push_back(action);
 
     int action_id = action.getActionID();
 
@@ -61,6 +60,7 @@ bool HexEnv::act(const HexAction& action)
             cc->flags = Flag::EDGE2_CONNECTION;
     }
 
+    actions_.push_back(action);
     winner_ = updateWinner(action_id);
     turn_ = action.nextPlayer();
 
