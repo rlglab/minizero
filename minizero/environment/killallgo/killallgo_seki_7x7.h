@@ -201,6 +201,7 @@ public:
 private:
     static bool isEnclosedSeki(const KillAllGoEnv& env, const go::GoArea* area);
     static bool enclosedSekiSearch(const KillAllGoEnv& env, const go::GoBlock* block, const go::GoBitboard& search_area_bitboard, Player turn, Player attacker);
+    static std::vector<go::GoBitboard> findSearchPrioritySet(const KillAllGoEnv& env, const go::GoBlock* block, const go::GoBitboard& area_bitboard, Player turn);
 };
 
 } // namespace minizero::env::killallgo

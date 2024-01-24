@@ -427,7 +427,7 @@ bool SekiSearch::isEnclosedSeki(const KillAllGoEnv& env, const GoArea* area)
     GoBitboard inner_bitboard = env.dilateBitboard(inner_stone_bitboard) & ~env.getStoneBitboard().get(Player::kPlayer2); // remove while loop, inner black stone and their liberty
 
     // search_area_bitboard is composed of neighbor white blocks and their liberties and dilate bitboard of inner black stone
-    GoBitboard search_area_bitboard;
+    GoBitboard search_area_bitboard = inner_bitboard;
     GoBitboard area_neighbor_block_id = area->getNeighborBlockIDBitboard(); // find white surrounding block
     while (!area_neighbor_block_id.none()) {
         int area_block_id = area_neighbor_block_id._Find_first();
@@ -438,7 +438,6 @@ bool SekiSearch::isEnclosedSeki(const KillAllGoEnv& env, const GoArea* area)
             search_area_bitboard |= neighbor_block->getLibertyBitboard();
         }
     }
-    search_area_bitboard |= inner_bitboard;
 
     // if the area is too sparse, stop the search. It must be the combination of inner bitboard and white block's liberty
     if (!(area->getAreaBitboard() & ~inner_bitboard & ~surrounding_block->getLibertyBitboard()).none()) { return false; }
@@ -458,18 +457,53 @@ bool SekiSearch::enclosedSekiSearch(const KillAllGoEnv& env, const GoBlock* bloc
     GoBitboard area_bitboard = search_area_bitboard;
     area_bitboard |= block->getGridBitboard(); // search area adds the new block
     area_bitboard = area_bitboard & ~env.getStoneBitboard().get(Player::kPlayer1) & ~env.getStoneBitboard().get(Player::kPlayer2);
-    if (area_bitboard.count() > 7) { // too complex not search, assume not seki
-        return turn == attacker ? false : true;
-    }
 
     GoBitboard liberty_area_bitboard = block->getLibertyBitboard(); // only black can act on liberty board
     if (turn == Player::kPlayer1) { area_bitboard |= liberty_area_bitboard; }
-
     if (turn != attacker) { area_bitboard.set(kKillAllGoBoardSize * kKillAllGoBoardSize); } // defend player can choose to play PASS
+
+    std::vector<GoBitboard> search_proirity_set = findSearchPrioritySet(env, block, area_bitboard, turn);
+    for (unsigned long set_num = 0; set_num < search_proirity_set.size(); set_num++) {
+        GoBitboard search_bitboard = search_proirity_set[set_num];
+        while (!search_bitboard.none()) {
+            int pos = search_bitboard._Find_first();
+            search_bitboard.reset(pos);
+            KillAllGoAction action(pos, turn);
+            if (!env.isLegalAction(action)) { continue; }
+            KillAllGoEnv env_copy = env;
+            env_copy.act(action);
+
+            int block_pos = block->getGridBitboard()._Find_first();
+            const GoBlock* new_block = env.getGrid(block_pos).getBlock();
+
+            if (turn == attacker) { // attack player
+                bool defender_win = enclosedSekiSearch(env_copy, new_block, search_area_bitboard, getNextPlayer(turn, kKillAllGoNumPlayer), attacker);
+                if (defender_win) {
+                    continue;
+                } else {
+                    return false;
+                }
+            } else { // defend player
+                bool attacker_lose = enclosedSekiSearch(env_copy, new_block, search_area_bitboard, getNextPlayer(turn, kKillAllGoNumPlayer), attacker);
+                if (attacker_lose) {
+                    return true;
+                } else {
+                    continue;
+                }
+            }
+        }
+    }
+
+    return turn == attacker ? true : false;
+}
+
+std::vector<GoBitboard> SekiSearch::findSearchPrioritySet(const KillAllGoEnv& env, const GoBlock* block, const GoBitboard& area_bitboard, Player turn)
+{
+    std::vector<GoBitboard> search_proirity_set;
 
     GoBitboard act_area_bitboard = area_bitboard;
     GoBitboard eat_stone_act_bitboard = act_area_bitboard.reset();
-    while (!act_area_bitboard.none()) { // 1. find a pos that can eat stone, store in eat_stone_area_bitboard
+    while (!act_area_bitboard.none()) { // first order: action that can eat stone
         int pos = act_area_bitboard._Find_first();
         act_area_bitboard.reset(pos);
         KillAllGoAction action(pos, turn);
@@ -488,44 +522,12 @@ bool SekiSearch::enclosedSekiSearch(const KillAllGoEnv& env, const GoBlock* bloc
             }
         }
     }
+    search_proirity_set.emplace_back(eat_stone_act_bitboard);
+    GoBitboard block_liberty_bitboard = block->getLibertyBitboard() & ~eat_stone_act_bitboard; // second order, action can reduce the surrouding block's liberty
+    search_proirity_set.emplace_back(block_liberty_bitboard);
+    GoBitboard area_bitboard_remain = area_bitboard & ~eat_stone_act_bitboard & ~block_liberty_bitboard;
+    search_proirity_set.emplace_back(area_bitboard_remain);
 
-    GoBitboard block_liberty_bitboard = block->getLibertyBitboard() | eat_stone_act_bitboard;
-    while (!area_bitboard.none()) {
-        int pos = area_bitboard._Find_first(); // first order: action that can eat stone
-        if (!eat_stone_act_bitboard.none()) {
-            pos = eat_stone_act_bitboard._Find_first();
-            eat_stone_act_bitboard.reset(pos);
-        } else if (!block_liberty_bitboard.none()) { // second order: action that can reduce the block's liberty
-            pos = block_liberty_bitboard._Find_first();
-        }
-        block_liberty_bitboard.reset(pos);
-        area_bitboard.reset(pos);
-        KillAllGoAction action(pos, turn);
-        if (!env.isLegalAction(action)) { continue; }
-        KillAllGoEnv env_copy = env;
-        env_copy.act(action);
-
-        int block_pos = block->getGridBitboard()._Find_first();
-        const GoBlock* new_block = env.getGrid(block_pos).getBlock();
-
-        if (turn == attacker) { // attack player
-            bool defender_win = enclosedSekiSearch(env_copy, new_block, search_area_bitboard, getNextPlayer(turn, kKillAllGoNumPlayer), attacker);
-            if (defender_win) {
-                continue;
-            } else {
-                return false;
-            }
-        } else { // defend player
-            bool attacker_lose = enclosedSekiSearch(env_copy, new_block, search_area_bitboard, getNextPlayer(turn, kKillAllGoNumPlayer), attacker);
-            if (attacker_lose) {
-                return true;
-            } else {
-                continue;
-            }
-        }
-    }
-
-    return turn == attacker ? true : false;
+    return search_proirity_set;
 }
-
 } // namespace minizero::env::killallgo
