@@ -140,10 +140,10 @@ std::string GomokuEnv::toString() const
 Player GomokuEnv::updateWinner(const GomokuAction& action)
 {
     int pos = action.getActionID();
-    if (calculateNumberOfConnection(pos, {1, 0}) + calculateNumberOfConnection(pos, {-1, 0}) - 1 >= 5) { return action.getPlayer(); }  // row
-    if (calculateNumberOfConnection(pos, {0, 1}) + calculateNumberOfConnection(pos, {0, -1}) - 1 >= 5) { return action.getPlayer(); }  // column
-    if (calculateNumberOfConnection(pos, {1, 1}) + calculateNumberOfConnection(pos, {-1, -1}) - 1 >= 5) { return action.getPlayer(); } // diagonal (right-up to left-down)
-    if (calculateNumberOfConnection(pos, {1, -1}) + calculateNumberOfConnection(pos, {-1, 1}) - 1 >= 5) { return action.getPlayer(); } // diagonal (left-up to right-down)
+    if (isNumberOfConnectionWins(calculateNumberOfConnection(pos, {1, 0}) + calculateNumberOfConnection(pos, {-1, 0}) - 1)) { return action.getPlayer(); }  // row
+    if (isNumberOfConnectionWins(calculateNumberOfConnection(pos, {0, 1}) + calculateNumberOfConnection(pos, {0, -1}) - 1)) { return action.getPlayer(); }  // column
+    if (isNumberOfConnectionWins(calculateNumberOfConnection(pos, {1, 1}) + calculateNumberOfConnection(pos, {-1, -1}) - 1)) { return action.getPlayer(); } // diagonal (right-up to left-down)
+    if (isNumberOfConnectionWins(calculateNumberOfConnection(pos, {1, -1}) + calculateNumberOfConnection(pos, {-1, 1}) - 1)) { return action.getPlayer(); } // diagonal (left-up to right-down)
     return Player::kPlayerNone;
 }
 

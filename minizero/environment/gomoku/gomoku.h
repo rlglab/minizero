@@ -43,6 +43,7 @@ public:
 
 private:
     Player updateWinner(const GomokuAction& action);
+    bool isNumberOfConnectionWins(int connection) { return config::env_gomoku_exactly_five_stones ? (connection == 5) : (connection >= 5); }
     int calculateNumberOfConnection(int start_pos, std::pair<int, int> direction);
     std::string getCoordinateString() const;
 

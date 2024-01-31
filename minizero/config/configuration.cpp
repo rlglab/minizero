@@ -75,7 +75,8 @@ std::string env_atari_name = "ms_pacman";
 float env_go_komi = 7.5;
 std::string env_go_ko_rule = "positional";
 bool env_killallgo_use_seki = false;
-std::string env_gomoku_rule = "normal";
+std::string env_gomoku_rule = "standard";
+bool env_gomoku_exactly_five_stones = true;
 bool env_hex_use_swap_rule = true;
 int env_rubiks_scramble_rotate = 5;
 
@@ -167,7 +168,8 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("env_killallgo_ko_rule", env_go_ko_rule, "the ko rules in Killall-Go: positional (only consider stones), situational (consider stones and the turn)", "Environment");
     cl.addParameter("env_killallgo_use_seki", env_killallgo_use_seki, "true for enabling seki", "Environment");
 #elif GOMOKU
-    cl.addParameter("env_gomoku_rule", env_gomoku_rule, "the rules of gomoku: normal (standard gomoku rule), outer_open (restricted first Black move)", "Environment");
+    cl.addParameter("env_gomoku_rule", env_gomoku_rule, "the opening rule in Gomoku: standard (standard Gomoku rule), outer_open (restricted first Black move)", "Environment");
+    cl.addParameter("env_gomoku_exactly_five_stones", env_gomoku_exactly_five_stones, "true for standard Gomoku; false for freestyle Gomoku (allow winning with more than five stones, i.e., an overline)", "Environment");
 #elif RUBIKS
     cl.addParameter("env_rubiks_scramble_rotate", env_rubiks_scramble_rotate, "the number random rotations from the initial state of a rubik's cube", "Enviroment");
 #endif
