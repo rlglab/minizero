@@ -20,6 +20,7 @@ usage() {
         echo "  -conf_file                        Specify the configure file to use"
         echo "  -conf_str                         Overwrite settings in the configure file"
         echo "  -gen                              Generate a configure file for current settings"
+        echo "  -p,        --port                 Assign the port used by the zero-server"
         echo "  -b,        --batch_size           Assign the batch size for self-play workers (default 64)"
         echo "  -c,        --cpu_thread_per_gpu   Assign the number of CPUs for each GPU for self-play workers (default 4)"
         echo "             --sp_progress          Show the self-play progress (default hidden)"
