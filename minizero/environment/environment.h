@@ -7,6 +7,11 @@
 typedef minizero::env::atari::AtariAction Action;
 typedef minizero::env::atari::AtariEnv Environment;
 typedef minizero::env::atari::AtariEnvLoader EnvironmentLoader;
+#elif CONNECT6
+#include "connect6.h"
+typedef minizero::env::connect6::Connect6Action Action;
+typedef minizero::env::connect6::Connect6Env Environment;
+typedef minizero::env::connect6::Connect6EnvLoader EnvironmentLoader;
 #elif GO
 #include "go.h"
 typedef minizero::env::go::GoAction Action;
@@ -75,7 +80,9 @@ inline void setUpEnv()
     config::zero_actor_intermediate_sequence_length = 200;
 #endif
 
-#if GO
+#if CONNECT6
+    config::env_board_size = 19;
+#elif GO
     config::env_board_size = 9;
 #elif HEX
     config::env_board_size = 11;
