@@ -72,6 +72,16 @@ std::string ConfigureLoader::toString() const
     return oss.str();
 }
 
+std::string ConfigureLoader::getConfig(std::string key) const
+{
+    for (const auto& group_name : group_name_order_) {
+        for (auto parameter : parameter_groups_.at(group_name)) {
+            if (parameter->getKey() == key) { return parameter->toString(); }
+        }
+    }
+    return "";
+}
+
 void ConfigureLoader::trim(std::string& s)
 {
     if (s.empty()) { return; }

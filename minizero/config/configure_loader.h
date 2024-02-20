@@ -36,6 +36,7 @@ class BaseParameter {
 public:
     virtual bool operator()(const std::string& value) = 0;
     virtual std::string toString() const = 0;
+    virtual std::string getKey() const = 0;
     virtual ~BaseParameter() {}
 };
 
@@ -58,7 +59,7 @@ public:
     }
 
     inline bool operator()(const std::string& value) override { return setter_(ref_, value); }
-    inline std::string getKey() const { return key_; }
+    inline std::string getKey() const override { return key_; }
     inline std::string getDescription() const { return description_; }
 
 private:
@@ -99,6 +100,7 @@ public:
     bool loadFromFile(std::string conf_file);
     bool loadFromString(std::string conf_string);
     std::string toString() const;
+    std::string getConfig(std::string key) const;
 
 private:
     void trim(std::string& s);
