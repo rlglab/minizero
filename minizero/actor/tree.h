@@ -70,7 +70,7 @@ public:
 
     inline TreeNode* allocateNodes(int size)
     {
-        assert(current_node_size_ + size <= tree_node_size_);
+        assert(current_node_size_ + size <= 1 + tree_node_size_);
         TreeNode* node = getNodeIndex(current_node_size_);
         current_node_size_ += size;
         return node;
