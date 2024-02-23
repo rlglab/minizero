@@ -47,6 +47,8 @@ protected:
     virtual void runZeroServer();
     virtual void runZeroTrainingName();
     virtual void runEnvTest();
+    virtual void runRemoveObs();
+    virtual void runRecoverObs();
 
     std::map<std::string, std::shared_ptr<BaseFunction>> function_map_;
 };
