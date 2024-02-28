@@ -105,7 +105,7 @@ public:
 
     inline int getBatchSize() const { return batch_size_; }
 
-private:
+protected:
     inline void clear()
     {
         batch_size_ = 0;

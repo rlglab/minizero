@@ -120,7 +120,7 @@ public:
     inline int getInitialInputBatchSize() const { return initial_input_batch_size_; }
     inline int getRecurrentInputBatchSize() const { return recurrent_input_batch_size_; }
 
-private:
+protected:
     std::vector<std::shared_ptr<NetworkOutput>> forward(const std::string& method, const std::vector<torch::jit::IValue>& inputs, int batch_size)
     {
         assert(network_.find_method(method));
