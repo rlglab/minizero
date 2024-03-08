@@ -3,6 +3,7 @@
 #include "time_system.h"
 #include <algorithm>
 #include <memory>
+#include <tuple>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -133,20 +134,22 @@ void ZeroActor::step()
     int batch_size = std::min(config::actor_mcts_think_batch_size,
                               (alphazero_network_ || num_simulation > 0) ? num_simulation_left : 1 /* initial inference for root node */);
     assert(batch_size > 0);
-    std::vector<std::pair<int, decltype(mcts_search_data_.node_path_)>> node_path_evaluated;
+
+    std::vector<std::tuple<int, utils::Rotation, decltype(mcts_search_data_.node_path_)>> batch_queries; // batch id, rotation, search path
     for (int batch_id = 0; batch_id < batch_size; batch_id++) {
         beforeNNEvaluation();
         assert(nn_evaluation_batch_id_ == batch_id);
         if (mcts_search_data_.node_path_.back()->getVirtualLoss() == 0) {
-            node_path_evaluated.emplace_back(batch_id, std::move(mcts_search_data_.node_path_));
+            batch_queries.emplace_back(nn_evaluation_batch_id_, feature_rotation_, mcts_search_data_.node_path_);
         }
         for (auto node : mcts_search_data_.node_path_) { node->addVirtualLoss(); }
     }
     auto network_output = alphazero_network_ ? alphazero_network_->forward()
                                              : (num_simulation == 0 ? muzero_network_->initialInference() : muzero_network_->recurrentInference());
-    for (auto& evaluation : node_path_evaluated) {
-        nn_evaluation_batch_id_ = evaluation.first;
-        mcts_search_data_.node_path_ = std::move(evaluation.second);
+    for (auto& query : batch_queries) {
+        nn_evaluation_batch_id_ = std::get<0>(query);
+        feature_rotation_ = std::get<1>(query);
+        mcts_search_data_.node_path_ = std::get<2>(query);
         afterNNEvaluation(network_output[nn_evaluation_batch_id_]);
         auto virtual_loss = mcts_search_data_.node_path_.back()->getVirtualLoss();
         for (auto node : mcts_search_data_.node_path_) { node->removeVirtualLoss(virtual_loss); }
