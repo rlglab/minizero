@@ -378,10 +378,13 @@ if [[ $mode == train ]]; then # ================================ TRAIN =========
     fi
 
     if [[ ! $train_dir ]]; then
-        train_dir=$($launch $executable -mode zero_training_name -conf_file ${conf_file} -conf_str "${conf_str}:program_quiet=true" 2>/dev/null | \
+        testrun_stderr_tmp=$(mktemp)
+        train_dir=$($launch $executable -mode zero_training_name -conf_file ${conf_file} -conf_str "${conf_str}" 2>$testrun_stderr_tmp | \
             tr -d '\r' | grep "^$game" | tail -n1)
+        testrun_stderr=$(<${testrun_stderr_tmp})
+        rm -f $testrun_stderr_tmp
         if [[ ! $train_dir ]]; then
-            $launch $executable -mode zero_training_name -conf_file ${conf_file} -conf_str "${conf_str}" 2>&1 | sed "/^Failed to/d" | colorize ERR
+            echo "${testrun_stderr}" | sed "/^Failed to/d" | colorize ERR
             log ERR "Failed to generate default training folder name"
             exit 1
         fi
@@ -480,6 +483,7 @@ elif [[ $mode == self-eval ]]; then # ================================ SELF-EVAL
     opts+=(-s ${eval_start_index:=0})
     opts+=(-d ${eval_folder_name:=self_eval})
     opts+=(--num_threads ${num_threads:=2})
+    [[ $conf_str ]] && opts+=(-conf_str $conf_str)
 
     $launch tools/self-eval.sh $game $eval_dir $conf_file $eval_interval $eval_game_num ${opts[@]} 2>&1 | colorize OUT_EVAL
     code=${PIPESTATUS[0]}
@@ -525,6 +529,7 @@ elif [[ $mode == fight-eval ]]; then # ================================ FIGHT-EV
     opts+=(-s ${eval_start_index:=0})
     opts+=(-d ${eval_folder_name:=$(basename ${eval_dir})_vs_$(basename ${eval_dir_2})_eval})
     opts+=(--num_threads ${num_threads:=2})
+    [[ $conf_str ]] && opts+=(-conf_str $conf_str)
 
     $launch tools/fight-eval.sh $game $eval_dir $eval_dir_2 $conf_file $conf_file_2 $eval_interval $eval_game_num ${opts[@]} 2>&1 | colorize OUT_EVAL
     code=${PIPESTATUS[0]}

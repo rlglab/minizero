@@ -16,6 +16,7 @@ usage()
 	echo "  -n,        --name                 Assign name for training directory"
 	echo "  -np,       --name_prefix          Add prefix name for default training directory name"
 	echo "  -ns,       --name_suffix          Add suffix name for default training directory name"
+	echo "  -g,        --gpu                  Assign the GPU for network model initialization, e.g. 0"
 	echo "             --sp_executable_file   Assign the path for self-play executable file"
 	echo "             --op_executable_file   Assign the path for optimization executable file"
 	echo "             --link_sgf             Assign the path of sgf for training without self play (only op)"
@@ -35,6 +36,7 @@ fi
 train_dir=""
 name_prefix=""
 name_suffix=""
+gpu_list=$(nvidia-smi --query-gpu=index,memory.used,utilization.gpu --format=csv,noheader,nounits | sort -k2n -k3n | head -1 | cut -d, -f1)
 sp_executable_file=build/${game_type}/minizero_${game_type}
 op_executable_file=minizero/learner/train.py
 overwrite_conf_str=""
@@ -48,6 +50,8 @@ while :; do
 		-np|--name_prefix) shift; name_prefix=$1
 		;;
 		-ns|--name_suffix) shift; name_suffix=$1
+		;;
+		-g|--gpu) shift; gpu_list=$1
 		;;
 		--sp_executable_file) shift; sp_executable_file=$1
 		;;
@@ -65,9 +69,18 @@ while :; do
 	shift
 done
 
-# create default name of training if name is not assigned
+# create default name; also check if configurations are valid
+testrun_stderr_tmp=$(mktemp)
+default_name=$(${sp_executable_file} -mode zero_training_name -conf_file ${configure_file} -conf_str "${overwrite_conf_str}" 2>${testrun_stderr_tmp} || :)
+testrun_stderr=$(<${testrun_stderr_tmp})
+rm -f ${testrun_stderr_tmp}
+if [[ ! ${default_name} ]]; then
+	echo "${testrun_stderr}" >&2
+	exit 1
+fi
+# use default name of training if name is not assigned
 if [[ -z ${train_dir} ]]; then
-	train_dir=${name_prefix}$(${sp_executable_file} -mode zero_training_name -conf_file ${configure_file} -conf_str "${overwrite_conf_str}" 2>/dev/null)${name_suffix}
+	train_dir=${name_prefix}${default_name}${name_suffix}
 fi
 
 run_stage="R"
@@ -95,7 +108,8 @@ if [[ ${run_stage,} == "r" ]]; then
 	${sp_executable_file} -gen ${train_dir}/${new_configure_file} -conf_file ${configure_file} -conf_str "${overwrite_conf_str}" 2>/dev/null
 
 	# setup initial weight
-	echo "train \"\" -1 -1" | PYTHONPATH=. python ${op_executable_file} ${game_type} ${train_dir} ${train_dir}/${new_configure_file} >/dev/null 2>&1
+	cuda_devices=$(echo ${gpu_list} | awk '{ split($0, chars, ""); printf(chars[1]); for(i=2; i<=length(chars); ++i) { printf(","chars[i]); } }')
+	echo "train \"\" -1 -1" | CUDA_VISIBLE_DEVICES=${cuda_devices} PYTHONPATH=. python ${op_executable_file} ${game_type} ${train_dir} ${train_dir}/${new_configure_file} >/dev/null 2>&1
 elif [[ ${run_stage,} == "c" ]]; then
 	zero_start_iteration=$(ls ${train_dir}/model/ | grep ".pt$" | wc -l)
 	model_file=$(ls ${train_dir}/model/ | grep ".pt$" | sort -V | tail -n1)
