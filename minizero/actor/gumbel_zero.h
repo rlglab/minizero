@@ -13,7 +13,7 @@ public:
     MCTSNode* decideActionNode(const std::shared_ptr<MCTS>& mcts);
     std::vector<MCTSNode*> selection(const std::shared_ptr<MCTS>& mcts);
     void sequentialHalving(const std::shared_ptr<MCTS>& mcts);
-    void sortCandidatesByScore();
+    void sortCandidatesByScore(const std::shared_ptr<MCTS>& mcts);
 
 private:
     int sample_size_;

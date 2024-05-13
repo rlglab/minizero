@@ -13,21 +13,34 @@ std::string GumbelZero::getMCTSPolicy(const std::shared_ptr<MCTS>& mcts) const
     for (int i = 0; i < mcts->getRootNode()->getNumChildren(); ++i) {
         MCTSNode* child = mcts->getRootNode()->getChild(i);
         if (child->getCount() == 0) { continue; }
-        float value = (child->getAction().getPlayer() == env::Player::kPlayer1 ? child->getValue() : -child->getValue());
+        float value = child->getNormalizedMean(mcts->getTreeValueBound());
         pi_sum += child->getPolicy();
         q_sum += child->getPolicy() * value;
     }
-    float value_pi = (mcts->getRootNode()->getChild(0)->getAction().getPlayer() == env::Player::kPlayer1 ? mcts->getRootNode()->getValue() : -mcts->getRootNode()->getValue());
+    float value_pi = mcts->getRootNode()->getValue();
+    if (config::actor_mcts_value_rescale) {
+        if (mcts->getTreeValueBound().size() < 2) {
+            value_pi = 1.0f;
+        } else {
+            const float value_lower_bound = mcts->getTreeValueBound().begin()->first;
+            const float value_upper_bound = mcts->getTreeValueBound().rbegin()->first;
+            value_pi = (value_pi - value_lower_bound) / (value_upper_bound - value_lower_bound);
+            value_pi = fmin(1, fmax(-1, 2 * value_pi - 1));
+        }
+    }
+    value_pi = (mcts->getRootNode()->getChild(0)->getAction().getPlayer() == env::Player::kPlayer1 ? value_pi : -value_pi);
     float non_visited_node_value = 1.0 / (1 + config::actor_num_simulation) * (value_pi + (config::actor_num_simulation / pi_sum) * q_sum);
 
     // calculate completed Q-values
     std::unordered_map<int, float> new_logits;
     float max_logit = -std::numeric_limits<float>::max();
+    float max_child_count = 0;
+    for (int i = 0; i < mcts->getRootNode()->getNumChildren(); ++i) { max_child_count = fmax(max_child_count, mcts->getRootNode()->getChild(i)->getCount()); }
     for (int i = 0; i < mcts->getRootNode()->getNumChildren(); ++i) {
         MCTSNode* child = mcts->getRootNode()->getChild(i);
-        float value = (child->getCount() == 0 ? non_visited_node_value : (child->getAction().getPlayer() == env::Player::kPlayer1 ? child->getValue() : -child->getValue()));
+        float value = (child->getCount() == 0 ? non_visited_node_value : child->getNormalizedMean(mcts->getTreeValueBound()));
         float logit_without_noise = child->getPolicyLogit() - child->getPolicyNoise();
-        float score = logit_without_noise + (config::actor_gumbel_sigma_visit_c + 1) * config::actor_gumbel_sigma_scale_c * value;
+        float score = logit_without_noise + (config::actor_gumbel_sigma_visit_c + max_child_count) * config::actor_gumbel_sigma_scale_c * value;
         new_logits.insert({child->getAction().getActionID(), score});
         max_logit = fmax(max_logit, score);
     }
@@ -48,7 +61,7 @@ MCTSNode* GumbelZero::decideActionNode(const std::shared_ptr<MCTS>& mcts)
 {
     if (config::actor_select_action_by_count) {
         assert(candidates_.size() > 0);
-        sortCandidatesByScore();
+        sortCandidatesByScore(mcts);
         return candidates_[0];
     } else if (config::actor_select_action_by_softmax_count) {
         return mcts->selectChildBySoftmaxCount(mcts->getRootNode(), config::actor_select_action_softmax_temperature);
@@ -97,7 +110,7 @@ void GumbelZero::sequentialHalving(const std::shared_ptr<MCTS>& mcts)
             if (next_budget > 0 && sample_size_ > 2) {
                 sample_size_ /= 2;
                 assert(sample_size_ > 0);
-                sortCandidatesByScore();
+                sortCandidatesByScore(mcts);
                 if (static_cast<int>(candidates_.size()) > sample_size_) { candidates_.resize(sample_size_); }
                 simulation_budget_ = candidates_[0]->getCount() + next_budget;
             }
@@ -105,16 +118,19 @@ void GumbelZero::sequentialHalving(const std::shared_ptr<MCTS>& mcts)
     }
 }
 
-void GumbelZero::sortCandidatesByScore()
+void GumbelZero::sortCandidatesByScore(const std::shared_ptr<MCTS>& mcts)
 {
     assert(!candidates_.empty());
-    sort(candidates_.begin(), candidates_.end(), [](const MCTSNode* lhs, const MCTSNode* rhs) {
+    float max_child_count = 0;
+    for (int i = 0; i < mcts->getRootNode()->getNumChildren(); ++i) { max_child_count = fmax(max_child_count, mcts->getRootNode()->getChild(i)->getCount()); }
+    auto& tree_value_bound = mcts->getTreeValueBound();
+    sort(candidates_.begin(), candidates_.end(), [&](const MCTSNode* lhs, const MCTSNode* rhs) {
         float min_value = -std::numeric_limits<float>::max();
-        float lhs_value = (lhs->getAction().getPlayer() == env::Player::kPlayer1 ? lhs->getMean() : -lhs->getMean());
-        float lhs_score = lhs->getPolicyLogit() + (config::actor_gumbel_sigma_visit_c + 1) * config::actor_gumbel_sigma_scale_c * lhs_value;
+        float lhs_value = lhs->getNormalizedMean(tree_value_bound);
+        float lhs_score = lhs->getPolicyLogit() + (config::actor_gumbel_sigma_visit_c + max_child_count) * config::actor_gumbel_sigma_scale_c * lhs_value;
         lhs_score = (lhs->getCount() > 0 ? lhs_score : min_value);
-        float rhs_value = (rhs->getAction().getPlayer() == env::Player::kPlayer1 ? rhs->getMean() : -rhs->getMean());
-        float rhs_score = rhs->getPolicyLogit() + (config::actor_gumbel_sigma_visit_c + 1) * config::actor_gumbel_sigma_scale_c * rhs_value;
+        float rhs_value = rhs->getNormalizedMean(tree_value_bound);
+        float rhs_score = rhs->getPolicyLogit() + (config::actor_gumbel_sigma_visit_c + max_child_count) * config::actor_gumbel_sigma_scale_c * rhs_value;
         rhs_score = (rhs->getCount() > 0 ? rhs_score : min_value);
         return lhs_score > rhs_score;
     });
