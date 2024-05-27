@@ -2,17 +2,16 @@
 
 MiniZero is a zero-knowledge learning framework that supports AlphaZero, MuZero, Gumbel AlphaZero, and Gumbel MuZero algorithms.
 
-This is the official repository of the paper [MiniZero: Comparative Analysis of AlphaZero and MuZero on Go, Othello, and Atari Games](https://rlg.iis.sinica.edu.tw/papers/minizero).
+This is the official repository of the IEEE ToG paper [MiniZero: Comparative Analysis of AlphaZero and MuZero on Go, Othello, and Atari Games](https://rlg.iis.sinica.edu.tw/papers/minizero).
 
 If you use MiniZero for research, please consider citing our paper as follows:
 ```
-@misc{wu2023minizero,
-  title={MiniZero: Comparative Analysis of AlphaZero and MuZero on Go, Othello, and Atari Games}, 
-  author={Ti-Rong Wu and Hung Guei and Po-Wei Huang and Pei-Chiun Peng and Ting Han Wei and Chung-Chin Shih and Yun-Jui Tsai},
-  year={2023},
-  eprint={2310.11305},
-  archivePrefix={arXiv},
-  primaryClass={cs.AI}
+@article{wu2024minizero,
+  title={MiniZero: Comparative Analysis of AlphaZero and MuZero on Go, Othello, and Atari Games},
+  author={Wu, Ti-Rong and Guei, Hung and Peng, Pei-Chiun and Huang, Po-Wei and Wei, Ting Han and Shih, Chung-Chin and Tsai, Yun-Jui},
+  journal={IEEE Transactions on Games},
+  year={2024},
+  publisher={IEEE}
 }
 ```
 
