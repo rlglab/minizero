@@ -77,6 +77,13 @@ void Console::executeCommand(std::string command)
     std::vector<std::string> args;
     while (std::getline(ss, tmp, ' ')) { args.push_back(tmp); }
 
+    // save command id if first argument is a number
+    command_id_ = "";
+    if (!args[0].empty() && args[0].find_first_not_of("0123456789") == std::string::npos) {
+        command_id_ = args[0];
+        args.erase(args.begin());
+    }
+
     // execute function
     if (function_map_.count(args[0]) == 0) { return reply(ConsoleResponse::kFail, "Unknown command: " + command); }
     (*function_map_[args[0]])(args);
@@ -292,7 +299,7 @@ bool Console::checkArgument(const std::vector<std::string>& args, int min_argc, 
 
 void Console::reply(ConsoleResponse response, const std::string& reply)
 {
-    std::cout << static_cast<char>(response) << " " << reply << "\n\n";
+    std::cout << static_cast<char>(response) << command_id_ << " " << reply << "\n\n";
 }
 
 } // namespace minizero::console
