@@ -19,6 +19,14 @@ build_game() {
 	[[ " ${support_games[*]} " == *" ${game_type} "* ]] || usage
 	[ "${build_type}" == "Debug" ] || [ "${build_type}" == "Release" ] || usage
 
+	# check whether the build type and cache are consistent
+	if [ -f "build/${game_type}/CMakeCache.txt" ]; then
+		cache_build_type=$(grep -oP "CMAKE_BUILD_TYPE:STRING=\K\w+" build/${game_type}/CMakeCache.txt)
+		if [ "${cache_build_type}" != "${build_type}" ]; then
+			rm -rf build/${game_type}
+		fi
+	fi
+
 	# build
 	echo "game type: ${game_type}"
 	echo "build type: ${build_type}"
