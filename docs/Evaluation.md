@@ -21,7 +21,7 @@ For detailed arguments, run `tools/quick-run.sh self-eval -h`.
 
 Sample commands:
 ```bash
-# evaluate a TicTacToe training session using "tictactoe_play.cfg", run 100 games for each model pair: 0<sup>th</sup> vs 10<sup>th</sup>, 10<sup>th</sup> vs 20<sup>th</sup>, ...
+# evaluate a TicTacToe training session using "tictactoe_play.cfg", run 100 games for each model pair: 0th vs 10th, 10th vs 20th, ...
 tools/quick-run.sh self-eval tictactoe tictactoe_az_1bx256_n50-cb69d4 tictactoe_play.cfg 10 100
 
 # evaluate a TicTacToe training session using its training config, overwrite several settings for evaluation
@@ -34,8 +34,8 @@ tools/quick-run.sh self-eval tictactoe tictactoe_az_1bx256_n50-cb69d4 tictactoe_
 Note that evaluation is unnecessary for Atari games.
 
 The evaluation results are stored inside `FOLDER`, in a subfolder named `self_eval` by default, which contains the following records:
-* `elo.csv` saves the evaluated model strength in Elo rating
-* `elo.png` plots the Elo rating of `elo.csv`
+* `elo.csv` saves the evaluated model strength in Elo rating.
+* `elo.png` plots the Elo rating of `elo.csv`.
 * `5000_vs_0`, `10000_vs_5000`, and other folders keep game trajectory records for each evaluated model pair.
 
 ## Fight-Evaluation
@@ -65,7 +65,13 @@ tools/quick-run.sh fight-eval tictactoe tictactoe_az_1bx256_n50-cb69d4 tictactoe
 tools/quick-run.sh fight-eval tictactoe tictactoe_az_1bx256_n50-cb69d4 tictactoe_az_1bx256_n50-731a0f tictactoe_cb69d4.cfg tictactoe_731a0f.cfg 10 100
 ```
 
-The evaluation results are stored inside `FOLDER1`, in a subfolder named `[FOLDER1]_vs_[FOLDER2]_eval` by default, in which records of each model pair are named by the step index of model files, e.g., `0`, `5000`, and so on.
+The evaluation results are stored inside `FOLDER1`, in a subfolder named `[FOLDER1]_vs_[FOLDER2]_eval` by default, which contains the following records:
+* `elo.csv` saves the evaluation statistics and strength comparisons of all evaluated model pairs.
+* `elo.png` plots the Elo rating comparisons reported in `elo.csv`.
+* `0`, `5000`, and other folders keep game trajectory records for each evaluated model pair.
+
+> **Note**
+> Before the fight-evaluation, it is suggested that a self-evaluation for `FOLDER1` be run first to generate a baseline strength, which is necessary for the strength comparison.
 
 ## Miscellaneous Evaluation Tips
 

@@ -3,16 +3,16 @@ set -e
 
 usage()
 {
-    echo "Usage: $0 [OPTION]..."
-    echo ""
-    echo "Optional arguments:"
-    echo "  -h, --help     Give this help list"
-    echo "      --image    Select the image name of the container"
-    echo "  -v, --volume   Bind mount a volume into the container"
-    echo "      --name     Assign a name to the container"
-    echo "  -d, --detach   Run container in background and print container ID"
+	echo "Usage: $0 [OPTION]..."
+	echo ""
+	echo "Optional arguments:"
+	echo "  -h, --help     Give this help list"
+	echo "      --image    Select the image name of the container"
+	echo "  -v, --volume   Bind mount a volume into the container"
+	echo "      --name     Assign a name to the container"
+	echo "  -d, --detach   Run container in background and print container ID"
 	echo "  -H, --history  Record the container bash history"
-    exit 1
+	exit 1
 }
 
 image_name=kds285/minizero:latest
@@ -32,7 +32,7 @@ while :; do
 		;;
 		-v|--volume) shift; container_volume="${container_volume} -v ${1}"
 		;;
-        --name) shift; container_argumenets="${container_argumenets} --name ${1}"
+		--name) shift; container_argumenets="${container_argumenets} --name ${1}"
 		;;
 		-d|--detach) container_argumenets="${container_argumenets} -d"
 		;;

@@ -63,10 +63,9 @@ Then, the program will print the current configuration and start printing traini
 Once you have see this, it is ready to start other training components.
 
 > **Note**
-> If the script exits immediately without any warnings, it is most likely that the configuration file is incorrect, or the network model initialization is failed. 
+> If the script exits immediately without any warnings, check the cause as follows.
 > 1. Run the script with `bash -x` to let the script print all executed commands: `bash -x scripts/zero-server.sh ...`
-> 2. The last executed command is the cause.
-> 3. Run that command again without the script to reproduce the issue.
+> 2. The last executed command is the cause, check it to reproduce the issue.
 
 ### Launch the zero worker
 
@@ -88,11 +87,11 @@ Both `sp` and `op` workers are required. You have to start each of them in diffe
 
 For self-play, you should launch one `sp` worker instance per available GPU:
 ```bash!
-# assume that GPU 0-3 are available, start four workers as follows.
-scripts/zero-worker.sh tictactoe localhost 9999 sp -g 0
-scripts/zero-worker.sh tictactoe localhost 9999 sp -g 1
-scripts/zero-worker.sh tictactoe localhost 9999 sp -g 2
-scripts/zero-worker.sh tictactoe localhost 9999 sp -g 3
+# when GPU 0, 1, 2, 3 are available, start four workers (in different terminals) as shown below.
+scripts/zero-worker.sh tictactoe localhost 9999 sp -g 0 # run in terminal #1
+scripts/zero-worker.sh tictactoe localhost 9999 sp -g 1 # run in terminal #2
+scripts/zero-worker.sh tictactoe localhost 9999 sp -g 2 # run in terminal #3
+scripts/zero-worker.sh tictactoe localhost 9999 sp -g 3 # run in terminal #4
 ```
 
 For optimization, you should launch at most one `op` worker instance with all available GPUs:
@@ -115,13 +114,13 @@ The training results are stored in a folder named after the important training s
     * `*.pkl`: include training step, parameters, optimizer, scheduler (use for training).
     * `*.pt`: model parameters (use for testing).
 * `sgf/`: the folder that stores self-play games of each iteration.
-    * `1.sgf`, `2.sgf`, ... for the 1^st^, the 2^nd^, ... iteration, respectively.
+    * `1.sgf`, `2.sgf`, ... for the 1<sup>st</sup>, the 2<sup>nd</sup>, ... iteration, respectively.
 * `*.cfg`: the configurations for this training session.
 * `Training.log`: the main training log.
 * `Worker.log`: the worker connection log.
 * `op.log`: the optimization worker log.
 
-After the training, you can use the trained network models (saved inside `model/`) to run [evaluation](docs/Evaluation.md) or [console](docs/Console.md).
+After the training, you can use the trained network models (saved inside `model/`) to run [evaluation](Evaluation.md) or [console](Console.md).
 
 On the other hand, you can check self-play records (saved inside `sgf/`) by GoGui or by videos.
 

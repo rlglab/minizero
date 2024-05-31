@@ -327,17 +327,22 @@ if [[ $mode == train ]]; then # ================================ TRAIN =========
     fi
 
     if [[ $train_algorithm ]]; then
-        [[ $game != atari ]] && gxx_actor_num_simulation=16 || gxx_actor_num_simulation=18
         case "$train_algorithm" in
-        g*)  alg_conf_str+=${alg_conf_str:+:}actor_num_simulation=$gxx_actor_num_simulation:actor_use_dirichlet_noise=false:actor_use_gumbel=true:actor_use_gumbel_noise=true; ;;& # resume!
-        *az) alg_conf_str+=${alg_conf_str:+:}nn_type_name=alphazero; ;;
-        *mz) alg_conf_str+=${alg_conf_str:+:}nn_type_name=muzero; ;;
+        g*) # gaz, gmz
+            [[ $game != atari ]] && gxx_actor_num_simulation=16 || gxx_actor_num_simulation=18
+            [[ $game != atari ]] && gxx_actor_gumbel_sigma_scale_c=1 || gxx_actor_gumbel_sigma_scale_c=0.1
+            alg_conf_str+=${alg_conf_str:+:}actor_num_simulation=$gxx_actor_num_simulation:actor_use_dirichlet_noise=false
+            alg_conf_str+=${alg_conf_str:+:}actor_use_gumbel=true:actor_use_gumbel_noise=true:actor_gumbel_sample_size=$gxx_actor_num_simulation
+            alg_conf_str+=${alg_conf_str:+:}actor_gumbel_sigma_visit_c=50:actor_gumbel_sigma_scale_c=$gxx_actor_gumbel_sigma_scale_c
+            unset gxx_actor_num_simulation gxx_actor_gumbel_sigma_scale_c
+            ;;& # resume!
+        *az) # az, gaz
+            alg_conf_str+=${alg_conf_str:+:}nn_type_name=alphazero
+            ;;
+        *mz) # mz, gmz
+            alg_conf_str+=${alg_conf_str:+:}nn_type_name=muzero
+            ;;
         esac
-        unset gxx_actor_num_simulation
-        if [[ $train_algorithm == *az && $game == atari ]]; then
-            log ERR "Unsupported training algorithm: $train_algorithm"
-            exit 1
-        fi
         conf_str=${alg_conf_str}${conf_str:+:}${conf_str}
         log INFO "Use training algorithm $train_algorithm, set additional config: $alg_conf_str"
     elif [[ ! $auto_conf_file ]]; then
@@ -347,8 +352,16 @@ if [[ $mode == train ]]; then # ================================ TRAIN =========
         log WARN "Neither config file nor training algorithm is specified"
     fi
 
-    if [[ $game == atari ]] && [[ ! $env_atari_name ]]; then
-        log WARN "Config env_atari_name unspecified, will use default game: $({ grep env_atari_name= $conf_file || echo =unknown; } | sed -E "s/^[^=]*=| *[#].*$//g")"
+    if [[ $game == atari ]]; then
+        if [[ ! $env_atari_name ]]; then
+            env_atari_name=$({ grep env_atari_name= $conf_file || echo =unknown; } | sed -E "s/^[^=]*=| *[#].*$//g")
+            log WARN "Config env_atari_name unspecified, will use default game: $env_atari_name"
+        fi
+        nn_type_name=$({ { printf "%s\n" ${conf_str//:/ }; cat $conf_file; } | grep -m1 nn_type_name= || echo =alphazero; } | sed -E "s/^[^=]*=| *[#].*$//g")
+        if [[ $nn_type_name != muzero ]]; then
+            log ERR "Unsupported training algorithm: ${train_algorithm:-$nn_type_name}"
+            exit 1
+        fi
     fi
 
     if [[ ! $zero_server_port ]]; then
@@ -357,7 +370,7 @@ if [[ $mode == train ]]; then # ================================ TRAIN =========
     if [[ ! $conf_str == *zero_server_port=* ]]; then
         conf_str+=${conf_str:+:}zero_server_port=$zero_server_port
     fi
-    
+
     if [[ ! $zero_end_iteration ]]; then
         zero_end_iteration=$({ grep zero_end_iteration= $conf_file || echo =100; } | sed -E "s/^[^=]*=| *[#].*$//g")
     fi
@@ -402,7 +415,7 @@ if [[ $mode == train ]]; then # ================================ TRAIN =========
     # launch zero server
     {
         $launch scripts/zero-server.sh $game $conf_file $zero_end_iteration -n "$train_dir" -conf_str "$conf_str"
-    } 2>&1 | tee >(watchdog "Worker Disconnection|^Failed to|Segmentation fault|Killed|Aborted|RuntimeError") | colorize OUT_TRAIN &
+    } 2>&1 | tee >(watchdog "Worker Disconnection|^Failed to|Segmentation fault|Killed|Aborted|^[A-Za-z]+Error") | colorize OUT_TRAIN &
     PID[$!]=server
     server_pid=$!
 
@@ -430,7 +443,7 @@ if [[ $mode == train ]]; then # ================================ TRAIN =========
             [[ $sp_progress == true ]] && sp_program_quiet=false || sp_program_quiet=true
             [[ $sp_conf_str != *program_quiet* ]] && sp_conf_str+=${sp_conf_str:+:}program_quiet=$sp_program_quiet
             $launch scripts/zero-worker.sh $game $(hostname) $zero_server_port sp -b ${batch_size:-64} -c ${num_threads:-4} -g $GPU ${sp_conf_str:+-conf_str "$sp_conf_str"}
-        } 2>&1 | tee >(watchdog "^Failed to|Segmentation fault|Killed|Aborted|RuntimeError|OutOfMemoryError") | colorize OUT_TRAIN_SP &
+        } 2>&1 | tee >(watchdog "^Failed to|Segmentation fault|Killed|Aborted|^[A-Za-z]+Error") | colorize OUT_TRAIN_SP &
         PID[$!]=sp$GPU
         unset sp_progress # only show the progress of the first sp
         sleep 1
@@ -440,7 +453,7 @@ if [[ $mode == train ]]; then # ================================ TRAIN =========
     OP_CUDA_VISIBLE_DEVICES=${OP_CUDA_VISIBLE_DEVICES:-$CUDA_VISIBLE_DEVICES}
     {
         $launch scripts/zero-worker.sh $game $(hostname) $zero_server_port op -g ${OP_CUDA_VISIBLE_DEVICES//,/} ${op_conf_str:+-conf_str "$op_conf_str"}
-    } 2>&1 | tee >(watchdog "^Failed to|Segmentation fault|Killed|Aborted|RuntimeError|OutOfMemoryError") | colorize OUT_TRAIN_OP &
+    } 2>&1 | tee >(watchdog "^Failed to|Segmentation fault|Killed|Aborted|^[A-Za-z]+Error") | colorize OUT_TRAIN_OP &
     PID[$!]=op
 
     trap 'eval "log() { echo -en \"\r\" >&2; $(type log | tail -n+3); echo -en \"\r\" >&2; }"' SIGUSR1 # workaround for exec -it issue
@@ -622,7 +635,7 @@ elif [[ $mode == console ]]; then # ================================ CONSOLE ===
         log INFO "Launch console with gogui-server at tcp://0.0.0.0:$port" # displaying this will trigger VS code to automatically start port forwarding
         {
             $launch gogui-server -port $port -loop -verbose "$executable -mode console -conf_file ${conf_file} -conf_str ${conf_str}"
-        } 2>&1 | tee >(watchdog "^Address already in use|^Failed to|Segmentation fault|Killed|Aborted|RuntimeError|OutOfMemoryError") | colorize OUT_CONSOLE_GOGUI &
+        } 2>&1 | tee >(watchdog "^Address already in use|^Failed to|Segmentation fault|Killed|Aborted|^[A-Za-z]+Error") | colorize OUT_CONSOLE_GOGUI &
         PID[$!]=console
 
         trap 'log ERR "Console failed to start correctly"' SIGUSR1
