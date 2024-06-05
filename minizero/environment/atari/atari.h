@@ -26,13 +26,16 @@ const int kAtariFeatureHistorySize = 8;
 const int kAtariMaxNumFramesPerEpisode = 108000;
 const float kAtariRepeatActionProbability = 0.25f;
 
+extern std::unordered_map<std::string, int> kAtariStringToActionId;
+
 std::string getAtariActionName(int action_id);
+void initialize();
 
 class AtariAction : public BaseAction {
 public:
     AtariAction() : BaseAction() {}
     AtariAction(int action_id, Player player) : BaseAction(action_id, player) {}
-    AtariAction(const std::vector<std::string>& action_string_args) {}
+    AtariAction(const std::vector<std::string>& action_string_args);
 
     inline Player nextPlayer() const override { return getNextPlayer(player_, kAtariNumPlayer); }
     inline std::string toConsoleString() const override { return getAtariActionName(action_id_); }
@@ -67,7 +70,7 @@ public:
     inline int getHiddenChannelWidth() const override { return kAtariHiddenChannelWidth; }
     inline int getPolicySize() const override { return kAtariActionSize; }
     inline int getDiscreteValueSize() const override { return kAtariDiscreteValueSize; }
-    std::string toString() const override { return ""; }
+    std::string toString() const override;
     inline std::string name() const override { return kAtariName + "_" + minizero::config::env_atari_name; }
     inline int getNumPlayer() const override { return kAtariNumPlayer; }
     inline int getRotatePosition(int position, utils::Rotation rotation) const override { return position; }

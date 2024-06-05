@@ -75,6 +75,10 @@ inline void setUpEnv()
     nogo::initialize();
 #endif
 
+#if ATARI
+    atari::initialize();
+#endif
+
 #if ATARI or PUZZLE2048
     config::learner_n_step_return = 10;
     config::zero_actor_intermediate_sequence_length = 200;

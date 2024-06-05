@@ -59,8 +59,8 @@ protected:
     void cmdGenmove(const std::vector<std::string>& args);
     void cmdFinalScore(const std::vector<std::string>& args);
     void cmdPV(const std::vector<std::string>& args);
-    void cmdLoadModel(const std::vector<std::string>& args);
     void cmdPVString(const std::vector<std::string>& args);
+    void cmdLoadModel(const std::vector<std::string>& args);
     void cmdGetConfigString(const std::vector<std::string>& args);
 
     virtual void calculatePolicyValue(std::vector<float>& policy, float& value, utils::Rotation rotation = utils::Rotation::kRotationNone);

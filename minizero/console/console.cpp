@@ -54,7 +54,7 @@ void Console::initialize()
             for (int j = 0; j < config::actor_mcts_think_batch_size; ++j) { alphazero_network->pushBack(actor_->getEnvironment().getFeatures()); }
             alphazero_network->forward();
         }
-    } else if (network_->getNetworkTypeName() == "muzero") {
+    } else if (network_->getNetworkTypeName() == "muzero" || network_->getNetworkTypeName() == "muzero_atari") {
         std::shared_ptr<network::MuZeroNetwork> muzero_network = std::static_pointer_cast<network::MuZeroNetwork>(network_);
         for (int i = 0; i < num_warmup_forward; ++i) {
             for (int j = 0; j < config::actor_mcts_think_batch_size; ++j) { muzero_network->pushBackInitialData(actor_->getEnvironment().getFeatures()); }
@@ -268,7 +268,7 @@ void Console::calculatePolicyValue(std::vector<float>& policy, float& value, uti
             int rotated_id = actor_->getEnvironment().getRotateAction(action_id, rotation);
             policy.push_back(zero_output->policy_[rotated_id]);
         }
-    } else if (network_->getNetworkTypeName() == "muzero") {
+    } else if (network_->getNetworkTypeName() == "muzero" || network_->getNetworkTypeName() == "muzero_atari") {
         std::shared_ptr<network::MuZeroNetwork> muzero_network = std::static_pointer_cast<network::MuZeroNetwork>(network_);
         int index = muzero_network->pushBackInitialData(actor_->getEnvironment().getFeatures());
         std::shared_ptr<NetworkOutput> network_output = muzero_network->initialInference()[index];

@@ -4,11 +4,38 @@
 
 namespace minizero::env::atari {
 
+std::unordered_map<std::string, int> kAtariStringToActionId;
+
 std::string getAtariActionName(int action_id)
 {
     assert(action_id >= 0 && action_id < kAtariActionSize);
     std::string action_name = ale::action_to_string(ale::Action(action_id));
     return action_name.substr(action_name.find_last_of("_") + 1);
+}
+
+void initialize()
+{
+    for (int action_id = 0; action_id < kAtariActionSize; ++action_id) {
+        std::string atari_action_name = getAtariActionName(action_id);
+        kAtariStringToActionId[atari_action_name] = action_id;
+    }
+}
+
+AtariAction::AtariAction(const std::vector<std::string>& action_string_args)
+{
+    assert(action_string_args.size() == 2);
+    assert(action_string_args[0].size() == 1);
+    player_ = charToPlayer(action_string_args[0][0]);
+    assert(static_cast<int>(player_) > 0 && static_cast<int>(player_) <= kAtariNumPlayer); // assume kPlayer1 == 1, kPlayer2 == 2, ...
+
+    std::string action_string = action_string_args[1];
+    std::transform(action_string.begin(), action_string.end(), action_string.begin(), ::toupper);
+    auto it = kAtariStringToActionId.find(action_string);
+    if (it == kAtariStringToActionId.end()) {
+        action_id_ = -1;
+    } else {
+        action_id_ = it->second;
+    }
 }
 
 AtariEnv& AtariEnv::operator=(const AtariEnv& env)
@@ -100,6 +127,15 @@ std::vector<float> AtariEnv::getActionFeatures(const AtariAction& action, utils:
     std::vector<float> action_features(kAtariActionSize * hidden_size, 0.0f);
     std::fill(action_features.begin() + action.getActionID() * hidden_size, action_features.begin() + (action.getActionID() + 1) * hidden_size, 1.0f);
     return action_features;
+}
+
+std::string AtariEnv::toString() const
+{
+    // get current screen rgb
+    std::vector<unsigned char> screen_rgb;
+    ale_.getScreenRGB(screen_rgb);
+    std::string rgb_binary_string(screen_rgb.begin(), screen_rgb.end());
+    return utils::compressString(rgb_binary_string);
 }
 
 std::vector<float> AtariEnv::getObservation(bool scale_01 /* = true */) const
