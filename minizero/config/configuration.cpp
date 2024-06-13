@@ -16,6 +16,7 @@ float actor_mcts_reward_discount = 1.0f;
 int actor_mcts_think_batch_size = 1;
 float actor_mcts_think_time_limit = 0;
 bool actor_mcts_value_rescale = false;
+char actor_mcts_value_flipping_player = 'W';
 bool actor_select_action_by_count = false;
 bool actor_select_action_by_softmax_count = true;
 float actor_select_action_softmax_temperature = 1.0f;

@@ -28,7 +28,7 @@ std::string GumbelZero::getMCTSPolicy(const std::shared_ptr<MCTS>& mcts) const
             value_pi = fmin(1, fmax(-1, 2 * value_pi - 1));
         }
     }
-    value_pi = (mcts->getRootNode()->getChild(0)->getAction().getPlayer() == env::Player::kPlayer1 ? value_pi : -value_pi);
+    value_pi = (mcts->getRootNode()->getChild(0)->getAction().getPlayer() == env::charToPlayer(config::actor_mcts_value_flipping_player) ? -value_pi : value_pi);
     float non_visited_node_value = 1.0 / (1 + config::actor_num_simulation) * (value_pi + (config::actor_num_simulation / pi_sum) * q_sum);
 
     // calculate completed Q-values

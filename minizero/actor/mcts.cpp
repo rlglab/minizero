@@ -47,7 +47,7 @@ float MCTSNode::getNormalizedMean(const std::map<float, int>& tree_value_bound) 
         value = (value - value_lower_bound) / (value_upper_bound - value_lower_bound);
         value = fmin(1, fmax(-1, 2 * value - 1)); // normalize to [-1, 1]
     }
-    value = (action_.getPlayer() == env::Player::kPlayer1 ? value : -value); // flip value according to player
+    value = (action_.getPlayer() == env::charToPlayer(config::actor_mcts_value_flipping_player) ? -value : value); // flip value according to player
     value = (value * count_ - virtual_loss_) / getCountWithVirtualLoss();    // value with virtual loss
     return value;
 }
