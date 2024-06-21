@@ -58,6 +58,19 @@ public:
         for (int i = 0; i < std::min(pos, static_cast<int>(action_pairs_.size())); ++i) { env.act(action_pairs_[i].first); }
         return env.getFeatures(rotation);
     }
+
+    virtual std::vector<float> getAfterstateFeatures(const int pos, utils::Rotation rotation) const
+    {
+        // a slow but naive method which simply replays the game again to get features
+        Env env;
+        env.reset(getSeed());
+        const auto& action_pairs_ = BaseEnvLoader<Action, Env>::action_pairs_;
+        for (int i = 0; i < std::min(pos, static_cast<int>(action_pairs_.size())); ++i) { env.act(action_pairs_[i].first); }
+        if (!env.isTerminal() && pos < static_cast<int>(action_pairs_.size())) { env.act(action_pairs_[pos].first, false); }
+        return env.getFeatures(rotation);
+    }
+
+    virtual std::vector<float> getAfterstateValue(const int pos) const = 0;
 };
 
 } // namespace minizero::env
