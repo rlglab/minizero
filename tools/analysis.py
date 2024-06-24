@@ -42,7 +42,7 @@ def get_myDict(lines, iter):
                 continue
             if iter != -1 and counter >= iter:
                 break
-            ret3 = re.findall(r'(loss|accuracy)_(value|policy|reward)(_\d)?:\s(\d.\d+)', line)
+            ret3 = re.findall(r'(loss|accuracy)_(\S+)(_\d)?:\s(-?\d+\.?\d*(?:[Ee]-?\d+)?)', line)
             if ret3 != []:
                 key = ret3[0][0] + "_" + ret3[0][1] + ret3[0][2]
                 if key not in myDict:
@@ -162,8 +162,8 @@ def analysis_(dir, path, iter, all: bool = False, name: bool = False):
     op_log.close()
     Training_log.close()
     # plt target
-    Fig_list = ["accuracy_policy", "loss_value", "loss_reward", "loss_policy", "Lengths", "Time", "Returns"]
     myDict, learner_training_display_step, learner_training_step = get_myDict(lines, iter)
+    Fig_list = list(set(["Lengths", "Time", "Returns"] + [re.sub(r"_\d+$", "", key) for key in myDict if re.match(r'^(loss|accuracy)_', key)]))
     # plt figure
     counter_subplot = sum([1 for word in Fig_list if word in ' '.join(myDict.keys())])
     if counter_subplot == 0 or len(myDict["Time"]) == 0:
