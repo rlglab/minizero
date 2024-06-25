@@ -135,7 +135,7 @@ std::string AtariEnv::toString() const
     std::vector<unsigned char> screen_rgb;
     ale_.getScreenRGB(screen_rgb);
     std::string rgb_binary_string(screen_rgb.begin(), screen_rgb.end());
-    return utils::compressString(rgb_binary_string);
+    return utils::compressString(rgb_binary_string) + '\n';
 }
 
 std::vector<float> AtariEnv::getObservation(bool scale_01 /* = true */) const

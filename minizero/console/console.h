@@ -60,6 +60,7 @@ protected:
     void cmdFinalScore(const std::vector<std::string>& args);
     void cmdPV(const std::vector<std::string>& args);
     void cmdPVString(const std::vector<std::string>& args);
+    void cmdGameString(const std::vector<std::string>& args);
     void cmdLoadModel(const std::vector<std::string>& args);
     void cmdGetConfigString(const std::vector<std::string>& args);
 

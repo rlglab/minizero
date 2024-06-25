@@ -33,6 +33,7 @@ Console::Console()
     RegisterFunction("final_score", this, &Console::cmdFinalScore);
     RegisterFunction("pv", this, &Console::cmdPV);
     RegisterFunction("pv_string", this, &Console::cmdPVString);
+    RegisterFunction("game_string", this, &Console::cmdGameString);
     RegisterFunction("load_model", this, &Console::cmdLoadModel);
     RegisterFunction("get_conf_str", this, &Console::cmdGetConfigString);
 }
@@ -233,6 +234,15 @@ void Console::cmdPVString(const std::vector<std::string>& args)
         oss << action.toConsoleString() << " " << std::to_string(policy[action_id] * 100).substr(0, 4) << " ";
     }
     reply(ConsoleResponse::kSuccess, oss.str());
+}
+
+void Console::cmdGameString(const std::vector<std::string>& args)
+{
+    if (!checkArgument(args, 1, 1)) { return; }
+    EnvironmentLoader env_loader;
+    const Environment& env_transition = actor_->getEnvironment();
+    env_loader.loadFromEnvironment(env_transition);
+    reply(ConsoleResponse::kSuccess, env_loader.toString());
 }
 
 void Console::cmdLoadModel(const std::vector<std::string>& args)
