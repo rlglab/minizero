@@ -99,7 +99,7 @@ class MuZeroAtariNetwork(nn.Module):
         self.discrete_value_size = discrete_value_size
 
         self.representation_network = MuZeroRepresentationNetwork(num_input_channels, num_hidden_channels, num_blocks)
-        self.dynamics_network = MuZeroDynamicsNetwork(num_hidden_channels, hidden_channel_height, hidden_channel_height, num_action_feature_channels, num_blocks, discrete_value_size)
+        self.dynamics_network = MuZeroDynamicsNetwork(num_hidden_channels, hidden_channel_height, hidden_channel_width, num_action_feature_channels, num_blocks, discrete_value_size)
         self.prediction_network = MuZeroPredictionNetwork(num_hidden_channels, hidden_channel_height, hidden_channel_width, action_size, num_value_hidden_channels, discrete_value_size)
 
     @torch.jit.export
