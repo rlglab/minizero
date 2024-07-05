@@ -17,21 +17,17 @@ inline std::vector<std::string> stringToVector(const std::string& s, const std::
 {
     std::vector<std::string> args;
     if (delim.size()) {
-        std::string str = s;
-        std::string::size_type pos;
-        while ((pos = str.find(delim)) != std::string::npos) {
-            args.emplace_back(str.substr(0, pos));
-            str.erase(0, pos + delim.size());
+        args.reserve(std::count(s.begin(), s.end(), delim.front()));
+        std::string::size_type pos = 0, end;
+        while ((end = s.find(delim, pos)) != std::string::npos) {
+            if (end > pos || !compress) { args.emplace_back(s.substr(pos, end - pos)); }
+            pos = end + delim.size();
         }
-        args.emplace_back(str);
+        if (s.size() > pos || !compress) { args.emplace_back(s.substr(pos)); }
     } else {
-        args.emplace_back();
+        if (!compress) { args.emplace_back(); }
         for (char ch : s) { args.emplace_back(1, ch); }
-        args.emplace_back();
-    }
-    if (compress) {
-        auto it = args.begin();
-        while (it != args.end()) { it = it->size() ? it + 1 : args.erase(it); }
+        if (!compress) { args.emplace_back(); }
     }
     return args;
 }
