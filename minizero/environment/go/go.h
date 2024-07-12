@@ -69,6 +69,7 @@ public:
     inline const GoArea& getArea(int id) const { return areas_[id]; }
     inline const GoBlock& getBlock(int id) const { return blocks_[id]; }
     inline bool isPassAction(const GoAction& action) const { return (action.getActionID() == getBoardSize() * getBoardSize()); }
+    inline const std::vector<GamePair<GoBitboard>>& getStoneBitboardHistory() const { return stone_bitboard_history_; }
     inline const std::vector<GoHashKey>& getHashKeyHistory() const { return hashkey_history_; }
     inline const std::unordered_set<GoHashKey>& getHashTable() const { return hash_table_; }
 
