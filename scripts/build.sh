@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-support_games=("atari" "connect6" "go" "gomoku" "hex" "killallgo" "nogo" "othello" "puzzle2048" "rubiks" "tictactoe")
+support_games=("atari" "connect6" "go" "gomoku" "hex" "killallgo" "nogo" "othello" "puzzle2048" "rubiks" "tictactoe" "tetris")
 
 usage() {
 	echo "Usage: $0 GAME_TYPE BUILD_TYPE"

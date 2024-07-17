@@ -47,6 +47,7 @@ protected:
     virtual void runZeroServer();
     virtual void runZeroTrainingName();
     virtual void runEnvTest();
+    virtual void runEnvTest2();
     virtual void runRemoveObs();
     virtual void runRecoverObs();
 

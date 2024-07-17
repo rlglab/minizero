@@ -47,6 +47,11 @@ typedef minizero::env::othello::OthelloEnvLoader EnvironmentLoader;
 typedef minizero::env::puzzle2048::Puzzle2048Action Action;
 typedef minizero::env::puzzle2048::Puzzle2048Env Environment;
 typedef minizero::env::puzzle2048::Puzzle2048EnvLoader EnvironmentLoader;
+#elif TETRIS
+#include "tetris.h"
+typedef minizero::env::tetris::TetrisAction Action;
+typedef minizero::env::tetris::TetrisEnv Environment;
+typedef minizero::env::tetris::TetrisEnvLoader EnvironmentLoader;
 #elif RUBIKS
 #include "rubiks.h"
 typedef minizero::env::rubiks::RubiksAction Action;

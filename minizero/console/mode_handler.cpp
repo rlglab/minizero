@@ -7,6 +7,7 @@
 #include "ostream_redirector.h"
 #include "random.h"
 #include "zero_server.h"
+#include <cstdlib>
 #include <string>
 #include <vector>
 
@@ -21,6 +22,7 @@ ModeHandler::ModeHandler()
     RegisterFunction("zero_server", this, &ModeHandler::runZeroServer);
     RegisterFunction("zero_training_name", this, &ModeHandler::runZeroTrainingName);
     RegisterFunction("env_test", this, &ModeHandler::runEnvTest);
+    RegisterFunction("env_test2", this, &ModeHandler::runEnvTest2);
     RegisterFunction("remove_obs", this, &ModeHandler::runRemoveObs);
     RegisterFunction("recover_obs", this, &ModeHandler::runRecoverObs);
 }
@@ -175,6 +177,57 @@ void ModeHandler::runEnvTest()
 
     EnvironmentLoader env_loader;
     env_loader.loadFromEnvironment(env);
+    std::cout << env_loader.toString() << std::endl;
+}
+
+void ModeHandler::runEnvTest2()
+{
+    Environment env;
+    env.reset();
+    std::cout << "Game started. Enter your moves or 'q' to quit." << std::endl;
+
+    while (!env.isTerminal()) {
+        system("clear");
+        std::cout << env.toString() << std::endl;
+
+        std::vector<Action> legal_actions = env.getLegalActions();
+        std::cout << "Legal actions:" << std::endl;
+        for (size_t i = 0; i < legal_actions.size(); ++i) {
+            std::cout << i << ": " << legal_actions[i].toConsoleString() << ", ";
+        }
+        std::cout << std::endl;
+
+        std::string input;
+        std::cout << "Enter the index of your move (or 'q' to quit): ";
+        std::cin >> input;
+
+        if (input == "q" || input == "Q") {
+            std::cout << "Quitting the game." << std::endl;
+            break;
+        }
+
+        int index;
+        try {
+            index = std::stoi(input);
+        } catch (const std::exception&) {
+            std::cout << "Invalid input. Please enter a number." << std::endl;
+            continue;
+        }
+
+        if (index < 0 || index >= static_cast<int>(legal_actions.size())) {
+            std::cout << "Invalid move index. Please try again." << std::endl;
+            continue;
+        }
+
+        env.act(legal_actions[index]);
+    }
+
+    std::cout << "Game over. Final state:" << std::endl;
+    std::cout << env.toString() << std::endl;
+
+    EnvironmentLoader env_loader;
+    env_loader.loadFromEnvironment(env);
+    std::cout << "Game record:" << std::endl;
     std::cout << env_loader.toString() << std::endl;
 }
 
