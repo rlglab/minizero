@@ -177,9 +177,14 @@ bool TetrisEnv::fall()
 std::vector<float> TetrisEnv::getFeatures(utils::Rotation rotation /*= utils::Rotation::kRotationNone*/) const
 {
     std::vector<float> features;
-    for (int y = 0; y < kTetrisBoardHeight; ++y) {
+    for (int y = 0; y < kTetrisBoardHeight; ++y) { // first channel
         for (int x = 0; x < kTetrisBoardWidth; ++x) {
             features.push_back(board_.isOccupied(x, y) ? 1.0f : 0.0f);
+        }
+    }
+    for (int y = 0; y < kTetrisBoardHeight; ++y) { // second channel
+        for (int x = 0; x < kTetrisBoardWidth; ++x) {
+            features.push_back(board_.isCurrentPiece(x, y) ? 1.0f : 0.0f);
         }
     }
     return features;
@@ -219,7 +224,19 @@ std::string TetrisEnv::toString() const
 
 float TetrisEnvLoader::calculateNStepValue(const int pos) const
 {
-    return 0;
+    assert(pos < static_cast<int>(action_pairs_.size()));
+
+    const int n_step = config::learner_n_step_return;
+    const float discount = config::actor_mcts_reward_discount;
+    size_t bootstrap_index = pos + n_step;
+    float value = 0.0f;
+    float n_step_value = ((bootstrap_index < action_pairs_.size()) ? std::pow(discount, n_step) * BaseEnvLoader::getValue(bootstrap_index)[0] : 0.0f);
+    for (size_t index = pos; index < std::min(bootstrap_index, action_pairs_.size()); ++index) {
+        float reward = BaseEnvLoader::getReward(index)[0];
+        value += std::pow(discount, index - pos) * reward;
+    }
+    value += n_step_value;
+    return value;
 }
 
 std::vector<float> TetrisEnvLoader::toDiscreteValue(float value) const

@@ -45,6 +45,15 @@ public:
     {
         return board_[y][x] != 0;
     }
+    bool isCurrentPiece(int x, int y) const
+    {
+        for (const auto& [dx, dy] : current_piece_) {
+            if (x == current_piece_x_ + dx && y == current_piece_y_ + dy) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     bool isLineFull(int y) const
     {
@@ -218,20 +227,13 @@ public:
 
     friend std::ostream& operator<<(std::ostream& out, const TetrisBoard& b)
     {
-        out << "+-------------------+" << std::endl;
+        out << "+--------------------+" << std::endl;
         for (int y = 0; y < HEIGHT; ++y) {
             out << "|";
             for (int x = 0; x < WIDTH; ++x) {
-                bool is_current_piece = false;
-                for (const auto& [dx, dy] : b.current_piece_) {
-                    if (x == b.current_piece_x_ + dx && y == b.current_piece_y_ + dy) {
-                        is_current_piece = true;
-                        break;
-                    }
-                }
                 if (b.isOccupied(x, y)) {
                     out << b.getColorForPiece(b.board_[y][x]) << "[]" << RESET;
-                } else if (is_current_piece) {
+                } else if (b.isCurrentPiece(x, y)) {
                     out << COLOR_CURRENT << "()" << RESET;
                 } else {
                     out << "  ";
@@ -239,7 +241,7 @@ public:
             }
             out << "|" << std::endl;
         }
-        out << "+-------------------+" << std::endl;
+        out << "+--------------------+" << std::endl;
         return out;
     }
 

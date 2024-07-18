@@ -82,7 +82,7 @@ public:
     int getRotateAction(int action_id, utils::Rotation rotation) const override { return action_id; }
     std::vector<float> getFeatures(utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::vector<float> getActionFeatures(const TetrisAction& action, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
-    inline int getNumInputChannels() const override { return 1; } // Channel nums, TODO
+    inline int getNumInputChannels() const override { return 2; } // feature channel nums
     inline int getNumActionFeatureChannels() const override { return 1; }
     inline int getInputChannelHeight() const override { return kTetrisBoardHeight; }
     inline int getInputChannelWidth() const override { return kTetrisBoardWidth; }
