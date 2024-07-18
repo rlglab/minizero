@@ -164,7 +164,8 @@ public:
 
     bool down()
     {
-        return fall();
+        fall();
+        return true;
     }
 
     bool fall()
