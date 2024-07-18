@@ -415,7 +415,7 @@ if [[ $mode == train ]]; then # ================================ TRAIN =========
     # launch zero server
     {
         $launch scripts/zero-server.sh $game $conf_file $zero_end_iteration -n "$train_dir" -conf_str "$conf_str"
-    } 2>&1 | tee >(watchdog "Worker Disconnection|^Failed to|Segmentation fault|Killed|Aborted|^[A-Za-z]+Error") | colorize OUT_TRAIN &
+    } 2>&1 | tee >(watchdog "Worker Disconnection|^Failed to|Segmentation fault|Killed|Aborted|^[A-Za-z.]+Error") | colorize OUT_TRAIN &
     PID[$!]=server
     server_pid=$!
 
@@ -443,7 +443,7 @@ if [[ $mode == train ]]; then # ================================ TRAIN =========
             [[ $sp_progress == true ]] && sp_program_quiet=false || sp_program_quiet=true
             [[ $sp_conf_str != *program_quiet* ]] && sp_conf_str+=${sp_conf_str:+:}program_quiet=$sp_program_quiet
             $launch scripts/zero-worker.sh $game $(hostname) $zero_server_port sp -b ${batch_size:-64} -c ${num_threads:-4} -g $GPU ${sp_conf_str:+-conf_str "$sp_conf_str"}
-        } 2>&1 | tee >(watchdog "^Failed to|Segmentation fault|Killed|Aborted|^[A-Za-z]+Error") | colorize OUT_TRAIN_SP &
+        } 2>&1 | tee >(watchdog "^Failed to|Segmentation fault|Killed|Aborted|^[A-Za-z.]+Error") | colorize OUT_TRAIN_SP &
         PID[$!]=sp$GPU
         unset sp_progress # only show the progress of the first sp
         sleep 1
@@ -453,7 +453,7 @@ if [[ $mode == train ]]; then # ================================ TRAIN =========
     OP_CUDA_VISIBLE_DEVICES=${OP_CUDA_VISIBLE_DEVICES:-$CUDA_VISIBLE_DEVICES}
     {
         $launch scripts/zero-worker.sh $game $(hostname) $zero_server_port op -g ${OP_CUDA_VISIBLE_DEVICES//,/} ${op_conf_str:+-conf_str "$op_conf_str"}
-    } 2>&1 | tee >(watchdog "^Failed to|Segmentation fault|Killed|Aborted|^[A-Za-z]+Error") | colorize OUT_TRAIN_OP &
+    } 2>&1 | tee >(watchdog "^Failed to|Segmentation fault|Killed|Aborted|^[A-Za-z.]+Error") | colorize OUT_TRAIN_OP &
     PID[$!]=op
 
     trap 'eval "log() { echo -en \"\r\" >&2; $(type log | tail -n+3); echo -en \"\r\" >&2; }"' SIGUSR1 # workaround for exec -it issue
@@ -635,7 +635,7 @@ elif [[ $mode == console ]]; then # ================================ CONSOLE ===
         log INFO "Launch console with gogui-server at tcp://0.0.0.0:$port" # displaying this will trigger VS code to automatically start port forwarding
         {
             $launch gogui-server -port $port -loop -verbose "$executable -mode console -conf_file ${conf_file} -conf_str ${conf_str}"
-        } 2>&1 | tee >(watchdog "^Address already in use|^Failed to|Segmentation fault|Killed|Aborted|^[A-Za-z]+Error") | colorize OUT_CONSOLE_GOGUI &
+        } 2>&1 | tee >(watchdog "^Address already in use|^Failed to|Segmentation fault|Killed|Aborted|^[A-Za-z.]+Error") | colorize OUT_CONSOLE_GOGUI &
         PID[$!]=console
 
         trap 'log ERR "Console failed to start correctly"' SIGUSR1
