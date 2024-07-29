@@ -19,15 +19,24 @@ void TetrisEnv::reset(int seed)
     actChanceEvent();
 }
 
+void TetrisEnv::lockPiece() {
+    board_.placePiece();
+    int lines_cleared = board_.clearFullLines();
+    reward_ = lines_cleared * lines_cleared;
+    total_reward_ += reward_;
+}
+
 bool TetrisEnv::act(const TetrisAction& action, bool with_chance /* = true */)
 {
     if (turn_ != Player::kPlayer1) { return false; }
 
-    bool valid = false;
-    if (action.getActionID() == kTetrisActionSize - 2) {
+    bool valid = false, goDown = false;
+    if (action.getActionID() == kTetrisDropActionID) {
         valid = board_.drop();
-    } else if (action.getActionID() == kTetrisActionSize - 3) {
+        goDown = true;
+    } else if (action.getActionID() == 3) { // down action
         valid = board_.down();
+        goDown = true;
     } else {
         int rotation = action.getRotation();
         int movement = action.getMovement();
@@ -49,19 +58,17 @@ bool TetrisEnv::act(const TetrisAction& action, bool with_chance /* = true */)
         actions_.push_back(action);
         board_.gameCount();
         reward_ = 0;
+        turn_ = Player::kPlayerNone;
 
-        if (board_.isAtBottom()) {
+        if ((goDown || board_.getCounter() % kTetrisTime == 0) && board_.isAtBottom()) {
             board_.placePiece();
             int lines_cleared = board_.clearFullLines();
             reward_ = lines_cleared * lines_cleared;
             total_reward_ += reward_;
-
             if (with_chance) {
-                turn_ = Player::kPlayerNone;
                 actChanceEvent();
             }
         } else if (with_chance) {
-            turn_ = Player::kPlayerNone;
             actChanceEvent();
         }
     }

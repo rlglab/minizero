@@ -7,6 +7,10 @@
 #include "ostream_redirector.h"
 #include "random.h"
 #include "zero_server.h"
+#include "base_actor.h"
+#include "network.h"
+#include "create_actor.h"
+#include "create_network.h"
 #include <cstdlib>
 #include <string>
 #include <vector>
@@ -18,6 +22,7 @@
 namespace minizero::console {
 
 using namespace minizero::utils;
+using namespace minizero::network;
 
 ModeHandler::ModeHandler()
 {
@@ -28,6 +33,7 @@ ModeHandler::ModeHandler()
     RegisterFunction("env_test", this, &ModeHandler::runEnvTest);
     RegisterFunction("env_test2", this, &ModeHandler::runEnvTest2);
     RegisterFunction("env_test3", this, &ModeHandler::runEnvTest3);
+    RegisterFunction("env_evaluation", this, &ModeHandler::runEvaluation);
     RegisterFunction("remove_obs", this, &ModeHandler::runRemoveObs);
     RegisterFunction("recover_obs", this, &ModeHandler::runRecoverObs);
 }
@@ -307,6 +313,58 @@ void ModeHandler::runEnvTest3()
             break;
         }
     }
+}
+
+void ModeHandler::runEvaluation()
+{
+    
+    std::shared_ptr<minizero::network::Network> network_;
+    std::shared_ptr<actor::BaseActor> actor_;
+    std::shared_ptr<network::AlphaZeroNetwork> alphazero_network_;
+    if (!network_) { network_ = createNetwork(config::nn_file_name, 0); }
+    if (!actor_) {
+        uint64_t tree_node_size = static_cast<uint64_t>(config::actor_num_simulation + 1) * network_->getActionSize();
+        actor_ = actor::createActor(tree_node_size, network_);
+    }
+    actor_->setNetwork(network_);
+    alphazero_network_ = std::static_pointer_cast<AlphaZeroNetwork>(network_);
+
+    float total_return = 0;
+    int n = 1;
+    bool attack = 0;
+    for (int iter = 0; iter < n; ++iter) {
+        actor_->reset();
+        while (!actor_->isEnvTerminal()) {
+            const Action action = actor_->think(false, true);
+            actor_->getEnvironment().act(action, !attack);
+            if(actor_->isEnvTerminal()) {
+                std::cout << actor_->getEnvironment().toString() << std::endl;
+                break;
+            }
+            if(attack) {
+                auto events = actor_->getEnvironment().getLegalChanceEvents();
+                float mn = 1e9+7;
+                auto worst_event = events[0];
+                for (auto event : events) {
+                    Environment env = actor_->getEnvironment();
+                    env.actChanceEvent(event);
+                    auto features = env.getFeatures();
+                    auto nn_evaluation_batch_id_ = alphazero_network_->pushBack(features);
+                    auto network_output = alphazero_network_->forward();
+                    auto output = network_output[nn_evaluation_batch_id_];
+                    std::shared_ptr<AlphaZeroNetworkOutput> alphazero_output = std::static_pointer_cast<AlphaZeroNetworkOutput>(output);
+                    auto value = alphazero_output->value_;
+                    if (value < mn) {
+                        mn = value;
+                        worst_event = event;
+                    }
+                }
+                actor_->getEnvironment().actChanceEvent(worst_event);
+            }
+        }
+        total_return += actor_->getEnvironment().getEvalScore();
+    }
+    std::cout << "Return: " << total_return / n << std::endl;
 }
 
 void ModeHandler::runRemoveObs()

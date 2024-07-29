@@ -14,7 +14,8 @@ const int kTetrisBoardWidth = 10;
 const int kTetrisBoardHeight = 22; // 20 + 2 buffer lines
 const int kTetrisDiscreteValueSize = 601;
 const int kTetrisMaxMovement = 1;
-const int kTetrisActionSize = 6; //U LRD + drop + no_action
+const int kTetrisActionSize = 6; // ULRD + drop + no_action
+const int kTetrisDropActionID = kTetrisActionSize - 2;
 const int kTetrisChanceEventSize = 8; // 7 tetromino types + 1 fall + no_action
 const int kTetrisTime = 2; // chance event period
 
@@ -87,6 +88,7 @@ public:
     bool isLegalAction(const TetrisAction& action) const override;
     bool isLegalChanceEvent(const TetrisAction& action) const override;
     bool isTerminal() const override;
+    void lockPiece();
 
     int getRotatePosition(int position, utils::Rotation rotation) const override { return position; }
     int getRotateAction(int action_id, utils::Rotation rotation) const override { return action_id; }
