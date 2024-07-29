@@ -10,12 +10,13 @@ namespace minizero::env::tetris {
 
 const std::string kTetrisName = "tetris";
 const int kTetrisNumPlayer = 1;
-//const int kTetrisBoardSize = 22;
 const int kTetrisBoardWidth = 10;
-const int kTetrisBoardHeight = 22; //20 + 2 buffer lines
+const int kTetrisBoardHeight = 22; // 20 + 2 buffer lines
 const int kTetrisDiscreteValueSize = 601;
-const int kTetrisMaxMovement = 3;
-const int kTetrisActionSize = (kTetrisMaxMovement * 2 + 1) * 4 + 2;
+const int kTetrisMaxMovement = 1;
+const int kTetrisActionSize = 6; //U LRD + drop + no_action
+const int kTetrisChanceEventSize = 8; // 7 tetromino types + 1 fall + no_action
+const int kTetrisTime = 2; // chance event period
 
 class TetrisAction : public BaseAction {
 public:
@@ -27,13 +28,15 @@ public:
 
         if (action_string_args[0] == "drop") {
             action_id_ = kTetrisActionSize - 2;
-        } else if (action_string_args[0] == "down") {
+        } else if (action_string_args[0] == "no_action") {
             action_id_ = kTetrisActionSize - 1;
         } else {
-            int rotation = action_string_args[0][1] - '0';
-            int movement = std::stoi(action_string_args[0].substr(3));
-
-            action_id_ = rotation * (kTetrisMaxMovement * 2 + 1) + (movement + kTetrisMaxMovement);
+            std::string action_str = "ULRD";
+            for(action_id_ = 0; action_id_ < 4; ++action_id_) {
+                if(action_string_args[0][0] == action_str[action_id_]) {
+                    break;
+                }
+            }
         }
         player_ = Player::kPlayer1;
     }
@@ -42,20 +45,27 @@ public:
     inline std::string toConsoleString() const
     {
         if (action_id_ == kTetrisActionSize - 2) return "drop";
-        if (action_id_ == kTetrisActionSize - 1) return "down";
+        if (action_id_ == kTetrisActionSize - 1) return "no_action";
         std::string action_str = "";
-        action_str.push_back('R');
-        action_str += std::to_string(getRotation());
-        action_str.push_back('M');
-        action_str += std::to_string(getMovement());
+        action_str.push_back("ULRD"[action_id_]);
         return action_str;
     }
 
-    int getRotation() const { return action_id_ / (kTetrisMaxMovement * 2 + 1); }
+    int getRotation() const 
+    {
+        return (action_id_ == 0);
+    }
     int getMovement() const
     {
-        int move = action_id_ % (kTetrisMaxMovement * 2 + 1) - kTetrisMaxMovement;
-        return move < 0 ? move : (move > 0 ? move : 0);
+        if(action_id_ == 1) {
+            return -1;
+        }
+        else if(action_id_ == 2) {
+            return 1;
+        }
+        else {
+            return 0;
+        }
     }
 };
 
@@ -72,7 +82,7 @@ public:
 
     std::vector<TetrisAction> getLegalActions() const override;
     std::vector<TetrisAction> getLegalChanceEvents() const override;
-    int getMaxChanceEventSize() const override { return 8; } // 7 tetromino types + 1 fall
+    int getMaxChanceEventSize() const override { return kTetrisChanceEventSize; } 
     float getChanceEventProbability(const TetrisAction& action) const override;
     bool isLegalAction(const TetrisAction& action) const override;
     bool isLegalChanceEvent(const TetrisAction& action) const override;
@@ -100,7 +110,8 @@ public:
 private:
     struct TetrisChanceEvent {
         enum class EventType { Fall,
-                               NewPiece };
+                               NewPiece, 
+                               NoAction };
         EventType type_;
         int piece_type_;
 
@@ -115,7 +126,7 @@ private:
     TetrisBoard board_;
     int reward_;
     int total_reward_;
-    void generateNewPiece();
+    void generateNewPiece(int piece_type);
     bool fall();
 };
 

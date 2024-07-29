@@ -26,7 +26,7 @@ bool TetrisEnv::act(const TetrisAction& action, bool with_chance /* = true */)
     bool valid = false;
     if (action.getActionID() == kTetrisActionSize - 2) {
         valid = board_.drop();
-    } else if (action.getActionID() == kTetrisActionSize - 1) {
+    } else if (action.getActionID() == kTetrisActionSize - 3) {
         valid = board_.down();
     } else {
         int rotation = action.getRotation();
@@ -47,6 +47,7 @@ bool TetrisEnv::act(const TetrisAction& action, bool with_chance /* = true */)
 
     if (valid) {
         actions_.push_back(action);
+        board_.gameCount();
         reward_ = 0;
 
         if (board_.isAtBottom()) {
@@ -74,10 +75,15 @@ bool TetrisEnv::actChanceEvent(const TetrisAction& action)
     if (isTerminal()) { return false; }
 
     TetrisChanceEvent event = TetrisChanceEvent::toChanceEvent(action);
-    if (event.type_ == TetrisChanceEvent::EventType::NewPiece) {
-        generateNewPiece();
-    } else {
-        fall();
+    if(event.type_ == TetrisChanceEvent::EventType::NoAction) {
+        
+    }
+    else {
+        if (event.type_ == TetrisChanceEvent::EventType::NewPiece) {
+            generateNewPiece(event.piece_type_);
+        } else {
+            fall();
+        }
     }
 
     turn_ = Player::kPlayer1;
@@ -89,10 +95,15 @@ bool TetrisEnv::actChanceEvent()
     if (turn_ != Player::kPlayerNone) { return false; }
     if (isTerminal()) { return false; }
 
-    if (board_.isAtBottom()) {
-        generateNewPiece();
-    } else {
-        fall();
+    if (board_.getCounter() % kTetrisTime != 0) {
+
+    }
+    else {
+        if (board_.isAtBottom()) {
+            generateNewPiece(-1);
+        } else {
+            fall();
+        }
     }
 
     turn_ = Player::kPlayer1;
@@ -104,15 +115,17 @@ std::vector<TetrisAction> TetrisEnv::getLegalActions() const
     if (turn_ != Player::kPlayer1) { return {}; }
     if (isTerminal()) { return {}; }
     std::vector<TetrisAction> actions;
-    for (int rotation = 0; rotation < 4; ++rotation) {
-        for (int movement = -kTetrisMaxMovement; movement <= kTetrisMaxMovement; ++movement) {
-            if (board_.isLegalAction(rotation, movement)) {
-                actions.emplace_back(rotation * (kTetrisMaxMovement * 2 + 1) + (movement + kTetrisMaxMovement), Player::kPlayer1);
-            }
+    std::vector<std::pair<int, int>> v = {{1, 0}, {0, -1}, {0, 1}}; // ULR
+    for (int i = 0; i < 3; ++i) {
+        int rotation = v[i].first;
+        int movement = v[i].second;
+        if (board_.isLegalAction(rotation, movement)) {
+            actions.emplace_back(i, Player::kPlayer1);
         }
     }
+    actions.emplace_back(kTetrisActionSize - 3, Player::kPlayer1); // down
     actions.emplace_back(kTetrisActionSize - 2, Player::kPlayer1); // drop
-    actions.emplace_back(kTetrisActionSize - 1, Player::kPlayer1); // down
+    actions.emplace_back(kTetrisActionSize - 1, Player::kPlayer1); // no_action
     return actions;
 }
 
@@ -121,12 +134,17 @@ std::vector<TetrisAction> TetrisEnv::getLegalChanceEvents() const
     if (turn_ != Player::kPlayerNone) { return {}; }
     if (isTerminal()) { return {}; }
     std::vector<TetrisAction> events;
-    if (board_.isAtBottom()) {
-        for (int i = 0; i < 7; ++i) {
-            events.push_back(TetrisChanceEvent::toAction(TetrisChanceEvent(TetrisChanceEvent::EventType::NewPiece, i)));
+    if (board_.getCounter() % kTetrisTime != 0) {
+        events.push_back(TetrisChanceEvent::toAction(TetrisChanceEvent(TetrisChanceEvent::EventType::NoAction)));
+    }
+    else {
+        if (board_.isAtBottom()) {
+            for (int i = 0; i < 7; ++i) {
+                events.push_back(TetrisChanceEvent::toAction(TetrisChanceEvent(TetrisChanceEvent::EventType::NewPiece, i)));
+            }
+        } else {
+            events.push_back(TetrisChanceEvent::toAction(TetrisChanceEvent(TetrisChanceEvent::EventType::Fall)));
         }
-    } else {
-        events.push_back(TetrisChanceEvent::toAction(TetrisChanceEvent(TetrisChanceEvent::EventType::Fall)));
     }
     return events;
 }
@@ -151,10 +169,15 @@ bool TetrisEnv::isLegalAction(const TetrisAction& action) const
 bool TetrisEnv::isLegalChanceEvent(const TetrisAction& action) const
 {
     TetrisChanceEvent event = TetrisChanceEvent::toChanceEvent(action);
-    if (event.type_ == TetrisChanceEvent::EventType::NewPiece) {
-        return board_.isAtBottom() && event.piece_type_ >= 0 && event.piece_type_ < 7 && action.getPlayer() == Player::kPlayerNone;
-    } else {
-        return !board_.isAtBottom() && action.getPlayer() == Player::kPlayerNone;
+    if(event.type_ == TetrisChanceEvent::EventType::NoAction) {
+        return board_.getCounter() % kTetrisTime != 0 && event.piece_type_ == 8 && action.getPlayer() == Player::kPlayerNone;
+    }
+    else {
+        if (event.type_ == TetrisChanceEvent::EventType::NewPiece) {
+            return board_.isAtBottom() && event.piece_type_ >= 0 && event.piece_type_ < 7 && action.getPlayer() == Player::kPlayerNone;
+        } else {
+            return !board_.isAtBottom() && event.piece_type_ == 7 && action.getPlayer() == Player::kPlayerNone;
+        }
     }
 }
 
@@ -163,9 +186,11 @@ bool TetrisEnv::isTerminal() const
     return board_.isGameOver();
 }
 
-void TetrisEnv::generateNewPiece()
+void TetrisEnv::generateNewPiece(int piece_type)
 {
-    int piece_type = std::uniform_int_distribution<int>(0, 6)(random_);
+    if(piece_type == -1) {
+        piece_type = std::uniform_int_distribution<int>(0, 6)(random_);
+    }
     board_.generateNewPiece(piece_type);
 }
 
@@ -201,8 +226,10 @@ TetrisEnv::TetrisChanceEvent TetrisEnv::TetrisChanceEvent::toChanceEvent(const T
 {
     if (action.getActionID() < 7) {
         return TetrisChanceEvent(EventType::NewPiece, action.getActionID());
-    } else {
+    } else if(action.getActionID() == 7) {
         return TetrisChanceEvent(EventType::Fall);
+    } else {
+        return TetrisChanceEvent(EventType::NoAction);
     }
 }
 
@@ -210,8 +237,10 @@ TetrisAction TetrisEnv::TetrisChanceEvent::toAction(const TetrisEnv::TetrisChanc
 {
     if (event.type_ == EventType::NewPiece) {
         return TetrisAction(event.piece_type_, Player::kPlayerNone);
-    } else {
+    } else if(event.type_ == EventType::Fall) {
         return TetrisAction(7, Player::kPlayerNone);
+    } else {
+        return TetrisAction(8, Player::kPlayerNone);
     }
 }
 

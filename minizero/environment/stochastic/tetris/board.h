@@ -103,6 +103,7 @@ public:
         for (const auto& [dx, dy] : current_piece_) {
             set(current_piece_x_ + dx, current_piece_y_ + dy, current_piece_type_);
         }
+        current_counter_ = 0;
     }
 
     void setCurrentPiece(const std::vector<std::pair<int, int>>& piece, int x, int y, int piece_type)
@@ -192,6 +193,17 @@ public:
         current_piece_x_ = 0;
         current_piece_y_ = 0;
         current_piece_type_ = 0;
+        current_counter_ = 0;
+    }
+
+    void gameCount()
+    {
+        current_counter_++;
+    }
+
+    int getCounter() const
+    {
+        return current_counter_;
     }
 
     bool isGameOver() const
@@ -251,6 +263,7 @@ private:
     std::vector<std::pair<int, int>> current_piece_;
     int current_piece_x_, current_piece_y_;
     int current_piece_type_;
+    int current_counter_;
     static std::string getColorForPiece(int piece_type)
     {
         switch (piece_type) {
