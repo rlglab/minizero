@@ -34,7 +34,11 @@ public:
     bool is_terminal_;
     int data_length_;
     int game_length_;
-    float legal_player_rate_;
+    float legal_rate_;
+    float illegal_action_rate_;
+    float illegal_player_rate_;
+    float illegal_both_rate_;
+    float terminal_rate_;
     float return_;
     std::string game_record_;
 

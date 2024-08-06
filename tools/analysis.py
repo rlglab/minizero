@@ -58,6 +58,12 @@ def get_myDict(lines, iter):
                 if re.findall(r'(\[SelfPlay Avg. Game Returns\])', line):
                     myDict["[Iteration]"].append(counter)
                 continue
+            ret4 = re.findall(r'\[(SelfPlay Avg\.\s\w+(?:\s\w+)*)\]\s(-?\d+\.\d+|\d+)\s%', line)
+            if ret4 != []:
+                key = ret4[0][0]
+                if key not in myDict:
+                    myDict[key] = []
+                myDict[key].append(float(ret4[0][1]))
             ret2 = re.findall(r'((\[Iteration\])\s={5}(\d+)={5})', line)
             if ret2 != []:
                 counter += 1
@@ -163,7 +169,7 @@ def analysis_(dir, path, iter, all: bool = False, name: bool = False):
     Training_log.close()
     # plt target
     myDict, learner_training_display_step, learner_training_step = get_myDict(lines, iter)
-    Fig_list = list(set(["Lengths", "Time", "Returns"] + [re.sub(r"_\d+$", "", key) for key in myDict if re.match(r'^(loss|accuracy)_', key)]))
+    Fig_list = list(set(["Lengths", "Time", "Returns", "Rates"] + [re.sub(r"_\d+$", "", key) for key in myDict if re.match(r'^(loss|accuracy)_', key)]))
     # plt figure
     counter_subplot = sum([1 for word in Fig_list if word in ' '.join(myDict.keys())])
     if counter_subplot == 0 or len(myDict["Time"]) == 0:
@@ -180,7 +186,7 @@ def analysis_(dir, path, iter, all: bool = False, name: bool = False):
         for key in myDict:
             if item in key:
                 bool_print = True
-                if "Returns" in item or "Lengths" in item:
+                if "Returns" in item or "Lengths" in item or "Rates" in item:
                     step_interval = learner_training_step
                     if "[SelfPlay Avg. Game Returns]" in key:
                         ax1.plot([x * step_interval for x in myDict["[Iteration]"]], myDict[key], color='red', label=f'{key}', linewidth=width)
@@ -211,9 +217,9 @@ def analysis_(dir, path, iter, all: bool = False, name: bool = False):
             axs[counter_fig].grid()
             plt.tight_layout()
             dir = os.path.dirname(dir + "/")
-            plt.savefig(os.path.join(f'{path}', f'{str(dir.split("/")[-1])}_{item}.png'))
+            plt.savefig(os.path.join(f'{path}', f'{str(dir.split("/")[-1])}_{item.replace(" ", "_")}.png'))
             if name:
-                eprint(os.path.join(f'{path}', f'{str(dir.split("/")[-1])}_{item}.png'))
+                eprint(os.path.join(f'{path}', f'{str(dir.split("/")[-1])}_{item.replace(" ", "_")}.png'))
             plt.cla()
             counter_fig += 1
     if all:

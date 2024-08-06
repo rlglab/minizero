@@ -24,7 +24,11 @@ void DotsAndBoxesEnv::reset()
 
     turn_ = Player::kPlayer1;
     current_player_continue_ = false;
-    legal_player_rates_.clear();
+    legal_rates_.clear();
+    illegal_action_rates_.clear();
+    illegal_player_rates_.clear();
+    illegal_both_rates_.clear();
+    terminal_rates_.clear();
     actions_.clear();
 
     /*

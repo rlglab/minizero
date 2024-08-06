@@ -73,7 +73,14 @@ private:
 template <class Action>
 class BaseEnv {
 public:
-    BaseEnv() { legal_player_rates_.clear(); }
+    BaseEnv()
+    {
+        legal_rates_.clear();
+        illegal_action_rates_.clear();
+        illegal_player_rates_.clear();
+        illegal_both_rates_.clear();
+        terminal_rates_.clear();
+    }
     virtual ~BaseEnv() = default;
 
     virtual void reset() = 0;
@@ -100,16 +107,28 @@ public:
     virtual std::string name() const = 0;
     virtual int getNumPlayer() const = 0;
     virtual void setTurn(Player p) { turn_ = p; }
-    virtual void pushBackLegalPlayerRate(float rate) { legal_player_rates_.push_back(rate); }
+    virtual void pushBackLegalRate(float rate) { legal_rates_.push_back(rate); }
+    virtual void pushBackIllegalPlayerRate(float rate) { illegal_player_rates_.push_back(rate); }
+    virtual void pushBackIllegalActionRate(float rate) { illegal_action_rates_.push_back(rate); }
+    virtual void pushBackIllegalBothRate(float rate) { illegal_both_rates_.push_back(rate); }
+    virtual void pushBackTerminalRate(float rate) { terminal_rates_.push_back(rate); }
 
     inline Player getTurn() const { return turn_; }
-    inline float getAverageLegalPlayerRate() const { return std::accumulate(legal_player_rates_.begin(), legal_player_rates_.end(), 0.0f) / legal_player_rates_.size(); }
+    inline float getAverageLegalRate() const { return std::accumulate(legal_rates_.begin(), legal_rates_.end(), 0.0f) / legal_rates_.size(); }
+    inline float getAverageIllegalPlayerRate() const { return std::accumulate(illegal_player_rates_.begin(), illegal_player_rates_.end(), 0.0f) / illegal_player_rates_.size(); }
+    inline float getAverageIllegalActionRate() const { return std::accumulate(illegal_action_rates_.begin(), illegal_action_rates_.end(), 0.0f) / illegal_action_rates_.size(); }
+    inline float getAverageIllegalBothRate() const { return std::accumulate(illegal_both_rates_.begin(), illegal_both_rates_.end(), 0.0f) / illegal_both_rates_.size(); }
+    inline float getAverageTerminalRate() const { return std::accumulate(terminal_rates_.begin(), terminal_rates_.end(), 0.0f) / terminal_rates_.size(); }
     inline const std::vector<Action>& getActionHistory() const { return actions_; }
     inline const std::vector<std::string>& getObservationHistory() const { return observations_; }
 
 protected:
     Player turn_;
-    std::vector<float> legal_player_rates_;
+    std::vector<float> legal_rates_;
+    std::vector<float> illegal_action_rates_;
+    std::vector<float> illegal_player_rates_;
+    std::vector<float> illegal_both_rates_;
+    std::vector<float> terminal_rates_;
     std::vector<Action> actions_;
     std::vector<std::string> observations_;
 };

@@ -68,19 +68,23 @@ void ZeroActor::beforeNNEvaluation()
             assert(parent_node && parent_node->getHiddenStateDataIndex() != -1);
             const std::vector<float>& hidden_state = getMCTS()->getTreeHiddenStateData().getData(parent_node->getHiddenStateDataIndex()).hidden_state_;
             nn_evaluation_batch_id_ = muzero_network_->pushBackRecurrentData(hidden_state, env_.getActionFeatures(leaf_node->getAction()));
-            if (parent_node->getIsLegal()) {
+            if (leaf_node->getIsLegal()) {
                 node_path.pop_back();
                 Environment env_transition = getEnvironmentTransition(node_path);
                 if (env_transition.isTerminal()) {
-                    leaf_node->setIsLegal(false);
+                    leaf_node->setIsTerminal(true);
                 } else {
-                    getMCTS()->increaseLegalParentNodeCount();
                     bool is_legal_action = env_transition.isLegalAction(leaf_node->getAction());
                     bool is_legal_player = env_transition.isLegalPlayer(leaf_node->getAction().getPlayer());
-                    leaf_node->setIsLegal(is_legal_action && is_legal_player);
-                    if (is_legal_player) { getMCTS()->increaselegalPlayerNodeCount(); }
+                    leaf_node->setIsLegalAction(is_legal_action);
+                    leaf_node->setIsLegalPlayer(is_legal_player);
                 }
             }
+            if (leaf_node->getIsLegal()) { getMCTS()->increaseLegalNodeCount(); }
+            if (!leaf_node->getIsLegalAction()) { getMCTS()->increaseIllegalActionNodeCount(); }
+            if (!leaf_node->getIsLegalPlayer()) { getMCTS()->increaseIllegalPlayerNodeCount(); }
+            if (!leaf_node->getIsLegalAction() && !leaf_node->getIsLegalPlayer()) { getMCTS()->increaseIllegalBothNodeCount(); }
+            if (leaf_node->getIsTerminal()) { getMCTS()->increaseTerminalNodeCount(); }
         }
     } else {
         assert(false);

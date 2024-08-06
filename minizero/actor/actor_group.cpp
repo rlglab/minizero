@@ -33,7 +33,11 @@ void ThreadSharedData::outputGame(const std::shared_ptr<BaseActor>& actor)
         << (data_range.second - data_range.first + 1) << " "                                                               // data length
         << game_length << " "                                                                                              // game length
         << actor->getEnvironment().getEvalScore(!actor->isEnvTerminal()) << " "                                            // return
-        << actor->getEnvironment().getAverageLegalPlayerRate() << " "                                                      // legal player rate
+        << actor->getEnvironment().getAverageLegalRate() << " "                                                            // legal rate
+        << actor->getEnvironment().getAverageIllegalActionRate() << " "                                                    // legal action rate
+        << actor->getEnvironment().getAverageIllegalPlayerRate() << " "                                                    // legal player rate
+        << actor->getEnvironment().getAverageIllegalBothRate() << " "                                                      // legal both rate
+        << actor->getEnvironment().getAverageTerminalRate() << " "                                                         // terminal rate
         << actor->getRecord({{"DLEN", std::to_string(data_range.first) + "-" + std::to_string(data_range.second)}}) << " " // game record
         << "#";                                                                                                            // end mark for a valid game
 
@@ -117,15 +121,21 @@ void SlaveThread::handleSearchDone(int actor_id)
 
     std::shared_ptr<BaseActor>& actor = getSharedData()->actors_[actor_id];
     if (!actor->isResign()) { actor->act(actor->getSearchAction()); }
-    float legal_player_rate = (actor->getMCTS()->getlegalPlayerNodeCount() / static_cast<float>(actor->getMCTS()->getLegalParentNodeCount()) * 100);
-    actor->getEnvironment().pushBackLegalPlayerRate(legal_player_rate);
+    float legal_rate = actor->getMCTS()->getLegalRate();
+    float illegal_action_rate = actor->getMCTS()->getIllegalActionRate();
+    float illegal_player_rate = actor->getMCTS()->getIllegalPlayerRate();
+    float illegal_both_rate = actor->getMCTS()->getIllegalBothRate();
+    float terminal_rate = actor->getMCTS()->getTerminalRate();
+    actor->getEnvironment().pushBackLegalRate(legal_rate);
+    actor->getEnvironment().pushBackIllegalActionRate(illegal_action_rate);
+    actor->getEnvironment().pushBackIllegalPlayerRate(illegal_player_rate);
+    actor->getEnvironment().pushBackIllegalBothRate(illegal_both_rate);
+    actor->getEnvironment().pushBackTerminalRate(terminal_rate);
     bool is_endgame = (actor->isResign() || actor->isEnvTerminal());
-    // bool display_game = (actor_id == 0 && (config::actor_num_simulation >= 50 || (config::actor_num_simulation < 50 && is_endgame)));
     bool display_game = (actor_id == 0);
     if (display_game) {
         std::cerr << actor->getEnvironment().toString() << actor->getSearchInfo() << std::endl;
         std::cerr << "change: " << actor->getMCTS()->change_ << " (" << getSharedData()->actors_[actor_id]->getChange() << ")" << std::endl;
-        std::cerr << "legal player rate: " << actor->getMCTS()->getlegalPlayerNodeCount() << " / " << actor->getMCTS()->getLegalParentNodeCount() << std::endl;
     }
     if (is_endgame) {
         getSharedData()->outputGame(actor);
