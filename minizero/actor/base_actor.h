@@ -1,6 +1,7 @@
 #pragma once
 
 #include "environment.h"
+#include "mcts.h"
 #include "network.h"
 #include "search.h"
 #include <memory>
@@ -41,12 +42,17 @@ public:
     virtual std::string getSearchInfo() const = 0;
     virtual void setNetwork(const std::shared_ptr<network::Network>& network) = 0;
     virtual std::shared_ptr<Search> createSearch() = 0;
+    std::shared_ptr<MCTS> getMCTS() { return std::static_pointer_cast<MCTS>(search_); }
+    const std::shared_ptr<MCTS> getMCTS() const { return std::static_pointer_cast<MCTS>(search_); }
+
+    std::string getChange() { return getMCTSChange(); }
 
 protected:
     virtual std::vector<std::pair<std::string, std::string>> getActionInfo() const;
     virtual std::string getMCTSPolicy() const = 0;
     virtual std::string getMCTSValue() const = 0;
     virtual std::string getEnvReward() const = 0;
+    virtual std::string getMCTSChange() const = 0;
 
     int nn_evaluation_batch_id_;
     Environment env_;

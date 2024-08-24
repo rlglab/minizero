@@ -36,6 +36,7 @@ class MinizeroDadaLoader:
             self.policy = np.zeros(py.get_batch_size() * (py.get_muzero_unrolling_step() + 1) * py.get_nn_action_size(), dtype=np.float32)
             self.value = np.zeros(py.get_batch_size() * (py.get_muzero_unrolling_step() + 1) * py.get_nn_discrete_value_size(), dtype=np.float32)
             self.reward = np.zeros(py.get_batch_size() * py.get_muzero_unrolling_step() * py.get_nn_discrete_value_size(), dtype=np.float32)
+            self.change = np.zeros(py.get_batch_size() * (py.get_muzero_unrolling_step() + 1), dtype=np.float32)
 
     def load_data(self, training_dir, start_iter, end_iter):
         for i in range(start_iter, end_iter + 1):
@@ -48,7 +49,7 @@ class MinizeroDadaLoader:
                 self.data_list.pop(0)
 
     def sample_data(self, device='cpu'):
-        self.data_loader.sample_data(self.features, self.action_features, self.policy, self.value, self.reward, self.loss_scale, self.sampled_index)
+        self.data_loader.sample_data(self.features, self.action_features, self.policy, self.value, self.reward, self.change, self.loss_scale, self.sampled_index)
         features = torch.FloatTensor(self.features).view(py.get_batch_size(), py.get_nn_num_input_channels(), py.get_nn_input_channel_height(), py.get_nn_input_channel_width()).to(device)
         action_features = None if self.action_features is None else torch.FloatTensor(self.action_features).view(py.get_batch_size(),
                                                                                                                  -1,
@@ -58,10 +59,11 @@ class MinizeroDadaLoader:
         policy = torch.FloatTensor(self.policy).view(py.get_batch_size(), -1, py.get_nn_action_size()).to(device)
         value = torch.FloatTensor(self.value).view(py.get_batch_size(), -1, py.get_nn_discrete_value_size()).to(device)
         reward = None if self.reward is None else torch.FloatTensor(self.reward).view(py.get_batch_size(), -1, py.get_nn_discrete_value_size()).to(device)
+        change = None if self.change is None else torch.FloatTensor(self.change).view(py.get_batch_size(), -1).to(device)
         loss_scale = torch.FloatTensor(self.loss_scale / np.amax(self.loss_scale)).to(device)
         sampled_index = self.sampled_index
 
-        return features, action_features, policy, value, reward, loss_scale, sampled_index
+        return features, action_features, policy, value, reward, change, loss_scale, sampled_index
 
     def update_priority(self, sampled_index, batch_values):
         batch_values = (batch_values * self.value_accumulator).sum(axis=1)
@@ -118,7 +120,7 @@ class Model:
         torch.jit.script(self.network.module).save(f"{training_dir}/model/weight_iter_{self.training_step}.pt")
 
 
-def calculate_loss(network_output, label_policy, label_value, label_reward, loss_scale):
+def calculate_loss(network_output, label_policy, label_value, label_reward, label_change, loss_scale):
     # policy
     if py.use_gumbel():
         loss_policy = (nn.functional.kl_div(nn.functional.log_softmax(network_output["policy_logit"], dim=1), label_policy, reduction='none').sum(dim=1) * loss_scale).mean()
@@ -136,7 +138,12 @@ def calculate_loss(network_output, label_policy, label_value, label_reward, loss
     if label_reward is not None and "reward_logit" in network_output:
         loss_reward = -((label_reward * nn.functional.log_softmax(network_output["reward_logit"], dim=1)).sum(dim=1) * loss_scale).mean()
 
-    return loss_policy, loss_value, loss_reward
+    # change
+    loss_change = 0
+    if label_change is not None:
+        loss_change = (nn.functional.binary_cross_entropy_with_logits(network_output["change"], label_change, reduction='none') * loss_scale).mean()
+
+    return loss_policy, loss_value, loss_reward, loss_change
 
 
 def add_training_info(training_info, key, value):
@@ -162,7 +169,7 @@ def train(model, training_dir, data_loader, start_iter, end_iter):
     training_info = {}
     for i in range(1, py.get_training_step() + 1):
         model.optimizer.zero_grad()
-        features, action_features, label_policy, label_value, label_reward, loss_scale, sampled_index = data_loader.sample_data(model.device)
+        features, action_features, label_policy, label_value, label_reward, label_change, loss_scale, sampled_index = data_loader.sample_data(model.device)
 
         if py.get_nn_type_name() == "alphazero":
             network_output = model.network(features)
@@ -176,34 +183,41 @@ def train(model, training_dir, data_loader, start_iter, end_iter):
         elif py.get_nn_type_name() == "muzero":
             network_output = model.network(features)
             batch_values = network_output['value'].to('cpu').detach().numpy()
-            loss_step_policy, loss_step_value, loss_step_reward = calculate_loss(network_output, label_policy[:, 0], label_value[:, 0], None, loss_scale)
+            loss_step_policy, loss_step_value, loss_step_reward, loss_step_change = calculate_loss(network_output, label_policy[:, 0], label_value[:, 0], None, label_change[:, 0], loss_scale)
             add_training_info(training_info, 'loss_policy_0', loss_step_policy.item())
             add_training_info(training_info, 'accuracy_policy_0', calculate_accuracy(network_output["policy_logit"], label_policy[:, 0], py.get_batch_size()))
             add_training_info(training_info, 'loss_value_0', loss_step_value.item())
             loss_policy = loss_step_policy
             loss_value = loss_step_value
             loss_reward = loss_step_reward
+            loss_change = loss_step_change
             for i in range(py.get_muzero_unrolling_step()):
                 network_output = model.network(network_output["hidden_state"], action_features[:, i])
                 batch_values = np.concatenate((batch_values, network_output['value'].to('cpu').detach().numpy()), axis=0)
-                loss_step_policy, loss_step_value, loss_step_reward = calculate_loss(network_output, label_policy[:, i + 1], label_value[:, i + 1], label_reward[:, i], loss_scale)
+                loss_step_policy, loss_step_value, loss_step_reward, loss_step_change = calculate_loss(
+                    network_output, label_policy[:, i + 1], label_value[:, i + 1], label_reward[:, i], label_change[:, i + 1], loss_scale)
                 add_training_info(training_info, f'loss_policy_{i+1}', loss_step_policy.item() / py.get_muzero_unrolling_step())
                 add_training_info(training_info, f'accuracy_policy_{i+1}', calculate_accuracy(network_output["policy_logit"], label_policy[:, i + 1], py.get_batch_size()))
                 add_training_info(training_info, f'loss_value_{i+1}', loss_step_value.item() / py.get_muzero_unrolling_step())
                 if "reward_logit" in network_output:
                     add_training_info(training_info, f'loss_reward_{i+1}', loss_step_reward.item() / py.get_muzero_unrolling_step())
+                if "change" in network_output:
+                    add_training_info(training_info, f'loss_change_{i+1}', loss_step_change.item() / py.get_muzero_unrolling_step())
                 loss_policy += loss_step_policy / py.get_muzero_unrolling_step()
                 loss_value += loss_step_value / py.get_muzero_unrolling_step()
                 loss_reward += loss_step_reward / py.get_muzero_unrolling_step()
+                loss_change += loss_step_change / py.get_muzero_unrolling_step()
                 network_output["hidden_state"].register_hook(lambda grad: grad / 2)
             if py.use_per():
                 data_loader.update_priority(sampled_index, batch_values)
-            loss = loss_policy + py.get_value_loss_scale() * loss_value + loss_reward
+            loss = loss_policy + py.get_value_loss_scale() * loss_value + loss_reward + loss_change
 
             add_training_info(training_info, 'loss_policy', loss_policy.item())
             add_training_info(training_info, 'loss_value', loss_value.item())
             if "reward_logit" in network_output:
                 add_training_info(training_info, 'loss_reward', loss_reward.item())
+            if "change" in network_output:
+                add_training_info(training_info, 'loss_change', loss_change.item())
 
         loss.backward()
         model.optimizer.step()

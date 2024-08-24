@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from .network_unit import ResidualBlock, PolicyNetwork, ValueNetwork
+from .network_unit import ResidualBlock, PolicyNetwork, ValueNetwork, ChangeNetwork
 
 
 class MuZeroRepresentationNetwork(nn.Module):
@@ -42,11 +42,13 @@ class MuZeroPredictionNetwork(nn.Module):
         super(MuZeroPredictionNetwork, self).__init__()
         self.policy = PolicyNetwork(num_channels, channel_height, channel_width, action_size)
         self.value = ValueNetwork(num_channels, channel_height, channel_width, num_value_hidden_channels)
+        self.change = ChangeNetwork(num_channels, channel_height, channel_width)
 
     def forward(self, hidden_state):
         policy_logit = self.policy(hidden_state)
         value = self.value(hidden_state)
-        return policy_logit, value
+        change = self.change(hidden_state)
+        return policy_logit, value, change
 
 
 class MuZeroNetwork(nn.Module):
@@ -138,18 +140,18 @@ class MuZeroNetwork(nn.Module):
         # representation + prediction
         hidden_state = self.representation_network(state)
         hidden_state = self.scale_hidden_state(hidden_state)
-        policy_logit, value = self.prediction_network(hidden_state)
+        policy_logit, value, change = self.prediction_network(hidden_state)
         policy = torch.softmax(policy_logit, dim=1)
-        return {"policy_logit": policy_logit, "policy": policy, "value": value, "hidden_state": hidden_state}
+        return {"policy_logit": policy_logit, "policy": policy, "value": value, "change": change, "hidden_state": hidden_state}
 
     @torch.jit.export
     def recurrent_inference(self, hidden_state, action_plane):
         # dynamics + prediction
         next_hidden_state = self.dynamics_network(hidden_state, action_plane)
         next_hidden_state = self.scale_hidden_state(next_hidden_state)
-        policy_logit, value = self.prediction_network(next_hidden_state)
+        policy_logit, value, change = self.prediction_network(next_hidden_state)
         policy = torch.softmax(policy_logit, dim=1)
-        return {"policy_logit": policy_logit, "policy": policy, "value": value, "hidden_state": next_hidden_state}
+        return {"policy_logit": policy_logit, "policy": policy, "value": value, "change": change, "hidden_state": next_hidden_state}
 
     def scale_hidden_state(self, hidden_state):
         # scale hidden state to range [0, 1] for each feature plane

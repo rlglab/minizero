@@ -62,6 +62,7 @@ std::vector<std::pair<std::string, std::string>> BaseActor::getActionInfo() cons
     action_info.push_back({"P", getMCTSPolicy()});
     action_info.push_back({"V", getMCTSValue()});
     action_info.push_back({"R", getEnvReward()});
+    action_info.push_back({"C", getMCTSChange()});
     return action_info;
 }
 

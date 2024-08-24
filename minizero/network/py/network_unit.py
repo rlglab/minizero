@@ -85,3 +85,47 @@ class DiscreteValueNetwork(nn.Module):
         x = F.relu(x)
         x = self.fc2(x)
         return x
+
+
+class ChangeNetwork(nn.Module):  # 0: not change; 1: change
+    def __init__(self, num_channels, channel_height, channel_width):
+        super(ChangeNetwork, self).__init__()
+        self.conv = nn.Conv2d(num_channels, 1, kernel_size=1)
+        self.bn = nn.BatchNorm2d(1)
+        self.fc = nn.Linear(channel_height * channel_width, 1)
+        self.channel_height = channel_height
+        self.channel_width = channel_width
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.bn(x)
+        x = F.relu(x)
+        x = x.view(-1, self.channel_height * self.channel_width)
+        x = self.fc(x)
+        x = self.sigmoid(x)
+        return x.squeeze()
+
+# class ChangeNetwork(nn.Module):  # 0: not change; 1: change
+#     def __init__(self, num_channels, channel_height, channel_width):
+#         super(ChangeNetwork, self).__init__()
+#         self.res_block = ResidualBlock(num_channels)
+#         self.conv = nn.Conv2d(num_channels, 16, kernel_size=3, padding=1)
+#         self.bn = nn.BatchNorm2d(16)
+#         self.fc1 = nn.Linear(16 * channel_height * channel_width, 64)
+#         self.fc2 = nn.Linear(64, 1)
+#         self.channel_height = channel_height
+#         self.channel_width = channel_width
+#         self.sigmoid = nn.Sigmoid()
+
+#     def forward(self, x):
+#         x = self.res_block(x)
+#         x = self.conv(x)
+#         x = self.bn(x)
+#         x = F.relu(x)
+#         x = x.view(-1, 16 * self.channel_height * self.channel_width)
+#         x = self.fc1(x)
+#         x = F.relu(x)
+#         x = self.fc2(x)
+#         x = self.sigmoid(x)
+#         return x.squeeze()

@@ -4,6 +4,7 @@ namespace minizero::actor {
 
 void MCTSNode::reset()
 {
+    is_legal_ = true;
     num_children_ = 0;
     hidden_state_data_index_ = -1;
     mean_ = 0.0f;
@@ -76,6 +77,8 @@ std::string MCTSNode::toString() const
 
 void MCTS::reset()
 {
+    legal_parent_node_count_ = 0;
+    illegal_player_node_count_ = 0;
     Tree::reset();
     tree_hidden_state_data_.reset();
     tree_value_bound_.clear();
@@ -160,6 +163,7 @@ void MCTS::expand(MCTSNode* leaf_node, const std::vector<ActionCandidate>& actio
         child->setAction(candidate.action_);
         child->setPolicy(candidate.policy_);
         child->setPolicyLogit(candidate.policy_logit_);
+        child->setIsLegal(leaf_node->getIsLegal());
     }
 }
 

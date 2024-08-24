@@ -27,6 +27,7 @@ public:
     float* policy_;
     float* value_;
     float* reward_;
+    float* change_;
     float* loss_scale_;
     int* sampled_index_;
 };

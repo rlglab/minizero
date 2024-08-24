@@ -59,12 +59,21 @@ void ZeroActor::beforeNNEvaluation()
         if (getMCTS()->getNumSimulation() == 0) { // initial inference for root node
             nn_evaluation_batch_id_ = muzero_network_->pushBackInitialData(env_.getFeatures());
         } else { // for non-root nodes
-            const std::vector<MCTSNode*>& node_path = mcts_search_data_.node_path_;
+            std::vector<MCTSNode*> node_path = mcts_search_data_.node_path_;
             MCTSNode* leaf_node = node_path.back();
             MCTSNode* parent_node = node_path[node_path.size() - 2];
             assert(parent_node && parent_node->getHiddenStateDataIndex() != -1);
             const std::vector<float>& hidden_state = getMCTS()->getTreeHiddenStateData().getData(parent_node->getHiddenStateDataIndex()).hidden_state_;
             nn_evaluation_batch_id_ = muzero_network_->pushBackRecurrentData(hidden_state, env_.getActionFeatures(leaf_node->getAction()));
+            if (leaf_node->getIsLegal() && (leaf_node != getMCTS()->getRootNode())) {
+                getMCTS()->increaseLegalParentNodeCount();
+                node_path.pop_back();
+                Environment env_transition = getEnvironmentTransition(node_path);
+                bool is_legal_action = env_transition.isLegalAction(leaf_node->getAction());
+                bool is_legal_player = env_transition.isLegalPlayer(leaf_node->getAction().getPlayer());
+                leaf_node->setIsLegal(is_legal_action && is_legal_player);
+                if (is_legal_action && !is_legal_player) { getMCTS()->increaseIllegalPlayerNodeCount(); }
+            }
         }
     } else {
         assert(false);
@@ -86,7 +95,8 @@ void ZeroActor::afterNNEvaluation(const std::shared_ptr<NetworkOutput>& network_
         }
     } else if (muzero_network_) {
         std::shared_ptr<MuZeroNetworkOutput> muzero_output = std::static_pointer_cast<MuZeroNetworkOutput>(network_output);
-        getMCTS()->expand(leaf_node, calculateMuZeroActionPolicy(leaf_node, muzero_output));
+        std::vector<MCTS::ActionCandidate> action_candidates = calculateMuZeroActionPolicy(leaf_node, muzero_output);
+        getMCTS()->expand(leaf_node, action_candidates);
         getMCTS()->backup(node_path, muzero_output->value_, muzero_output->reward_);
         leaf_node->setHiddenStateDataIndex(getMCTS()->getTreeHiddenStateData().store(HiddenStateData(muzero_output->hidden_state_)));
     } else {
@@ -232,7 +242,13 @@ std::vector<MCTS::ActionCandidate> ZeroActor::calculateMuZeroActionPolicy(MCTSNo
 {
     assert(muzero_network_);
     std::vector<MCTS::ActionCandidate> action_candidates;
-    env::Player turn = leaf_node->getAction().nextPlayer();
+    env::Player turn = (muzero_output->change_ > 0.5) ? leaf_node->getAction().BaseBoardAction::nextPlayer() : leaf_node->getAction().getPlayer();
+    if (leaf_node == getMCTS()->getRootNode() && !env_.isLegalPlayer(turn)) {
+        turn = (turn == leaf_node->getAction().getPlayer()) ? leaf_node->getAction().BaseBoardAction::nextPlayer() : leaf_node->getAction().getPlayer();
+    }
+    if (leaf_node == getMCTS()->getRootNode()) {
+        getMCTS()->change_ = muzero_output->change_;
+    }
     for (size_t action_id = 0; action_id < muzero_output->policy_.size(); ++action_id) {
         const Action action(action_id, turn);
         if (leaf_node == getMCTS()->getRootNode() && !env_.isLegalAction(action)) { continue; }

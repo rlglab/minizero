@@ -15,6 +15,7 @@ class MuZeroNetworkOutput : public NetworkOutput {
 public:
     float value_;
     float reward_;
+    float change_;
     std::vector<float> policy_;
     std::vector<float> policy_logits_;
     std::vector<float> hidden_state_;
@@ -23,6 +24,7 @@ public:
     {
         value_ = 0.0f;
         reward_ = 0.0f;
+        change_ = 0.0f;
         policy_.resize(policy_size, 0.0f);
         policy_logits_.resize(policy_size, 0.0f);
         hidden_state_.resize(hidden_state_size, 0.0f);
@@ -129,6 +131,7 @@ protected:
         auto policy_output = forward_result.at("policy").toTensor().to(at::kCPU);
         auto policy_logits_output = forward_result.at("policy_logit").toTensor().to(at::kCPU);
         auto value_output = forward_result.at("value").toTensor().to(at::kCPU);
+        auto change_output = forward_result.at("change").toTensor().to(at::kCPU);
         auto reward_output = (forward_result.contains("reward") ? forward_result.at("reward").toTensor().to(at::kCPU) : torch::zeros(0));
         auto hidden_state_output = forward_result.at("hidden_state").toTensor().to(at::kCPU);
         assert(policy_output.numel() == batch_size * getActionSize());
@@ -143,6 +146,12 @@ protected:
         for (int i = 0; i < batch_size; ++i) {
             network_outputs.emplace_back(std::make_shared<MuZeroNetworkOutput>(policy_size, hidden_state_size));
             auto muzero_network_output = std::static_pointer_cast<MuZeroNetworkOutput>(network_outputs.back());
+
+            if (change_output.sizes().size() != 0) {
+                muzero_network_output->change_ = change_output[i].item<float>();
+            } else {
+                muzero_network_output->change_ = change_output.item<float>();
+            }
 
             std::copy(policy_output.data_ptr<float>() + i * policy_size,
                       policy_output.data_ptr<float>() + (i + 1) * policy_size,

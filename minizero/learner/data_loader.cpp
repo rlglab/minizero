@@ -165,7 +165,7 @@ void DataLoaderThread::setMuZeroTrainingData(int batch_index)
     Rotation rotation = static_cast<Rotation>(Random::randInt() % static_cast<int>(Rotation::kRotateSize));
     float loss_scale = getSharedData()->replay_buffer_.getLossScale(p);
     std::vector<float> features = env_loader.getFeatures(pos, rotation);
-    std::vector<float> action_features, policy, value, reward, tmp;
+    std::vector<float> action_features, policy, value, reward, change, tmp;
     for (int step = 0; step <= config::learner_muzero_unrolling_step; ++step) {
         // action features
         if (step < config::learner_muzero_unrolling_step) {
@@ -186,6 +186,10 @@ void DataLoaderThread::setMuZeroTrainingData(int batch_index)
             tmp = env_loader.getReward(pos + step);
             reward.insert(reward.end(), tmp.begin(), tmp.end());
         }
+
+        // change
+        tmp = env_loader.getChange(pos + step);
+        change.insert(change.end(), tmp.begin(), tmp.end());
     }
 
     // write data to data_ptr
@@ -197,6 +201,7 @@ void DataLoaderThread::setMuZeroTrainingData(int batch_index)
     std::copy(policy.begin(), policy.end(), getSharedData()->getDataPtr()->policy_ + policy.size() * batch_index);
     std::copy(value.begin(), value.end(), getSharedData()->getDataPtr()->value_ + value.size() * batch_index);
     std::copy(reward.begin(), reward.end(), getSharedData()->getDataPtr()->reward_ + reward.size() * batch_index);
+    std::copy(change.begin(), change.end(), getSharedData()->getDataPtr()->change_ + change.size() * batch_index);
 }
 
 DataLoader::DataLoader(const std::string& conf_file_name)

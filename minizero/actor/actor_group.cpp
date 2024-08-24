@@ -117,8 +117,26 @@ void SlaveThread::handleSearchDone(int actor_id)
     std::shared_ptr<BaseActor>& actor = getSharedData()->actors_[actor_id];
     if (!actor->isResign()) { actor->act(actor->getSearchAction()); }
     bool is_endgame = (actor->isResign() || actor->isEnvTerminal());
-    bool display_game = (actor_id == 0 && (config::actor_num_simulation >= 50 || (config::actor_num_simulation < 50 && is_endgame)));
-    if (display_game) { std::cerr << actor->getEnvironment().toString() << actor->getSearchInfo() << std::endl; }
+    // bool display_game = (actor_id == 0 && (config::actor_num_simulation >= 50 || (config::actor_num_simulation < 50 && is_endgame)));
+    bool display_game = (actor_id == 0);
+    if (display_game) {
+        std::cerr << actor->getEnvironment().toString() << actor->getSearchInfo() << std::endl;
+        int illegal_player_rate = static_cast<int>(actor->getMCTS()->getIllegalPlayerNodeCount() / static_cast<float>(actor->getMCTS()->getLegalParentNodeCount()) * 100);
+        getSharedData()->illegal_player_rates_[getSharedData()->iteration_ - 1].push_back(illegal_player_rate);
+        std::cerr << "change: " << actor->getMCTS()->change_ << " (" << getSharedData()->actors_[0]->getChange() << ")" << std::endl;
+        std::cerr << "illegal player rate: " << actor->getMCTS()->getIllegalPlayerNodeCount() << " / " << actor->getMCTS()->getLegalParentNodeCount() << std::endl;
+        std::cerr << "illegal player rates: " << std::endl;
+        for (int i = std::max(getSharedData()->iteration_ - 5, 0); i < getSharedData()->iteration_; i++) {
+            std::cerr << "  Iteration " << (i + 1) << ": ";
+            if (i + 1 < getSharedData()->iteration_) {
+                std::cerr << std::accumulate(getSharedData()->illegal_player_rates_[i].begin(), getSharedData()->illegal_player_rates_[i].end(), 0) / static_cast<int>(getSharedData()->illegal_player_rates_[i].size()) << "% ";
+            } else {
+                for (int j = std::max(static_cast<int>(getSharedData()->illegal_player_rates_[i].size() - 10), 0); j < static_cast<int>(getSharedData()->illegal_player_rates_[i].size()); j++) { std::cerr << getSharedData()->illegal_player_rates_[i][j] << "% "; }
+            }
+            std::cerr << std::endl;
+        }
+        std::cerr << std::endl;
+    }
     if (is_endgame) {
         getSharedData()->outputGame(actor);
         actor->reset();
@@ -152,6 +170,7 @@ void ActorGroup::initialize()
     createActors();
     running_ = false;
     getSharedData()->do_cpu_job_ = true;
+    getSharedData()->iteration_ = 0;
 
     // create one thread to handle I/O
     commands_.clear();
@@ -239,6 +258,8 @@ void ActorGroup::handleCommand(const std::string& command_prefix, const std::str
     } else if (command_prefix == "start") {
         std::cerr << "[command] " << command << std::endl;
         running_ = true;
+        getSharedData()->iteration_ += 1;
+        getSharedData()->illegal_player_rates_.push_back(std::vector<int>());
     } else if (command_prefix == "stop") {
         std::cerr << "[command] " << command << std::endl;
         running_ = false;
