@@ -100,9 +100,9 @@ public:
     virtual void backup(const std::vector<MCTSNode*>& node_path, const float value, const float reward = 0.0f);
 
     void increaseLegalParentNodeCount() { ++legal_parent_node_count_; }
-    void increaseIllegalPlayerNodeCount() { ++illegal_player_node_count_; }
+    void increaselegalPlayerNodeCount() { ++legal_player_node_count_; }
     inline int getLegalParentNodeCount() const { return legal_parent_node_count_; }
-    inline int getIllegalPlayerNodeCount() const { return illegal_player_node_count_; }
+    inline int getlegalPlayerNodeCount() const { return legal_player_node_count_; }
     inline MCTSNode* allocateNodes(int size) { return static_cast<MCTSNode*>(Tree::allocateNodes(size)); }
     inline int getNumSimulation() const { return getRootNode()->getCount(); }
     inline bool reachMaximumSimulation() const { return (getNumSimulation() == config::actor_num_simulation + 1); }
@@ -117,7 +117,7 @@ public:
 
 protected:
     int legal_parent_node_count_;
-    int illegal_player_node_count_;
+    int legal_player_node_count_;
 
     TreeNode* createTreeNodes(uint64_t tree_node_size) override { return new MCTSNode[tree_node_size]; }
     TreeNode* getNodeIndex(int index) override { return getRootNode() + index; }

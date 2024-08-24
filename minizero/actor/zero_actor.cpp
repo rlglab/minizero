@@ -30,7 +30,10 @@ void ZeroActor::resetSearch()
 {
     BaseActor::resetSearch();
     mcts_search_data_.node_path_.clear();
-    getMCTS()->getRootNode()->setAction(Action(-1, env::getPreviousPlayer(env_.getTurn(), env_.getNumPlayer())));
+    // getMCTS()->getRootNode()->setAction(Action(-1, env::getPreviousPlayer(env_.getTurn(), env_.getNumPlayer())));
+    std::vector<Action> action_history = env_.getActionHistory();
+    env::Player previous_player = (action_history.empty() ? env::getPreviousPlayer(env_.getTurn(), env_.getNumPlayer()) : action_history.back().getPlayer());
+    getMCTS()->getRootNode()->setAction(Action(-1, previous_player));
 }
 
 Action ZeroActor::think(bool with_play /*= false*/, bool display_board /*= false*/)
@@ -65,14 +68,18 @@ void ZeroActor::beforeNNEvaluation()
             assert(parent_node && parent_node->getHiddenStateDataIndex() != -1);
             const std::vector<float>& hidden_state = getMCTS()->getTreeHiddenStateData().getData(parent_node->getHiddenStateDataIndex()).hidden_state_;
             nn_evaluation_batch_id_ = muzero_network_->pushBackRecurrentData(hidden_state, env_.getActionFeatures(leaf_node->getAction()));
-            if (leaf_node->getIsLegal() && (leaf_node != getMCTS()->getRootNode())) {
-                getMCTS()->increaseLegalParentNodeCount();
+            if (parent_node->getIsLegal()) {
                 node_path.pop_back();
                 Environment env_transition = getEnvironmentTransition(node_path);
-                bool is_legal_action = env_transition.isLegalAction(leaf_node->getAction());
-                bool is_legal_player = env_transition.isLegalPlayer(leaf_node->getAction().getPlayer());
-                leaf_node->setIsLegal(is_legal_action && is_legal_player);
-                if (is_legal_action && !is_legal_player) { getMCTS()->increaseIllegalPlayerNodeCount(); }
+                if (env_transition.isTerminal()) {
+                    leaf_node->setIsLegal(false);
+                } else {
+                    getMCTS()->increaseLegalParentNodeCount();
+                    bool is_legal_action = env_transition.isLegalAction(leaf_node->getAction());
+                    bool is_legal_player = env_transition.isLegalPlayer(leaf_node->getAction().getPlayer());
+                    leaf_node->setIsLegal(is_legal_action && is_legal_player);
+                    if (is_legal_player) { getMCTS()->increaselegalPlayerNodeCount(); }
+                }
             }
         }
     } else {
@@ -169,7 +176,9 @@ void ZeroActor::step()
 void ZeroActor::handleSearchDone()
 {
     mcts_search_data_.selected_node_ = decideActionNode();
-    const Action action = getSearchAction();
+    int action_id = getSearchAction().getActionID();
+    const Action action(action_id, env_.getTurn());
+    mcts_search_data_.selected_node_->setAction(action);
     std::ostringstream oss;
     oss << "model file name: " << config::nn_file_name << std::endl
         << utils::TimeSystem::getTimeString("[Y/m/d H:i:s.f] ")
@@ -243,11 +252,12 @@ std::vector<MCTS::ActionCandidate> ZeroActor::calculateMuZeroActionPolicy(MCTSNo
     assert(muzero_network_);
     std::vector<MCTS::ActionCandidate> action_candidates;
     env::Player turn = (muzero_output->change_ > 0.5) ? leaf_node->getAction().BaseBoardAction::nextPlayer() : leaf_node->getAction().getPlayer();
-    if (leaf_node == getMCTS()->getRootNode() && !env_.isLegalPlayer(turn)) {
-        turn = (turn == leaf_node->getAction().getPlayer()) ? leaf_node->getAction().BaseBoardAction::nextPlayer() : leaf_node->getAction().getPlayer();
-    }
+    // if (leaf_node == getMCTS()->getRootNode() && !env_.isLegalPlayer(turn)) {
+    //     turn = (turn == leaf_node->getAction().getPlayer()) ? leaf_node->getAction().BaseBoardAction::nextPlayer() : leaf_node->getAction().getPlayer();
+    // }
     if (leaf_node == getMCTS()->getRootNode()) {
         getMCTS()->change_ = muzero_output->change_;
+        // std::cerr << env_.isLegalPlayer(turn) << " ";
     }
     for (size_t action_id = 0; action_id < muzero_output->policy_.size(); ++action_id) {
         const Action action(action_id, turn);

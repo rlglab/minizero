@@ -78,7 +78,7 @@ std::string MCTSNode::toString() const
 void MCTS::reset()
 {
     legal_parent_node_count_ = 0;
-    illegal_player_node_count_ = 0;
+    legal_player_node_count_ = 0;
     Tree::reset();
     tree_hidden_state_data_.reset();
     tree_value_bound_.clear();

@@ -38,7 +38,7 @@ void ZeroLogger::addLog(const std::string& log_str, std::fstream& log_file)
 
 ZeroSelfPlayData::ZeroSelfPlayData(std::string input_data)
 {
-    // format: Selfplay is_terminal data_length game_length return game_record
+    // format: Selfplay is_terminal data_length game_length return legal_player_rate game_record
     input_data = input_data.substr(input_data.find(" ") + 1); // remove Selfplay
     is_terminal_ = (input_data.substr(0, input_data.find(" ")) == "true");
     input_data = input_data.substr(input_data.find(" ") + 1); // remove is_terminal
@@ -48,6 +48,8 @@ ZeroSelfPlayData::ZeroSelfPlayData(std::string input_data)
     input_data = input_data.substr(input_data.find(" ") + 1); // remove game_length
     return_ = std::stof(input_data.substr(0, input_data.find(" ")));
     input_data = input_data.substr(input_data.find(" ") + 1); // remove return
+    legal_player_rate_ = std::stof(input_data.substr(0, input_data.find(" ")));
+    input_data = input_data.substr(input_data.find(" ") + 1); // remove legal_player_rate
     game_record_ = input_data.substr(0, input_data.find(" "));
 }
 
@@ -189,6 +191,7 @@ void ZeroServer::selfPlay()
 
     std::vector<int> game_lengths;
     std::vector<float> game_returns;
+    std::vector<float> game_legal_player_rates;
     int num_collect_game = 0, total_data_length = 0;
     while (num_collect_game < config::zero_num_games_per_iteration) {
         broadcastSelfPlayJob();
@@ -210,6 +213,7 @@ void ZeroServer::selfPlay()
         if (sp_data.is_terminal_) {
             game_lengths.push_back(sp_data.game_length_);
             game_returns.push_back(sp_data.return_);
+            game_legal_player_rates.push_back(sp_data.legal_player_rate_);
         }
 
         // display progress
@@ -233,6 +237,7 @@ void ZeroServer::selfPlay()
         shared_data_.logger_.addTrainingLog("[SelfPlay Max. Game Returns] " + std::to_string(*std::max_element(game_returns.begin(), game_returns.end())));
         shared_data_.logger_.addTrainingLog("[SelfPlay Avg. Game Returns] " + std::to_string(std::accumulate(game_returns.begin(), game_returns.end(), 0.0f) / game_returns.size()));
         shared_data_.logger_.addTrainingLog("[SelfPlay Std. Game Returns] " + std::to_string(utils::stddev(game_returns)));
+        shared_data_.logger_.addTrainingLog("[SelfPlay Avg. Legal Player Rates] " + std::to_string(std::accumulate(game_legal_player_rates.begin(), game_legal_player_rates.end(), 0.0f) / game_legal_player_rates.size()) + " %");
     }
     if (static_cast<int>(game_lengths.size()) != num_collect_game) { shared_data_.logger_.addTrainingLog("[SelfPlay Avg. Data Lengths] " + std::to_string(total_data_length * 1.0f / num_collect_game)); }
 }

@@ -23,7 +23,6 @@ public:
     int actor_index_;
     int iteration_;
     std::mutex mutex_;
-    std::vector<std::vector<int>> illegal_player_rates_;
     std::vector<std::shared_ptr<BaseActor>> actors_;
     std::vector<std::shared_ptr<network::Network>> networks_;
     std::vector<std::vector<std::shared_ptr<network::NetworkOutput>>> network_outputs_;
