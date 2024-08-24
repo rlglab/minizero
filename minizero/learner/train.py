@@ -31,7 +31,7 @@ class MinizeroDadaLoader:
             self.value = np.zeros(py.get_batch_size() * py.get_nn_discrete_value_size(), dtype=np.float32)
             self.reward = None
         else:
-            self.action_features = np.zeros(py.get_batch_size() * py.get_muzero_unrolling_step() * py.get_nn_num_action_feature_channels()
+            self.action_features = np.zeros(py.get_num_player() * py.get_batch_size() * py.get_muzero_unrolling_step() * py.get_nn_num_action_feature_channels()
                                             * py.get_nn_hidden_channel_height() * py.get_nn_hidden_channel_width(), dtype=np.float32)
             self.policy = np.zeros(py.get_batch_size() * (py.get_muzero_unrolling_step() + 1) * py.get_nn_action_size(), dtype=np.float32)
             self.value = np.zeros(py.get_batch_size() * (py.get_muzero_unrolling_step() + 1) * py.get_nn_discrete_value_size(), dtype=np.float32)
@@ -53,7 +53,7 @@ class MinizeroDadaLoader:
         features = torch.FloatTensor(self.features).view(py.get_batch_size(), py.get_nn_num_input_channels(), py.get_nn_input_channel_height(), py.get_nn_input_channel_width()).to(device)
         action_features = None if self.action_features is None else torch.FloatTensor(self.action_features).view(py.get_batch_size(),
                                                                                                                  -1,
-                                                                                                                 py.get_nn_num_action_feature_channels(),
+                                                                                                                 py.get_num_player() * py.get_nn_num_action_feature_channels(),
                                                                                                                  py.get_nn_hidden_channel_height(),
                                                                                                                  py.get_nn_hidden_channel_width()).to(device)
         policy = torch.FloatTensor(self.policy).view(py.get_batch_size(), -1, py.get_nn_action_size()).to(device)
@@ -88,6 +88,7 @@ class Model:
                                       py.get_nn_hidden_channel_height(),
                                       py.get_nn_hidden_channel_width(),
                                       py.get_nn_num_action_feature_channels(),
+                                      py.get_num_player(),
                                       py.get_nn_num_blocks(),
                                       py.get_nn_action_size(),
                                       py.get_nn_num_value_hidden_channels(),

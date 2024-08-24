@@ -21,9 +21,9 @@ class MuZeroRepresentationNetwork(nn.Module):
 
 
 class MuZeroDynamicsNetwork(nn.Module):
-    def __init__(self, num_channels, num_action_feature_channels, num_blocks):
+    def __init__(self, num_player, num_channels, num_action_feature_channels, num_blocks):
         super(MuZeroDynamicsNetwork, self).__init__()
-        self.conv = nn.Conv2d(num_channels + num_action_feature_channels, num_channels, kernel_size=3, padding=1)
+        self.conv = nn.Conv2d(num_channels + num_player * num_action_feature_channels, num_channels, kernel_size=3, padding=1)
         self.bn = nn.BatchNorm2d(num_channels)
         self.residual_blocks = nn.ModuleList([ResidualBlock(num_channels) for _ in range(num_blocks)])
 
@@ -61,6 +61,7 @@ class MuZeroNetwork(nn.Module):
                  hidden_channel_height,
                  hidden_channel_width,
                  num_action_feature_channels,
+                 num_player,
                  num_blocks,
                  action_size,
                  num_value_hidden_channels,
@@ -74,13 +75,14 @@ class MuZeroNetwork(nn.Module):
         self.hidden_channel_height = hidden_channel_height
         self.hidden_channel_width = hidden_channel_width
         self.num_action_feature_channels = num_action_feature_channels
+        self.num_player = num_player
         self.num_blocks = num_blocks
         self.action_size = action_size
         self.num_value_hidden_channels = num_value_hidden_channels
         self.discrete_value_size = discrete_value_size
 
         self.representation_network = MuZeroRepresentationNetwork(num_input_channels, num_hidden_channels, num_blocks)
-        self.dynamics_network = MuZeroDynamicsNetwork(num_hidden_channels, num_action_feature_channels, num_blocks)
+        self.dynamics_network = MuZeroDynamicsNetwork(num_player, num_hidden_channels, num_action_feature_channels, num_blocks)
         self.prediction_network = MuZeroPredictionNetwork(num_hidden_channels, hidden_channel_height, hidden_channel_width, action_size, num_value_hidden_channels)
 
     @torch.jit.export
@@ -118,6 +120,10 @@ class MuZeroNetwork(nn.Module):
     @torch.jit.export
     def get_num_action_feature_channels(self):
         return self.num_action_feature_channels
+
+    @torch.jit.export
+    def get_num_player(self):
+        return self.num_player
 
     @torch.jit.export
     def get_num_blocks(self):

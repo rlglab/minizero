@@ -36,6 +36,7 @@ public:
     MuZeroNetwork()
     {
         num_action_feature_channels_ = -1;
+        num_player_ = -1;
         initial_input_batch_size_ = recurrent_input_batch_size_ = 0;
         initial_tensor_input_.clear();
         initial_tensor_input_.reserve(kReserved_batch_size);
@@ -51,6 +52,7 @@ public:
 
         std::vector<torch::jit::IValue> dummy;
         num_action_feature_channels_ = network_.get_method("get_num_action_feature_channels")(dummy).toInt();
+        num_player_ = network_.get_method("get_num_player")(dummy).toInt();
         initial_input_batch_size_ = 0;
         recurrent_input_batch_size_ = 0;
     }
@@ -80,7 +82,7 @@ public:
     int pushBackRecurrentData(std::vector<float> features, std::vector<float> actions)
     {
         assert(static_cast<int>(features.size()) == getNumHiddenChannels() * getHiddenChannelHeight() * getHiddenChannelWidth());
-        assert(static_cast<int>(actions.size()) == getNumActionFeatureChannels() * getHiddenChannelHeight() * getHiddenChannelWidth());
+        assert(static_cast<int>(actions.size()) == getNumPlayer() * getNumActionFeatureChannels() * getHiddenChannelHeight() * getHiddenChannelWidth());
 
         int index;
         {
@@ -90,7 +92,7 @@ public:
             recurrent_tensor_action_input_.resize(recurrent_input_batch_size_);
         }
         recurrent_tensor_feature_input_[index] = torch::from_blob(features.data(), {1, getNumHiddenChannels(), getHiddenChannelHeight(), getHiddenChannelWidth()}).clone();
-        recurrent_tensor_action_input_[index] = torch::from_blob(actions.data(), {1, getNumActionFeatureChannels(), getHiddenChannelHeight(), getHiddenChannelWidth()}).clone();
+        recurrent_tensor_action_input_[index] = torch::from_blob(actions.data(), {1, getNumPlayer() * getNumActionFeatureChannels(), getHiddenChannelHeight(), getHiddenChannelWidth()}).clone();
         return index;
     }
 
@@ -119,6 +121,7 @@ public:
     }
 
     inline int getNumActionFeatureChannels() const { return num_action_feature_channels_; }
+    inline int getNumPlayer() const { return num_player_; }
     inline int getInitialInputBatchSize() const { return initial_input_batch_size_; }
     inline int getRecurrentInputBatchSize() const { return recurrent_input_batch_size_; }
 
@@ -187,6 +190,7 @@ protected:
     }
 
     int num_action_feature_channels_;
+    int num_player_;
     int initial_input_batch_size_;
     int recurrent_input_batch_size_;
     std::mutex initial_mutex_;

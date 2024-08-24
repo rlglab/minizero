@@ -38,6 +38,7 @@ PYBIND11_MODULE(minizero_py, m)
     m.def("use_per", []() { return config::learner_use_per; });
     m.def("get_training_step", []() { return config::learner_training_step; });
     m.def("get_training_display_step", []() { return config::learner_training_display_step; });
+    m.def("get_num_player", []() { return getEnvInstance().getNumPlayer(); });
     m.def("get_batch_size", []() { return config::learner_batch_size; });
     m.def("get_muzero_unrolling_step", []() { return config::learner_muzero_unrolling_step; });
     m.def("get_n_step_return", []() { return config::learner_n_step_return; });

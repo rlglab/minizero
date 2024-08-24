@@ -295,11 +295,12 @@ std::vector<float> DotsAndBoxesEnv::getActionFeatures(const DotsAndBoxesAction& 
 {
     (void)rotation;
     int num_channels = getNumActionFeatureChannels();
-    std::vector<float> action_features(num_channels * full_board_size_width_ * full_board_size_height_, 0.0f);
+    std::vector<float> action_features(2 * num_channels * full_board_size_width_ * full_board_size_height_, 0.0f);
     // throw std::runtime_error{"getActionFeatures(), not implemented"};
     int pos = lineIdxToPos(action.getActionID());
     // action_features[getRotateAction(lineID, rotation)] = 1.0f;
-    action_features[pos] = 1.0f;
+    action_features[(static_cast<int>(action.getPlayer()) - 1) * num_channels * full_board_size_width_ * full_board_size_height_ + pos] = 1.0f;
+    // action_features[pos] = 1.0f;
     return action_features;
 }
 
@@ -457,11 +458,13 @@ std::vector<float> DotsAndBoxesEnvLoader::getActionFeatures(const int pos, utils
     int num_channels = getNumActionFeatureChannels();
     int full_board_size_width = 2 * board_size_ + 1;
     int full_board_size_height = 2 * board_size_ + 1;
-    std::vector<float> action_features(num_channels * full_board_size_width * full_board_size_height, 0.0f);
+    std::vector<float> action_features(2 * num_channels * full_board_size_width * full_board_size_height, 0.0f);
     // throw std::runtime_error{"getActionFeatures(), not implemented"};
     int action_id = ((pos < static_cast<int>(action_pairs_.size())) ? action.getActionID() : utils::Random::randInt() % getPolicySize());
     int action_pos = 2 * action_id + 1;
-    action_features[action_pos] = 1.0f;
+    int player = (pos < static_cast<int>(action_pairs_.size())) ? static_cast<int>(action.getPlayer()) : utils::Random::randInt() % 2 + 1;
+    action_features[(player - 1) * num_channels * full_board_size_width * full_board_size_height + action_pos] = 1.0f;
+    // action_features[action_pos] = 1.0f;
     return action_features;
 }
 
