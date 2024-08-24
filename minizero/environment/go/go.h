@@ -45,6 +45,7 @@ public:
     bool act(const GoAction& action) override;
     bool act(const std::vector<std::string>& action_string_args) override;
     std::vector<GoAction> getLegalActions() const override;
+    bool isLegalPlayer(const Player) const;
     bool isLegalAction(const GoAction& action) const override;
     bool isTerminal() const override;
     float getReward() const override { return 0.0f; }

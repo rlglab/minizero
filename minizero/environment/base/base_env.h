@@ -73,7 +73,7 @@ private:
 template <class Action>
 class BaseEnv {
 public:
-    BaseEnv() {}
+    BaseEnv() { legal_player_rates_.clear(); }
     virtual ~BaseEnv() = default;
 
     virtual void reset() = 0;
@@ -100,13 +100,16 @@ public:
     virtual std::string name() const = 0;
     virtual int getNumPlayer() const = 0;
     virtual void setTurn(Player p) { turn_ = p; }
+    virtual void pushBackLegalPlayerRate(float rate) { legal_player_rates_.push_back(rate); }
 
     inline Player getTurn() const { return turn_; }
+    inline float getAverageLegalPlayerRate() const { return std::accumulate(legal_player_rates_.begin(), legal_player_rates_.end(), 0.0f) / legal_player_rates_.size(); }
     inline const std::vector<Action>& getActionHistory() const { return actions_; }
     inline const std::vector<std::string>& getObservationHistory() const { return observations_; }
 
 protected:
     Player turn_;
+    std::vector<float> legal_player_rates_;
     std::vector<Action> actions_;
     std::vector<std::string> observations_;
 };

@@ -5,6 +5,7 @@
 #include "rotation.h"
 #include <algorithm>
 #include <fstream>
+#include <iostream>
 #include <utility>
 
 namespace minizero::learner {

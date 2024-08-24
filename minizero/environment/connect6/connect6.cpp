@@ -47,6 +47,11 @@ std::vector<Connect6Action> Connect6Env::getLegalActions() const
     return actions;
 }
 
+bool Connect6Env::isLegalPlayer(const Player player) const
+{
+    return player == turn_;
+}
+
 bool Connect6Env::isLegalAction(const Connect6Action& action) const
 {
     int action_id = action.getActionID();
@@ -55,8 +60,7 @@ bool Connect6Env::isLegalAction(const Connect6Action& action) const
     assert(action_id >= 0 && action_id < board_size_ * board_size_);
     assert(player == Player::kPlayer1 || player == Player::kPlayer2);
 
-    return (player == turn_ &&
-            action_id >= 0 &&
+    return (action_id >= 0 &&
             action_id < board_size_ * board_size_ &&
             getPlayerAtBoardPos(action_id) == Player::kPlayerNone);
 }

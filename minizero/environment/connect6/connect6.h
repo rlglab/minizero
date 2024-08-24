@@ -36,6 +36,7 @@ public:
     bool act(const Connect6Action& action) override;
     bool act(const std::vector<std::string>& action_string_args) override;
     std::vector<Connect6Action> getLegalActions() const override;
+    bool isLegalPlayer(const Player) const;
     bool isLegalAction(const Connect6Action& action) const override;
     bool isTerminal() const override;
     float getReward() const override { return 0.0f; }

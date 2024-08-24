@@ -7,6 +7,7 @@ target_include_directories(
     base
     atari
     connect6
+    dotsandboxes
     go
     gomoku
     hex
