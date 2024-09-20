@@ -7,6 +7,7 @@ target_include_directories(
     base
     atari
     breakthrough
+    clobber
     conhex
     connect6
     go

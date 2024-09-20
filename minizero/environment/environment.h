@@ -12,6 +12,11 @@ typedef minizero::env::atari::AtariEnvLoader EnvironmentLoader;
 typedef minizero::env::breakthrough::BreakthroughAction Action;
 typedef minizero::env::breakthrough::BreakthroughEnv Environment;
 typedef minizero::env::breakthrough::BreakthroughEnvLoader EnvironmentLoader;
+#elif CLOBBER
+#include "clobber.h"
+typedef minizero::env::clobber::ClobberAction Action;
+typedef minizero::env::clobber::ClobberEnv Environment;
+typedef minizero::env::clobber::ClobberEnvLoader EnvironmentLoader;
 #elif CONHEX
 #include "conhex.h"
 typedef minizero::env::conhex::ConHexAction Action;
@@ -119,6 +124,8 @@ inline void setUpEnv()
 
 #if BREAKTHROUGH
     config::env_board_size = 8;
+#elif CLOBBER
+    config::env_board_size = 10;
 #elif CONNECT6
     config::env_board_size = 19;
 #elif CONHEX
