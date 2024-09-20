@@ -7,6 +7,11 @@
 typedef minizero::env::atari::AtariAction Action;
 typedef minizero::env::atari::AtariEnv Environment;
 typedef minizero::env::atari::AtariEnvLoader EnvironmentLoader;
+#elif BREAKTHROUGH
+#include "breakthrough.h"
+typedef minizero::env::breakthrough::BreakthroughAction Action;
+typedef minizero::env::breakthrough::BreakthroughEnv Environment;
+typedef minizero::env::breakthrough::BreakthroughEnvLoader EnvironmentLoader;
 #elif CONHEX
 #include "conhex.h"
 typedef minizero::env::conhex::ConHexAction Action;
@@ -73,6 +78,10 @@ namespace minizero::env {
 
 inline void setUpEnv()
 {
+#if BREAKTHROUGH
+    breakthrough::initialize();
+#endif
+
 #if GO
     go::initialize();
 #endif
@@ -98,7 +107,9 @@ inline void setUpEnv()
     config::zero_actor_intermediate_sequence_length = 200;
 #endif
 
-#if CONNECT6
+#if BREAKTHROUGH
+    config::env_board_size = 8;
+#elif CONNECT6
     config::env_board_size = 19;
 #elif CONHEX
     config::env_board_size = 9;
