@@ -12,6 +12,7 @@ target_include_directories(
     gomoku
     hex
     killallgo
+    linesofaction
     nogo
     othello
     rubiks

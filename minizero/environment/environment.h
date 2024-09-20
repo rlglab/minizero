@@ -37,6 +37,11 @@ typedef minizero::env::hex::HexEnvLoader EnvironmentLoader;
 typedef minizero::env::killallgo::KillAllGoAction Action;
 typedef minizero::env::killallgo::KillAllGoEnv Environment;
 typedef minizero::env::killallgo::KillAllGoEnvLoader EnvironmentLoader;
+#elif LINESOFACTION
+#include "linesofaction.h"
+typedef minizero::env::linesofaction::LinesOfActionAction Action;
+typedef minizero::env::linesofaction::LinesOfActionEnv Environment;
+typedef minizero::env::linesofaction::LinesOfActionEnvLoader EnvironmentLoader;
 #elif NOGO
 #include "nogo.h"
 typedef minizero::env::nogo::NoGoAction Action;
@@ -76,6 +81,10 @@ inline void setUpEnv()
     killallgo::initialize();
 #endif
 
+#if LINESOFACTION
+    linesofaction::initialize();
+#endif
+
 #if NOGO
     nogo::initialize();
 #endif
@@ -99,6 +108,8 @@ inline void setUpEnv()
     config::env_board_size = 11;
 #elif KILLALLGO
     config::env_board_size = 7;
+#elif LINESOFACTION
+    config::env_board_size = 8;
 #elif OTHELLO
     config::env_board_size = 8;
 #elif GOMOKU
