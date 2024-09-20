@@ -17,6 +17,7 @@ target_include_directories(
     nogo
     othello
     rubiks
+    santorini
     surakarta
     tictactoe
     stochastic

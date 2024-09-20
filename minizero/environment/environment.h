@@ -67,6 +67,11 @@ typedef minizero::env::puzzle2048::Puzzle2048EnvLoader EnvironmentLoader;
 typedef minizero::env::rubiks::RubiksAction Action;
 typedef minizero::env::rubiks::RubiksEnv Environment;
 typedef minizero::env::rubiks::RubiksEnvLoader EnvironmentLoader;
+#elif SANTORINI
+#include "santorini.h"
+typedef minizero::env::santorini::SantoriniAction Action;
+typedef minizero::env::santorini::SantoriniEnv Environment;
+typedef minizero::env::santorini::SantoriniEnvLoader EnvironmentLoader;
 #elif SURAKARTA
 #include "surakarta.h"
 typedef minizero::env::surakarta::SurakartaAction Action;
@@ -140,6 +145,8 @@ inline void setUpEnv()
     config::env_board_size = 4;
 #elif RUBIKS
     config::env_board_size = 3;
+#elif SANTORINI
+    config::env_board_size = 5;
 #elif SURAKARTA
     config::env_board_size = 6;
 #endif
