@@ -17,6 +17,7 @@ target_include_directories(
     nogo
     othello
     rubiks
+    surakarta
     tictactoe
     stochastic
     stochastic/puzzle2048

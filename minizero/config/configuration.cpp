@@ -81,6 +81,7 @@ bool env_gomoku_exactly_five_stones = true;
 bool env_hex_use_swap_rule = true;
 bool env_conhex_use_swap_rule = true;
 int env_rubiks_scramble_rotate = 5;
+int env_surakarta_no_capture_plies = 50;
 
 void setConfiguration(ConfigureLoader& cl)
 {
@@ -176,6 +177,8 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("env_gomoku_exactly_five_stones", env_gomoku_exactly_five_stones, "true for standard Gomoku; false for freestyle Gomoku (allow winning with more than five stones, i.e., an overline)", "Environment");
 #elif RUBIKS
     cl.addParameter("env_rubiks_scramble_rotate", env_rubiks_scramble_rotate, "the number random rotations from the initial state of a rubik's cube", "Enviroment");
+#elif SURAKARTA
+    cl.addParameter("env_surakarta_no_capture_plies", env_surakarta_no_capture_plies, "game is over if playing this plies without capture", "Environment");
 #endif
 
     // references

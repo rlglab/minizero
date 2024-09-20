@@ -85,6 +85,7 @@ extern bool env_gomoku_exactly_five_stones;
 extern bool env_hex_use_swap_rule;
 extern bool env_conhex_use_swap_rule;
 extern int env_rubiks_scramble_rotate;
+extern int env_surakarta_no_capture_plies;
 
 void setConfiguration(ConfigureLoader& cl);
 
