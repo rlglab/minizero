@@ -79,6 +79,7 @@ bool env_killallgo_use_seki = false;
 std::string env_gomoku_rule = "standard";
 bool env_gomoku_exactly_five_stones = true;
 bool env_hex_use_swap_rule = true;
+bool env_conhex_use_swap_rule = true;
 int env_rubiks_scramble_rotate = 5;
 
 void setConfiguration(ConfigureLoader& cl)
@@ -165,6 +166,8 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("env_go_ko_rule", env_go_ko_rule, "the ko rules in Go: positional (only consider stones), situational (consider stones and the turn)", "Environment");
 #elif HEX
     cl.addParameter("env_hex_use_swap_rule", env_hex_use_swap_rule, "the swap rule in Hex", "Environment");
+#elif CONHEX
+    cl.addParameter("env_conhex_use_swap_rule", env_conhex_use_swap_rule, "the swap rule in ConHex", "Environment");
 #elif KILLALLGO
     cl.addParameter("env_killallgo_ko_rule", env_go_ko_rule, "the ko rules in Killall-Go: positional (only consider stones), situational (consider stones and the turn)", "Environment");
     cl.addParameter("env_killallgo_use_seki", env_killallgo_use_seki, "true for enabling seki", "Environment");
