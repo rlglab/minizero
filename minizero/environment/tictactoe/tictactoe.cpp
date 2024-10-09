@@ -71,22 +71,22 @@ std::vector<float> TicTacToeEnv::getFeatures(utils::Rotation rotation /*= utils:
         2. Nought turn
         3. Cross turn
     */
-    std::vector<float> vFeatures;
+    std::vector<float> features;
     for (int channel = 0; channel < 4; ++channel) {
         for (int pos = 0; pos < kTicTacToeBoardSize * kTicTacToeBoardSize; ++pos) {
             int rotation_pos = getRotatePosition(pos, utils::reversed_rotation[static_cast<int>(rotation)]);
             if (channel == 0) {
-                vFeatures.push_back((board_[rotation_pos] == turn_ ? 1.0f : 0.0f));
+                features.push_back((board_[rotation_pos] == turn_ ? 1.0f : 0.0f));
             } else if (channel == 1) {
-                vFeatures.push_back((board_[rotation_pos] == getNextPlayer(turn_, kTicTacToeNumPlayer) ? 1.0f : 0.0f));
+                features.push_back((board_[rotation_pos] == getNextPlayer(turn_, kTicTacToeNumPlayer) ? 1.0f : 0.0f));
             } else if (channel == 2) {
-                vFeatures.push_back((turn_ == Player::kPlayer1 ? 1.0f : 0.0f));
+                features.push_back((turn_ == Player::kPlayer1 ? 1.0f : 0.0f));
             } else if (channel == 3) {
-                vFeatures.push_back((turn_ == Player::kPlayer2 ? 1.0f : 0.0f));
+                features.push_back((turn_ == Player::kPlayer2 ? 1.0f : 0.0f));
             }
         }
     }
-    return vFeatures;
+    return features;
 }
 
 std::vector<float> TicTacToeEnv::getActionFeatures(const TicTacToeAction& action, utils::Rotation rotation /*= utils::Rotation::kRotationNone*/) const

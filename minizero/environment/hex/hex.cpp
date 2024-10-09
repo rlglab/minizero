@@ -122,22 +122,22 @@ std::vector<float> HexEnv::getFeatures(utils::Rotation rotation /* = utils::Rota
         2. Black's turn
         3. White's turn
     */
-    std::vector<float> vFeatures;
+    std::vector<float> features;
     for (int channel = 0; channel < 4; ++channel) {
         for (int pos = 0; pos < board_size_ * board_size_; ++pos) {
             int rotation_pos = pos;
             if (channel == 0) {
-                vFeatures.push_back((board_[rotation_pos].player == turn_ ? 1.0f : 0.0f));
+                features.push_back((board_[rotation_pos].player == turn_ ? 1.0f : 0.0f));
             } else if (channel == 1) {
-                vFeatures.push_back((board_[rotation_pos].player == getNextPlayer(turn_, kHexNumPlayer) ? 1.0f : 0.0f));
+                features.push_back((board_[rotation_pos].player == getNextPlayer(turn_, kHexNumPlayer) ? 1.0f : 0.0f));
             } else if (channel == 2) {
-                vFeatures.push_back((turn_ == Player::kPlayer1 ? 1.0f : 0.0f));
+                features.push_back((turn_ == Player::kPlayer1 ? 1.0f : 0.0f));
             } else if (channel == 3) {
-                vFeatures.push_back((turn_ == Player::kPlayer2 ? 1.0f : 0.0f));
+                features.push_back((turn_ == Player::kPlayer2 ? 1.0f : 0.0f));
             }
         }
     }
-    return vFeatures;
+    return features;
 }
 
 std::vector<float> HexEnv::getActionFeatures(const HexAction& action, utils::Rotation rotation /* = utils::Rotation::kRotationNone */) const

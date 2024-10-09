@@ -284,27 +284,27 @@ std::vector<float> GoEnv::getFeatures(utils::Rotation rotation /*= utils::Rotati
         16. black turn
         17. white turn
     */
-    std::vector<float> vFeatures;
+    std::vector<float> features;
     for (int channel = 0; channel < 18; ++channel) {
         for (int pos = 0; pos < board_size_ * board_size_; ++pos) {
             int rotation_pos = getRotatePosition(pos, utils::reversed_rotation[static_cast<int>(rotation)]);
             if (channel < 16) {
                 int last_n_turn = stone_bitboard_history_.size() - 1 - channel / 2;
                 if (last_n_turn < 0) {
-                    vFeatures.push_back(0.0f);
+                    features.push_back(0.0f);
                 } else {
                     const GamePair<GoBitboard>& last_n_trun_stone_bitboard = stone_bitboard_history_[last_n_turn];
                     Player player = (channel % 2 == 0 ? turn_ : getNextPlayer(turn_, kGoNumPlayer));
-                    vFeatures.push_back(last_n_trun_stone_bitboard.get(player).test(rotation_pos) ? 1.0f : 0.0f);
+                    features.push_back(last_n_trun_stone_bitboard.get(player).test(rotation_pos) ? 1.0f : 0.0f);
                 }
             } else if (channel == 16) {
-                vFeatures.push_back((turn_ == Player::kPlayer1 ? 1.0f : 0.0f));
+                features.push_back((turn_ == Player::kPlayer1 ? 1.0f : 0.0f));
             } else if (channel == 17) {
-                vFeatures.push_back((turn_ == Player::kPlayer2 ? 1.0f : 0.0f));
+                features.push_back((turn_ == Player::kPlayer2 ? 1.0f : 0.0f));
             }
         }
     }
-    return vFeatures;
+    return features;
 }
 
 std::vector<float> GoEnv::getActionFeatures(const GoAction& action, utils::Rotation rotation /*= utils::Rotation::kRotationNone*/) const

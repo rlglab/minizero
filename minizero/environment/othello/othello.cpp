@@ -236,22 +236,22 @@ Player OthelloEnv::eval() const
 }
 std::vector<float> OthelloEnv::getFeatures(utils::Rotation rotation) const
 {
-    std::vector<float> vFeatures;
+    std::vector<float> features;
     for (int channel = 0; channel < 4; ++channel) {
         for (int pos = 0; pos < board_size_ * board_size_; ++pos) {
             int rotation_pos = getRotatePosition(pos, utils::reversed_rotation[static_cast<int>(rotation)]);
             if (channel == 0) {
-                vFeatures.push_back((board_.get(turn_)[rotation_pos] == 1 ? 1.0f : 0.0f));
+                features.push_back((board_.get(turn_)[rotation_pos] == 1 ? 1.0f : 0.0f));
             } else if (channel == 1) {
-                vFeatures.push_back((board_.get(getNextPlayer(turn_, kOthelloNumPlayer))[rotation_pos] == 1 ? 1.0f : 0.0f));
+                features.push_back((board_.get(getNextPlayer(turn_, kOthelloNumPlayer))[rotation_pos] == 1 ? 1.0f : 0.0f));
             } else if (channel == 2) {
-                vFeatures.push_back((turn_ == Player::kPlayer1 ? 1.0f : 0.0f));
+                features.push_back((turn_ == Player::kPlayer1 ? 1.0f : 0.0f));
             } else if (channel == 3) {
-                vFeatures.push_back((turn_ == Player::kPlayer2 ? 1.0f : 0.0f));
+                features.push_back((turn_ == Player::kPlayer2 ? 1.0f : 0.0f));
             }
         }
     }
-    return vFeatures;
+    return features;
 }
 
 std::vector<float> OthelloEnv::getActionFeatures(const OthelloAction& action, utils::Rotation rotation /*= utils::Rotation::kRotationNone*/) const
