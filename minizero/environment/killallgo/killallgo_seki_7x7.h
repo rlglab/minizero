@@ -16,49 +16,38 @@
 #include <vector>
 
 namespace minizero::env::killallgo {
+class GHIPattern {
+public:
+    go::GoBitboard black_;
+    go::GoBitboard white_;
+    go::GoBitboard empty_;
+
+    bool operator==(const GHIPattern& other) const
+    {
+        return black_ == other.black_ && white_ == other.white_ && empty_ == other.empty_;
+    }
+};
 
 class Seki7x7Table {
 public:
-    struct IsoGamePairHash {
-        std::size_t operator()(const GamePair<go::GoBitboard>& game_pair) const noexcept
+    struct GamePairHash {
+        std::size_t operator()(const std::pair<GamePair<go::GoBitboard>, std::string>& game_pair) const noexcept
         {
-            uint64_t b1 = game_pair.get(Player::kPlayer1).to_ullong();
-            uint64_t b2 = game_pair.get(Player::kPlayer2).to_ullong();
-            Zone7x7Bitboard board{b1 | b2, b1, b2};
-            board.normalize(true);
-            return fmix64(board.black_) ^ fmix64(board.white_);
-        }
-
-        constexpr static uint64_t fmix64(uint64_t k)
-        {
-            k ^= k >> 33;
-            k *= 0xff51afd7ed558ccdull;
-            k ^= k >> 33;
-            k *= 0xc4ceb9fe1a85ec53ull;
-            k ^= k >> 33;
-            return k;
+            return std::hash<go::GoBitboard>{}(game_pair.first.get(Player::kPlayer1)) ^ std::hash<go::GoBitboard>{}(game_pair.first.get(Player::kPlayer2));
         }
     };
 
-    struct IsoGamePairEqual {
-        bool operator()(const GamePair<go::GoBitboard>& lhs, const GamePair<go::GoBitboard>& rhs) const noexcept
+    struct GamePairEqual {
+        bool operator()(const std::pair<GamePair<go::GoBitboard>, std::string>& lhs, const std::pair<GamePair<go::GoBitboard>, std::string>& rhs) const noexcept
         {
-            uint64_t lhs_b1 = lhs.get(Player::kPlayer1).to_ullong();
-            uint64_t lhs_b2 = lhs.get(Player::kPlayer2).to_ullong();
-            uint64_t rhs_b1 = rhs.get(Player::kPlayer1).to_ullong();
-            uint64_t rhs_b2 = rhs.get(Player::kPlayer2).to_ullong();
-            Zone7x7Bitboard lhs_board{lhs_b1 | lhs_b2, lhs_b1, lhs_b2};
-            Zone7x7Bitboard rhs_board{rhs_b1 | rhs_b2, rhs_b1, rhs_b2};
-            lhs_board.normalize(true);
-            rhs_board.normalize(true);
-            return lhs_board == rhs_board;
+            return lhs.first == rhs.first;
         }
     };
 
-    using IsoGamePairSet = std::unordered_set<GamePair<go::GoBitboard>, IsoGamePairHash, IsoGamePairEqual>;
+    using IsoGamePairSet = std::unordered_set<std::pair<GamePair<go::GoBitboard>, std::string>, GamePairHash, GamePairEqual>;
 
-    bool lookup(const GamePair<go::GoBitboard>& game_pair) const;
-    void insert(GamePair<go::GoBitboard> game_pair);
+    bool lookup(const std::pair<GamePair<go::GoBitboard>, std::string>& game_pair, std::string& ghi_string) const;
+    void insert(std::pair<GamePair<go::GoBitboard>, std::string> game_pair);
 
     void save(const std::string& path) const;
     bool load(const std::string& path);
@@ -97,18 +86,14 @@ private:
     struct IsoBitBoardHash {
         std::size_t operator()(const go::GoBitboard& bitboard) const noexcept
         {
-            Zone7x7Bitboard board{bitboard.to_ullong(), 0, 0};
-            board.normalize(true);
-            return board.zone_;
+            return std::hash<go::GoBitboard>{}(bitboard);
         }
     };
 
     struct IsoBitBoardEqual {
         bool operator()(const go::GoBitboard& lhs, const go::GoBitboard& rhs) const
         {
-            Zone7x7Bitboard l{lhs.to_ullong(), 0, 0}, r{rhs.to_ullong(), 0, 0};
-            l.normalize(true), r.normalize(true);
-            return l.zone_ == r.zone_;
+            return lhs == rhs;
         }
     };
 
@@ -173,7 +158,7 @@ public:
      * The following functions are used to generate and query seki table.
      */
     static void generateSekiTable(Seki7x7Table& seki_table, int min_area_size, int max_area_size);
-    static GamePair<go::GoBitboard> lookupSekiBitboard(Seki7x7Table& seki_table, const KillAllGoEnv& env, const go::GoAction& action);
+    static GamePair<go::GoBitboard> lookupSekiBitboard(Seki7x7Table& seki_table, const KillAllGoEnv& env, const go::GoAction& action, std::string& ret_ghi_string);
     static bool isSeki(Seki7x7Table& seki_table, const KillAllGoEnv& env);
 
 private:
@@ -192,16 +177,28 @@ private:
      */
     static inline bool rc(int index) { return index >= 0 && index < kKillAllGoBoardSize; }
 
+    static std::vector<GamePair<go::GoBitboard>> getPatternsFromGHIString(const KillAllGoEnv& env, const std::string& ghi_string);
+    static bool hasHistoryGHIIssue(const KillAllGoEnv& env, const std::vector<GamePair<go::GoBitboard>>& checked_patterns, const go::GoBitboard& rzone_bitboard);
+    static std::string convertToFormalGHIString(const KillAllGoEnv& env, const std::vector<GamePair<go::GoBitboard>>& checked_patterns, const go::GoBitboard& rzone_bitboard);
+
 public:
     /**
      * The following functions are used to run seki search.
      */
-    static GamePair<go::GoBitboard> searchSekiBitboard(const KillAllGoEnv& env, const go::GoAction& action);
+    static std::pair<GamePair<go::GoBitboard>, std::string> searchSekiBitboard(const KillAllGoEnv& env, const go::GoAction& action);
 
 private:
-    static bool isEnclosedSeki(const KillAllGoEnv& env, const go::GoArea* area);
-    static bool enclosedSekiSearch(const KillAllGoEnv& env, const go::GoBlock* block, const go::GoBitboard& search_area_bitboard, Player turn, Player attacker);
+    static std::pair<bool, std::string> isEnclosedSeki(const KillAllGoEnv& env, const go::GoArea* area);
+    static std::pair<bool, std::string> enclosedSekiSearch(const KillAllGoEnv& env, const go::GoBlock* block, const go::GoBitboard& search_area_bitboard, Player turn, Player attacker, bool new_board, bool attacker_pass, bool get_ghi);
+    static std::pair<KillAllGoEnv, bool> getEnvFromBoard(const KillAllGoEnv& env, Player turn, bool new_board);
+    static go::GoBitboard getSearchBitboard(const KillAllGoEnv& env, const go::GoBlock* block, const go::GoBitboard& search_area_bitboard, Player turn, Player attacker);
+    static bool checkSSK(const KillAllGoEnv& env, const go::GoBlock* block, const go::GoBitboard& area_bitboard, Player turn, Player attacker);
     static std::vector<go::GoBitboard> findSearchPrioritySet(const KillAllGoEnv& env, const go::GoBlock* block, const go::GoBitboard& area_bitboard, Player turn);
+    static std::pair<bool, std::vector<killallgo::GHIPattern>> findLoopPatterns(const KillAllGoEnv& env, const go::GoBitboard& oringin_area_bitboard, Player turn, Player attacker, std::vector<go::GoBitboard> search_proirity_set);
+    static std::string setPatternsToGHIString(const std::vector<killallgo::GHIPattern>& ghi_loop, const std::pair<bool, std::string>& defender_win, Player attacker, bool has_ssk, std::string& ghi_string);
+    static std::vector<killallgo::GHIPattern> getLoopPatterns(size_t his_count, const go::GoBitboard& oringin_area_bitboard, const std::vector<GamePair<go::GoBitboard>>& history);
+    static go::GoHashKey getHashKeyAfterPlay(const KillAllGoEnv& env, const go::GoAction& action);
+    static bool isSuicidalMove(const KillAllGoEnv& env, const go::GoAction& action);
 };
 
 } // namespace minizero::env::killallgo
