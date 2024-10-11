@@ -89,10 +89,9 @@ bool ConHexEnv::isPlaceable(int action_id) const
 
 bool ConHexEnv::isLegalAction(const ConHexAction& action) const
 {
-    assert(player == Player::kPlayer1 || player == Player::kPlayer2);
-
     int action_id = action.getActionID();
     Player player = action.getPlayer();
+    assert(player == Player::kPlayer1 || player == Player::kPlayer2);
     if (!(action_id >= 0 && action_id < board_size_ * board_size_)) { return false; }
 
     if (player != turn_) { return false; } // not player's turn

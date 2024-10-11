@@ -59,8 +59,8 @@ void ConHexGraph::initGraph()
         if (hole_to_cell_map_[hole_idx].size() == 2) { continue; }
         if (hole_to_cell_map_[hole_idx].size() == 3) {
             std::array<int, 3> combination = {hole_to_cell_map_[hole_idx][0], hole_to_cell_map_[hole_idx][1], hole_to_cell_map_[hole_idx][2]};
-            for (int i = 0; i < combination.size(); ++i) {
-                for (int j = 0; j < combination.size(); ++j) {
+            for (int i = 0; i < static_cast<int>(combination.size()); ++i) {
+                for (int j = 0; j < static_cast<int>(combination.size()); ++j) {
                     if (i == j) { continue; }
                     cell_adjacency_list_[combination[i]].insert(combination[j]);
                 }
