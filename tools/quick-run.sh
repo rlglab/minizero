@@ -207,7 +207,7 @@ while [[ $1 ]]; do
     shift
 done
 
-# ================================ STEUP ================================
+# ================================ SETUP ================================
 
 git_info=$(git describe --abbrev=6 --dirty --always --exclude '*' 2>/dev/null || echo xxxxxx)
 session_name=minizero_$game.$git_info.$mode.$(date '+%Y%m%d%H%M%S')
@@ -364,6 +364,13 @@ if [[ $mode == train ]]; then # ================================ TRAIN =========
         fi
     fi
 
+    if [[ ! $batch_size && $zero_num_parallel_games ]]; then
+        batch_size=$zero_num_parallel_games # assume sp always taks 1 GPU when using quick-run
+    fi
+    if [[ ! $num_threads && $zero_num_threads ]]; then
+        num_threads=$zero_num_threads
+    fi
+
     if [[ ! $zero_server_port ]]; then
         zero_server_port=$({ grep zero_server_port= $conf_file || echo =$((58000+RANDOM%2000)); } | sed -E "s/^[^=]*=| *[#].*$//g")
     fi
@@ -414,7 +421,7 @@ if [[ $mode == train ]]; then # ================================ TRAIN =========
 
     # launch zero server
     {
-        $launch scripts/zero-server.sh $game $conf_file $zero_end_iteration -n "$train_dir" -conf_str "$conf_str"
+        $launch scripts/zero-server.sh $game $conf_file $zero_end_iteration -n "$train_dir" -g ${CUDA_VISIBLE_DEVICES//,/} -conf_str "$conf_str"
     } 2>&1 | tee >(watchdog "Worker Disconnection|^Failed to|Segmentation fault|Killed|Aborted|^[A-Za-z.]+Error") | colorize OUT_TRAIN &
     PID[$!]=server
     server_pid=$!
