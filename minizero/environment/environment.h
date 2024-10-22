@@ -32,6 +32,11 @@ typedef minizero::env::conhex::ConHexEnvLoader EnvironmentLoader;
 typedef minizero::env::connect6::Connect6Action Action;
 typedef minizero::env::connect6::Connect6Env Environment;
 typedef minizero::env::connect6::Connect6EnvLoader EnvironmentLoader;
+#elif DOTSANDBOXES
+#include "dotsandboxes.h"
+typedef minizero::env::dotsandboxes::DotsAndBoxesAction Action;
+typedef minizero::env::dotsandboxes::DotsAndBoxesEnv Environment;
+typedef minizero::env::dotsandboxes::DotsAndBoxesEnvLoader EnvironmentLoader;
 #elif GO
 #include "go.h"
 typedef minizero::env::go::GoAction Action;
@@ -140,6 +145,8 @@ inline void setUpEnv()
 #elif CONNECT6
     config::env_board_size = 19;
 #elif CONHEX
+    config::env_board_size = 9;
+#elif DOTSANDBOXES
     config::env_board_size = 9;
 #elif GO
     config::env_board_size = 9;

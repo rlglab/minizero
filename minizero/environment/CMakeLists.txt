@@ -11,6 +11,7 @@ target_include_directories(
     clobber
     conhex
     connect6
+    dotsandboxes
     go
     gomoku
     hex
