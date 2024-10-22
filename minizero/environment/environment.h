@@ -2,7 +2,12 @@
 
 #include "configuration.h"
 
-#if ATARI
+#if AMAZONS
+#include "amazons.h"
+typedef minizero::env::amazons::AmazonsAction Action;
+typedef minizero::env::amazons::AmazonsEnv Environment;
+typedef minizero::env::amazons::AmazonsEnvLoader EnvironmentLoader;
+#elif ATARI
 #include "atari.h"
 typedef minizero::env::atari::AtariAction Action;
 typedef minizero::env::atari::AtariEnv Environment;
@@ -93,6 +98,10 @@ namespace minizero::env {
 
 inline void setUpEnv()
 {
+#if AMAZONS
+    amazons::initialize();
+#endif
+
 #if BREAKTHROUGH
     breakthrough::initialize();
 #endif
@@ -122,7 +131,9 @@ inline void setUpEnv()
     config::zero_actor_intermediate_sequence_length = 200;
 #endif
 
-#if BREAKTHROUGH
+#if AMAZONS
+    config::env_board_size = 10;
+#elif BREAKTHROUGH
     config::env_board_size = 8;
 #elif CLOBBER
     config::env_board_size = 10;
