@@ -82,6 +82,7 @@ extern std::string env_go_ko_rule;
 extern bool env_killallgo_use_seki;
 extern std::string env_gomoku_rule;
 extern bool env_gomoku_exactly_five_stones;
+extern bool env_havannah_use_swap_rule;
 extern bool env_hex_use_swap_rule;
 extern bool env_conhex_use_swap_rule;
 extern int env_rubiks_scramble_rotate;

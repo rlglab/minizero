@@ -14,6 +14,7 @@ target_include_directories(
     dotsandboxes
     go
     gomoku
+    havannah
     hex
     killallgo
     linesofaction

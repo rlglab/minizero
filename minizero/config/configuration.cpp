@@ -78,6 +78,7 @@ std::string env_go_ko_rule = "positional";
 bool env_killallgo_use_seki = false;
 std::string env_gomoku_rule = "standard";
 bool env_gomoku_exactly_five_stones = true;
+bool env_havannah_use_swap_rule = true;
 bool env_hex_use_swap_rule = true;
 bool env_conhex_use_swap_rule = true;
 int env_rubiks_scramble_rotate = 5;
@@ -165,6 +166,8 @@ void setConfiguration(ConfigureLoader& cl)
 #elif GO
     cl.addParameter("env_go_komi", env_go_komi, "the komi in Go", "Environment");
     cl.addParameter("env_go_ko_rule", env_go_ko_rule, "the ko rules in Go: positional (only consider stones), situational (consider stones and the turn)", "Environment");
+#elif HAVANNAH
+    cl.addParameter("env_havannah_use_swap_rule", env_havannah_use_swap_rule, "true for enabling swap rule in Havannah", "Environment");
 #elif HEX
     cl.addParameter("env_hex_use_swap_rule", env_hex_use_swap_rule, "the swap rule in Hex", "Environment");
 #elif CONHEX

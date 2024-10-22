@@ -47,6 +47,11 @@ typedef minizero::env::go::GoEnvLoader EnvironmentLoader;
 typedef minizero::env::gomoku::GomokuAction Action;
 typedef minizero::env::gomoku::GomokuEnv Environment;
 typedef minizero::env::gomoku::GomokuEnvLoader EnvironmentLoader;
+#elif HAVANNAH
+#include "havannah.h"
+typedef minizero::env::havannah::HavannahAction Action;
+typedef minizero::env::havannah::HavannahEnv Environment;
+typedef minizero::env::havannah::HavannahEnvLoader EnvironmentLoader;
 #elif HEX
 #include "hex.h"
 typedef minizero::env::hex::HexAction Action;
@@ -150,6 +155,8 @@ inline void setUpEnv()
     config::env_board_size = 9;
 #elif GO
     config::env_board_size = 9;
+#elif HAVANNAH
+    config::env_board_size = 8;
 #elif HEX
     config::env_board_size = 11;
 #elif KILLALLGO
