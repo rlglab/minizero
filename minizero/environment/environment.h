@@ -110,39 +110,25 @@ inline void setUpEnv()
 {
 #if AMAZONS
     amazons::initialize();
-#endif
-
-#if BREAKTHROUGH
-    breakthrough::initialize();
-#endif
-
-#if GO
-    go::initialize();
-#endif
-
-#if KILLALLGO
-    killallgo::initialize();
-#endif
-
-#if LINESOFACTION
-    linesofaction::initialize();
-#endif
-
-#if NOGO
-    nogo::initialize();
-#endif
-
-#if ATARI
+#elif ATARI
     atari::initialize();
-#endif
-
-#if ATARI or PUZZLE2048
-    config::learner_n_step_return = 10;
-    config::zero_actor_intermediate_sequence_length = 200;
+#elif BREAKTHROUGH
+    breakthrough::initialize();
+#elif GO
+    go::initialize();
+#elif KILLALLGO
+    killallgo::initialize();
+#elif LINESOFACTION
+    linesofaction::initialize();
+#elif NOGO
+    nogo::initialize();
 #endif
 
 #if AMAZONS
     config::env_board_size = 10;
+#elif ATARI
+    config::learner_n_step_return = 10;
+    config::zero_actor_intermediate_sequence_length = 200;
 #elif BREAKTHROUGH
     config::env_board_size = 8;
 #elif CLOBBER
@@ -175,6 +161,8 @@ inline void setUpEnv()
     config::env_board_size = 3;
 #elif PUZZLE2048
     config::env_board_size = 4;
+    config::learner_n_step_return = 10;
+    config::zero_actor_intermediate_sequence_length = 200;
 #elif RUBIKS
     config::env_board_size = 3;
 #elif SANTORINI

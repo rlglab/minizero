@@ -73,14 +73,14 @@ std::string nn_type_name = "alphazero";
 int env_board_size = 0;
 std::string env_atari_rom_dir = "/opt/atari57/";
 std::string env_atari_name = "ms_pacman";
+bool env_conhex_use_swap_rule = true;
 float env_go_komi = 7.5;
 std::string env_go_ko_rule = "positional";
-bool env_killallgo_use_seki = false;
 std::string env_gomoku_rule = "standard";
 bool env_gomoku_exactly_five_stones = true;
 bool env_havannah_use_swap_rule = true;
 bool env_hex_use_swap_rule = true;
-bool env_conhex_use_swap_rule = true;
+bool env_killallgo_use_seki = false;
 int env_rubiks_scramble_rotate = 5;
 int env_surakarta_no_capture_plies = 50;
 
@@ -163,21 +163,21 @@ void setConfiguration(ConfigureLoader& cl)
                                                       "#\troad_runner robotank seaquest skiing solaris space_invaders star_gunner surround tennis time_pilot\n"
                                                       "#\ttutankham up_n_down venture video_pinball wizard_of_wor yars_revenge zaxxon",
                     "Environment");
+#elif CONHEX
+    cl.addParameter("env_conhex_use_swap_rule", env_conhex_use_swap_rule, "the swap rule in ConHex", "Environment");
 #elif GO
     cl.addParameter("env_go_komi", env_go_komi, "the komi in Go", "Environment");
     cl.addParameter("env_go_ko_rule", env_go_ko_rule, "the ko rules in Go: positional (only consider stones), situational (consider stones and the turn)", "Environment");
+#elif GOMOKU
+    cl.addParameter("env_gomoku_rule", env_gomoku_rule, "the opening rule in Gomoku: standard (standard Gomoku rule), outer_open (restricted first Black move)", "Environment");
+    cl.addParameter("env_gomoku_exactly_five_stones", env_gomoku_exactly_five_stones, "true for standard Gomoku; false for freestyle Gomoku (allow winning with more than five stones, i.e., an overline)", "Environment");
 #elif HAVANNAH
     cl.addParameter("env_havannah_use_swap_rule", env_havannah_use_swap_rule, "true for enabling swap rule in Havannah", "Environment");
 #elif HEX
     cl.addParameter("env_hex_use_swap_rule", env_hex_use_swap_rule, "the swap rule in Hex", "Environment");
-#elif CONHEX
-    cl.addParameter("env_conhex_use_swap_rule", env_conhex_use_swap_rule, "the swap rule in ConHex", "Environment");
 #elif KILLALLGO
     cl.addParameter("env_killallgo_ko_rule", env_go_ko_rule, "the ko rules in Killall-Go: positional (only consider stones), situational (consider stones and the turn)", "Environment");
     cl.addParameter("env_killallgo_use_seki", env_killallgo_use_seki, "true for enabling seki", "Environment");
-#elif GOMOKU
-    cl.addParameter("env_gomoku_rule", env_gomoku_rule, "the opening rule in Gomoku: standard (standard Gomoku rule), outer_open (restricted first Black move)", "Environment");
-    cl.addParameter("env_gomoku_exactly_five_stones", env_gomoku_exactly_five_stones, "true for standard Gomoku; false for freestyle Gomoku (allow winning with more than five stones, i.e., an overline)", "Environment");
 #elif RUBIKS
     cl.addParameter("env_rubiks_scramble_rotate", env_rubiks_scramble_rotate, "the number random rotations from the initial state of a rubik's cube", "Enviroment");
 #elif SURAKARTA
