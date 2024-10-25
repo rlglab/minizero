@@ -54,7 +54,7 @@ void initialize()
         kAmazonsPolicySize[curr_bsize] = cum_action_id + curr_bsize * curr_bsize;
         kAmazonsActionIdSplit[curr_bsize] = action_id_split;
         kAmazonsActionIdToCoord[curr_bsize] = action_id_coord;
-        assert(action_id_coord.size() == kAmazonsPolicySize[curr_bsize]);
+        assert(static_cast<int>(action_id_coord.size()) == kAmazonsPolicySize[curr_bsize]);
     }
 }
 

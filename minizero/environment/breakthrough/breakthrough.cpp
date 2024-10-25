@@ -160,8 +160,8 @@ bool BreakthroughEnv::act(const BreakthroughAction& action)
     if (opp_bitboard & (1ULL << dest)) { opp_bitboard ^= (1ULL << dest); }
     turn_ = action.nextPlayer();
 
-    assert(own_bitboard & (1ULL << from) == 0ULL);
-    assert(own_bitboard & opp_bitboard == 0ULL);
+    assert((own_bitboard & (1ULL << from)) == 0ULL);
+    assert((own_bitboard & opp_bitboard) == 0ULL);
     bitboard_history_.emplace_back(bitboard_);
 
     return true;
