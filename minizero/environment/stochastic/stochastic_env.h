@@ -25,13 +25,18 @@ public:
     virtual bool actChanceEvent(const Action& action) = 0;
     virtual std::vector<Action> getLegalChanceEvents() const = 0;
     virtual bool isLegalChanceEvent(const Action& action) const = 0;
-    virtual int getMaxChanceEventSize() const = 0;
     virtual float getChanceEventProbability(const Action& action) const = 0;
+    virtual int getChanceEventSize() const = 0;
+    virtual int getNumChanceEventFeatureChannels() const = 0;
+    virtual std::vector<float> getChanceEventFeatures(const Action& event, utils::Rotation rotation = utils::Rotation::kRotationNone) const = 0;
+    virtual int getRotateChanceEvent(int event_id, utils::Rotation rotation) const = 0;
 
     inline int getSeed() const { return seed_; }
+    inline const std::vector<Action>& getChanceEventHistory() const { return events_; }
 
 protected:
     int seed_;
+    std::vector<Action> events_;
     std::mt19937 random_;
 };
 
@@ -70,7 +75,11 @@ public:
         return env.getFeatures(rotation);
     }
 
+    virtual std::vector<float> getChance(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const = 0;
+    virtual std::vector<float> getChanceEventFeatures(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const = 0;
     virtual std::vector<float> getAfterstateValue(const int pos) const = 0;
+    virtual int getChanceEventSize() const = 0;
+    virtual int getRotateChanceEvent(int event_id, utils::Rotation rotation) const = 0;
 };
 
 } // namespace minizero::env
