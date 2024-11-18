@@ -56,6 +56,9 @@ std::pair<int, int> ThreadSharedData::calculateTrainingDataRange(const std::shar
     if (config::zero_actor_intermediate_sequence_length > 0) {
         data_end = std::max(0, (actor->getEnvironment().isTerminal() ? data_end : data_end - config::learner_muzero_unrolling_step - config::learner_n_step_return));
         data_start = std::max(0, (actor->getEnvironment().isTerminal() ? data_end - data_end % config::zero_actor_intermediate_sequence_length : data_end + 1 - config::zero_actor_intermediate_sequence_length));
+        if (actor->getEnvironment().isTerminal() && (data_end % config::zero_actor_intermediate_sequence_length < config::learner_muzero_unrolling_step + config::learner_n_step_return)) {
+            data_start = std::max(0, data_start - config::zero_actor_intermediate_sequence_length);
+        }
     }
     return {data_start, data_end};
 }
