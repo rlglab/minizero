@@ -41,6 +41,7 @@ PYBIND11_MODULE(minizero_py, m)
     m.def("get_batch_size", []() { return config::learner_batch_size; });
     m.def("get_muzero_unrolling_step", []() { return config::learner_muzero_unrolling_step; });
     m.def("get_n_step_return", []() { return config::learner_n_step_return; });
+    m.def("get_optimizer", []() { return config::learner_optimizer; });
     m.def("get_learning_rate", []() { return config::learner_learning_rate; });
     m.def("get_momentum", []() { return config::learner_momentum; });
     m.def("get_weight_decay", []() { return config::learner_weight_decay; });

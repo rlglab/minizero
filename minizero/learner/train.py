@@ -92,10 +92,19 @@ class Model:
                                       py.get_nn_discrete_value_size(),
                                       py.get_nn_type_name())
         self.network.to(self.device)
-        self.optimizer = optim.SGD(self.network.parameters(),
-                                   lr=py.get_learning_rate(),
-                                   momentum=py.get_momentum(),
-                                   weight_decay=py.get_weight_decay())
+        if py.get_optimizer().lower() == "adam":
+            self.optimizer = optim.Adam(self.network.parameters(),
+                                        lr=py.get_learning_rate(),
+                                        weight_decay=py.get_weight_decay())
+        elif py.get_optimizer().lower() == "adamw":
+            self.optimizer = optim.AdamW(self.network.parameters(),
+                                         lr=py.get_learning_rate(),
+                                         weight_decay=py.get_weight_decay())
+        else:
+            self.optimizer = optim.SGD(self.network.parameters(),
+                                       lr=py.get_learning_rate(),
+                                       momentum=py.get_momentum(),
+                                       weight_decay=py.get_weight_decay())
         self.scheduler = optim.lr_scheduler.StepLR(self.optimizer, step_size=1000000, gamma=0.1)
 
         if model_file:

@@ -56,6 +56,7 @@ int learner_training_display_step = 100;
 int learner_batch_size = 1024;
 int learner_muzero_unrolling_step = 5;
 int learner_n_step_return = 0;
+std::string learner_optimizer = "SGD";
 float learner_learning_rate = 0.02;
 float learner_momentum = 0.9;
 float learner_weight_decay = 0.0001;
@@ -138,9 +139,10 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("learner_batch_size", learner_batch_size, "the batch size for training", "Learner");
     cl.addParameter("learner_muzero_unrolling_step", learner_muzero_unrolling_step, "the number of steps to unroll for muzero training", "Learner");                                // ref: MZ
     cl.addParameter("learner_n_step_return", learner_n_step_return, "the number of steps to calculate the n-step value; usually 0 for board games, 10 for atari games", "Learner"); // ref: MZ
-    cl.addParameter("learner_learning_rate", learner_learning_rate, "hyperparameter for learning rate", "Learner");
-    cl.addParameter("learner_momentum", learner_momentum, "hyperparameter for momentum", "Learner");
-    cl.addParameter("learner_weight_decay", learner_weight_decay, "hyperparameter for weight decay", "Learner");
+    cl.addParameter("learner_optimizer", learner_optimizer, "the type of optimizer, support SGD, Adam, AdamW", "Learner");
+    cl.addParameter("learner_learning_rate", learner_learning_rate, "hyperparameter for learning rate; usually 0.02 for sgd, 0.001 for adam and adamw", "Learner");
+    cl.addParameter("learner_momentum", learner_momentum, "hyperparameter for momentum; only for sgd", "Learner");
+    cl.addParameter("learner_weight_decay", learner_weight_decay, "hyperparameter for weight decay; usually 0.0001 for sgd, 0 for adam, 0.01 for adamw", "Learner");
     cl.addParameter("learner_value_loss_scale", learner_value_loss_scale, "hyperparameter for scaling of the value loss", "Learner");
     cl.addParameter("learner_num_thread", learner_num_thread, "the number of threads for training", "Learner");
 
