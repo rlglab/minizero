@@ -105,6 +105,12 @@ function onExit()
 	exit
 }
 
+function logAndSend()
+{
+	echo "$@"
+	echo "Log $@" 1>&$broker_fd
+}
+
 # kill all background process when exit
 trap onExit SIGINT SIGTERM EXIT
 trap true SIGALRM
@@ -152,14 +158,14 @@ do
 					var=(${BASH_REMATCH[1]})
 					CONF_FILE=$(ls ${var[0]}/*.cfg)
 					CONF_STR="${var[1]}:zero_training_directory=${var[0]}:zero_num_threads=${num_cpu_thread}:zero_num_parallel_games=$((${batch_size}*${num_gpu}))${additional_conf_str}"
-					echo "CUDA_VISIBLE_DEVICES=${cuda_devices} ${sp_executable_file} -mode sp -conf_file ${CONF_FILE} -conf_str \"${CONF_STR}\""
+					logAndSend "CUDA_VISIBLE_DEVICES=${cuda_devices} ${sp_executable_file} -mode sp -conf_file ${CONF_FILE} -conf_str \"${CONF_STR}\""
 					CUDA_VISIBLE_DEVICES=${cuda_devices} ${sp_executable_file} -conf_file ${CONF_FILE} -conf_str "${CONF_STR}" -mode sp 0<&$broker_fd 1>&$broker_fd
 				elif [[ $line =~ ^Job_Optimization\ (.+) ]]
 				then
 					var=(${BASH_REMATCH[1]})
 					CONF_FILE=$(ls ${var[0]}/*.cfg)
 					# format: py/Train.py train_dir conf_file
-					echo "CUDA_VISIBLE_DEVICES=${cuda_devices} PYTHONPATH=. python ${op_executable_file} ${game_type} ${var[0]} ${CONF_FILE}"
+					logAndSend "CUDA_VISIBLE_DEVICES=${cuda_devices} PYTHONPATH=. python ${op_executable_file} ${game_type} ${var[0]} ${CONF_FILE}"
 					CUDA_VISIBLE_DEVICES=${cuda_devices} PYTHONPATH=. python ${op_executable_file} ${game_type} ${var[0]} ${CONF_FILE} 0<&$broker_fd 1>&$broker_fd 2> >(tee -a ${var[0]}/op.log >&2)
 				else
 					echo "read format error"

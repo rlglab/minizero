@@ -125,11 +125,17 @@ void ZeroWorkerHandler::handleReceivedMessage(const std::string& message)
         boost::lock_guard<boost::mutex> lock(shared_data_.mutex_);
         shared_data_.model_iteration_ = stoi(args[1]);
         shared_data_.is_optimization_phase_ = false;
+    } else if (args[0] == "Log") {
+        shared_data_.logger_.addWorkerLog("[Log] " + getName() + " " + getType() + ": " + message.substr(message.find(" ") + 1));
     } else {
         std::string error_message = message;
         std::replace(error_message.begin(), error_message.end(), '\r', ' ');
         std::replace(error_message.begin(), error_message.end(), '\n', ' ');
-        shared_data_.logger_.addWorkerLog("[Worker Error] \"" + error_message + "\"");
+        if (getName() != "") {
+            shared_data_.logger_.addWorkerLog("[Worker Error] \"" + error_message + "\"");
+        } else {
+            shared_data_.logger_.addWorkerLog("[Ignore Connection] \"" + error_message + "\"");
+        }
         close();
     }
 }
