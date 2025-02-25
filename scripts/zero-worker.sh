@@ -1,12 +1,15 @@
 #!/bin/bash
 
+env_cmakelists="$(dirname $(readlink -f "$0"))/../minizero/environment/CMakeLists.txt"
+support_games=($(awk '/target_include_directories/,/\)/' ${env_cmakelists} | sed 's|/|\n|g' | grep -v -E 'target|environment|PUBLIC|CMAKE_CURRENT_SOURCE_DIR|base|stochastic|)'))
+
 usage()
 {
 	echo "Usage: $0 GAME_TYPE HOST PORT WORKER_TYPE [OPTION]..."
 	echo "The zero-worker connects to a zero-server and performs either self-play or optimization."
 	echo ""
 	echo "Required arguments:"
-	echo "  GAME_TYPE: $(find ./ ../ -maxdepth 2 -name build.sh -exec grep -m1 support_games {} \; -quit | sed -E 's/.+\("|"\).*//g;s/" "/, /g')"
+    echo "  GAME_TYPE: ${support_games[@]}"
 	echo "  HOST, PORT: the host and port to connect the zero-server"
 	echo "  WORKER_TYPE: sp, op"
 	echo ""

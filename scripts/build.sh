@@ -1,7 +1,8 @@
 #!/bin/bash
 set -e
 
-support_games=("amazons" "atari" "breakthrough" "clobber" "conhex" "connect6" "dotsandboxes" "go" "gomoku" "havannah" "hex" "killallgo" "linesofaction" "nogo" "othello" "puzzle2048" "rubiks" "santorini" "surakarta" "tictactoe")
+env_cmakelists="$(dirname $(readlink -f "$0"))/../minizero/environment/CMakeLists.txt"
+support_games=($(awk '/target_include_directories/,/\)/' ${env_cmakelists} | sed 's|/|\n|g' | grep -v -E 'target|environment|PUBLIC|CMAKE_CURRENT_SOURCE_DIR|base|stochastic|)'))
 
 usage() {
 	echo "Usage: $0 GAME_TYPE BUILD_TYPE"

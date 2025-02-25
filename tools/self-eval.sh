@@ -1,12 +1,15 @@
 #!/usr/bin/bash
 
+env_cmakelists="$(dirname $(readlink -f "$0"))/../minizero/environment/CMakeLists.txt"
+support_games=($(awk '/target_include_directories/,/\)/' ${env_cmakelists} | sed 's|/|\n|g' | grep -v -E 'target|environment|PUBLIC|CMAKE_CURRENT_SOURCE_DIR|base|stochastic|)'))
+
 usage()
 {
     echo "Usage: $0 GAME_TYPE FOLDER CONF_FILE INTERVAL GAMENUM [OPTION]..."
     echo "Launch self evalutation to evaluate the relative strengths between different iterations of trained model."
     echo ""
     echo "Required arguments:"
-    echo "  GAME_TYPE: $(find ./ ../ -maxdepth 2 -name build.sh -exec grep -m1 support_games {} \; -quit | sed -E 's/.+\("|"\).*//g;s/" "/, /g')"
+    echo "  GAME_TYPE: ${support_games[@]}"
     echo "  FOLDER: the model folder, e.g., tictactoe_az_1bx256_n50-8c2433"
     echo "  CONF_FILE: the configure file (*.cfg) to use"
     echo "  INTERVAL: the iteration interval between each evaluated model pair"

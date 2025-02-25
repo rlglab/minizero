@@ -1,5 +1,8 @@
 #!/bin/bash
 
+env_cmakelists="$(dirname $(readlink -f "$0"))/../minizero/environment/CMakeLists.txt"
+support_games=($(awk '/target_include_directories/,/\)/' ${env_cmakelists} | sed 's|/|\n|g' | grep -v -E 'target|environment|PUBLIC|CMAKE_CURRENT_SOURCE_DIR|base|stochastic|)'))
+
 usage() {
     case "$1" in
     train)
@@ -7,7 +10,7 @@ usage() {
         echo "Launch a zero training session (incl. zero-server and zero-workers) to train a model for specific game."
         echo ""
         echo "Required arguments:"
-        echo "  GAME_TYPE: $(find ./ ../ -maxdepth 2 -name build.sh -exec grep -m1 support_games {} \; -quit | sed -E 's/.+\("|"\).*//g;s/" "/, /g')"
+        echo "  GAME_TYPE: ${support_games[@]}"
         echo "  CONF_FILE|ALGORITHM: set the configure file (*.cfg) to use, or one of supported zero algorithms: az, mz, gaz, gmz"
         echo "  END_ITER: the total number of iterations for training"
         echo ""
@@ -42,7 +45,7 @@ usage() {
         echo "Launch the GTP shell console to interact with a trained model."
         echo ""
         echo "Required arguments:"
-        echo "  GAME_TYPE: $(find ./ ../ -maxdepth 2 -name build.sh -exec grep -m1 support_games {} \; -quit | sed -E 's/.+\("|"\).*//g;s/" "/, /g')"
+        echo "  GAME_TYPE: ${support_games[@]}"
         echo "  FOLDER|MODEL: set the model folder, OR a model file (*.pt)"
         echo "  CONF_FILE: set the configure file (*.cfg) to use"
         echo ""
@@ -156,7 +159,6 @@ console) # FOLDER|MODEL [CONF_FILE]
     exit 1
     ;;
 esac
-eval $(grep -m1 support_games scripts/build.sh)
 if ! printf "%s\n" "${support_games[@]}" | grep -q "^$game$"; then
     if [[ $1 == -h || $1 == --help ]]; then
         usage $game # assume usage for MODE
