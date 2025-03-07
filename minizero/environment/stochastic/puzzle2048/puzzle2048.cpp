@@ -116,7 +116,7 @@ std::vector<float> Puzzle2048Env::getFeatures(utils::Rotation rotation /*= utils
     std::vector<float> features;
     for (int tile = 0; tile < 16; ++tile) {
         for (int pos = 0; pos < 16; ++pos) {
-            features.push_back(board_.get(getRotatePosition(pos, rotation)) == tile ? 1.0f : 0.0f);
+            features.push_back(board_.get(getRotatePosition(pos, utils::reversed_rotation[static_cast<int>(rotation)])) == tile ? 1.0f : 0.0f);
         }
     }
     return features;
@@ -138,12 +138,6 @@ std::vector<float> Puzzle2048Env::getChanceEventFeatures(const Puzzle2048Action&
     int event_id = getRotateChanceEvent(event.getActionID(), rotation) - kPuzzle2048ActionSize;
     std::fill(event_features.begin() + event_id * hidden_size, event_features.begin() + (event_id + 1) * hidden_size, 1.0f);
     return event_features;
-}
-
-int Puzzle2048Env::getRotateChanceEvent(int event_id, utils::Rotation rotation) const
-{
-    Puzzle2048ChanceEvent event(event_id);
-    return Puzzle2048ChanceEvent(getRotatePosition(event.getPosition(), rotation), event.getTile()).getActionID();
 }
 
 std::string Puzzle2048Env::toString() const
