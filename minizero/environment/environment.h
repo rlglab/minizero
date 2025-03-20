@@ -97,6 +97,11 @@ typedef minizero::env::santorini::SantoriniEnvLoader EnvironmentLoader;
 typedef minizero::env::surakarta::SurakartaAction Action;
 typedef minizero::env::surakarta::SurakartaEnv Environment;
 typedef minizero::env::surakarta::SurakartaEnvLoader EnvironmentLoader;
+#elif TETRISBLOCKPUZZLE
+#include "tetrisblockpuzzle.h"
+typedef minizero::env::tetrisblockpuzzle::TetrisBlockPuzzleAction Action;
+typedef minizero::env::tetrisblockpuzzle::TetrisBlockPuzzleEnv Environment;
+typedef minizero::env::tetrisblockpuzzle::TetrisBlockPuzzleEnvLoader EnvironmentLoader;
 #else
 #include "tictactoe.h"
 typedef minizero::env::tictactoe::TicTacToeAction Action;
@@ -122,6 +127,8 @@ inline void setUpEnv()
     linesofaction::initialize();
 #elif NOGO
     nogo::initialize();
+#elif TETRISBLOCKPUZZLE
+    tetrisblockpuzzle::initialize();
 #endif
 
 #if AMAZONS
@@ -169,6 +176,10 @@ inline void setUpEnv()
     config::env_board_size = 5;
 #elif SURAKARTA
     config::env_board_size = 6;
+#elif TETRISBLOCKPUZZLE
+    config::env_board_size = 8;
+    config::learner_n_step_return = 10;
+    config::zero_actor_intermediate_sequence_length = 200;
 #endif
 }
 

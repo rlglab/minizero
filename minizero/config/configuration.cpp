@@ -84,6 +84,8 @@ bool env_hex_use_swap_rule = true;
 bool env_killallgo_use_seki = false;
 int env_rubiks_scramble_rotate = 5;
 int env_surakarta_no_capture_plies = 50;
+int env_tetris_block_puzzle_num_holding_block = 3;
+int env_tetris_block_puzzle_num_preview_holding_block = 0;
 
 void setConfiguration(ConfigureLoader& cl)
 {
@@ -184,6 +186,9 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("env_rubiks_scramble_rotate", env_rubiks_scramble_rotate, "the number random rotations from the initial state of a rubik's cube", "Enviroment");
 #elif SURAKARTA
     cl.addParameter("env_surakarta_no_capture_plies", env_surakarta_no_capture_plies, "game is over if playing this plies without capture", "Environment");
+#elif TETRISBLOCKPUZZLE
+    cl.addParameter("env_tetris_block_puzzle_num_holding_block", env_tetris_block_puzzle_num_holding_block, "number of holding block", "Environment");
+    cl.addParameter("env_tetris_block_puzzle_num_preview_holding_block", env_tetris_block_puzzle_num_preview_holding_block, "number of preview holding block", "Environment");
 #endif
 
     // references

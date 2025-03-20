@@ -26,6 +26,7 @@ target_include_directories(
     tictactoe
     stochastic
     stochastic/puzzle2048
+    stochastic/tetrisblockpuzzle
 )
 target_link_libraries(
     environment
