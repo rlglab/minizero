@@ -115,7 +115,8 @@ Results on Atari games:
 
 MiniZero requires a Linux platform with at least one NVIDIA GPU to operate.
 To facilitate the use of MiniZero, a [container image](https://hub.docker.com/r/kds285/minizero) is pre-built to include all required packages. 
-Thus, a container tool such as `docker` or `podman` is also required.
+Thus, a container tool such as `docker` or `podman` is also required.  
+If you cannot use Docker (e.g., on HEC or HPC clusters), you can read the `Dockerfile` to manually reproduce the environment.
 
 <details>
 <summary>Show platform recommendations</summary>
@@ -138,6 +139,17 @@ Thus, a container tool such as `docker` or `podman` is also required.
 |Xeon E5-2678 v3 x2|192G|GTX 1080 Ti x4|Ubuntu 20.04.5 LTS|
 |Xeon E5-2698 v4 x2|128G|GTX 1080 Ti x1|Arch Linux LTS (5.15.90)|
 |Core i9-7980XE|128G|GTX 1080 Ti x1|Arch Linux (6.5.6)|
+
+</details>
+
+<details>
+<summary>Show dependencies</summary>
+
+* CMake == 3.25.2
+* GCC/G++ == 9.4.0
+* Python == 3.8.10
+* PyTorch == 1.13.0+cu116
+* Boost == 1.71.0.0ubuntu2
 
 </details>
 

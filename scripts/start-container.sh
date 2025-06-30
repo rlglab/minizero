@@ -22,7 +22,7 @@ if [[ ! $container_tool ]]; then
 	exit 1
 fi
 container_volume="-v .:/workspace"
-container_argumenets=""
+container_arguments=""
 record_history=false
 while :; do
 	case $1 in
@@ -32,9 +32,9 @@ while :; do
 		;;
 		-v|--volume) shift; container_volume="${container_volume} -v ${1}"
 		;;
-		--name) shift; container_argumenets="${container_argumenets} --name ${1}"
+		--name) shift; container_arguments="${container_arguments} --name ${1}"
 		;;
-		-d|--detach) container_argumenets="${container_argumenets} -d"
+		-d|--detach) container_arguments="${container_arguments} -d"
 		;;
 		-H|--history) record_history=true
 		;;
@@ -45,6 +45,18 @@ while :; do
 	esac
 	shift
 done
+
+# check GPU environment
+if ! command -v nvidia-smi &> /dev/null; then
+	echo "Error: nvidia-smi not found. Please ensure NVIDIA drivers are installed and available in PATH." >&2
+	exit 1
+fi
+
+if ! command -v nvidia-container-cli &> /dev/null; then
+	echo "Error: 'nvidia-container-cli' not found. NVIDIA Container Toolkit is likely not installed." >&2
+	echo "Visit https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html" >&2
+	exit 1
+fi
 
 if [ "$record_history" = true ]; then
 	history_dir=".container_root"
@@ -58,6 +70,23 @@ if [ "$record_history" = true ]; then
 	container_volume="${container_volume} -v ${history_dir}:/root"
 fi
 
-container_argumenets=$(echo ${container_argumenets} | xargs)
-echo "$container_tool run ${container_argumenets} --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --network=host --ipc=host --rm -it ${container_volume} ${image_name}"
-$container_tool run ${container_argumenets} --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --network=host --ipc=host --rm -it ${container_volume} ${image_name}
+container_arguments=$(echo ${container_arguments} | xargs)
+
+if [ ${container_tool} = "podman" ]; then
+	echo "$container_tool run ${container_arguments} --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --network=host --ipc=host --rm -it ${container_volume} ${image_name}"
+	$container_tool run ${container_arguments} --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --network=host --ipc=host --rm -it ${container_volume} ${image_name}
+elif [ ${container_tool} = "docker" ]; then
+	# manually mount GPU devices into Docker to resolve 'Failed to Initialize NVML: Unknown Error'
+	device_args="--gpus all"
+	for path in /dev/nvidia*; do
+		if [ -c ${path} ]; then
+			device_args+=" --device=${path}"
+		fi
+	done
+	# add Git safe directory
+	git_safe_cmd='git config --global --add safe.directory /workspace && exec bash'
+	# add argument
+	container_arguments="${container_arguments} -e container=${container_tool}"
+	echo "$container_tool run ${container_arguments} ${device_args} --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --network=host --ipc=host --rm -it ${container_volume} ${image_name} bash -c \"${git_safe_cmd}\""
+	$container_tool run ${container_arguments} ${device_args} --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --network=host --ipc=host --rm -it ${container_volume} ${image_name} bash -c "$git_safe_cmd"
+fi
