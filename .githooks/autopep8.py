@@ -69,6 +69,7 @@ import collections
 import copy
 import difflib
 import fnmatch
+import importlib
 import inspect
 import io
 import itertools
@@ -86,10 +87,9 @@ import ast
 from configparser import ConfigParser as SafeConfigParser, Error
 
 import pycodestyle
-from pycodestyle import STARTSWITH_INDENT_STATEMENT_REGEX
 
 
-__version__ = '2.0.1'
+__version__ = '2.3.2'
 
 
 CR = '\r'
@@ -106,6 +106,14 @@ STARTSWITH_DEF_REGEX = re.compile(r'^(async\s+def|def)\s.*\):')
 DOCSTRING_START_REGEX = re.compile(r'^u?r?(?P<kind>["\']{3})')
 ENABLE_REGEX = re.compile(r'# *(fmt|autopep8): *on')
 DISABLE_REGEX = re.compile(r'# *(fmt|autopep8): *off')
+ENCODING_MAGIC_COMMENT = re.compile(
+    r'^[ \t\f]*#.*?coding[:=][ \t]*([-_.a-zA-Z0-9]+)'
+)
+COMPARE_TYPE_REGEX = re.compile(
+    r'([=!]=)\s+type(?:\s*\(\s*([^)]*[^ )])\s*\))'
+    r'|\btype(?:\s*\(\s*([^)]*[^ )])\s*\))\s+([=!]=)'
+)
+TYPE_REGEX = re.compile(r'(type\s*\(\s*[^)]*?[^\s)]\s*\))')
 
 EXIT_CODE_OK = 0
 EXIT_CODE_ERROR = 1
@@ -129,25 +137,6 @@ DEFAULT_INDENT_SIZE = 4
 # to be enabled, disable both of them
 CONFLICTING_CODES = ('W503', 'W504')
 
-# W602 is handled separately due to the need to avoid "with_traceback".
-CODE_TO_2TO3 = {
-    'E231': ['ws_comma'],
-    'E721': ['idioms'],
-    'W690': ['apply',
-             'except',
-             'exitfunc',
-             'numliterals',
-             'operator',
-             'paren',
-             'reduce',
-             'renames',
-             'standarderror',
-             'sys_exc',
-             'throw',
-             'tuple_params',
-             'xreadlines']}
-
-
 if sys.platform == 'win32':  # pragma: no cover
     DEFAULT_CONFIG = os.path.expanduser(r'~\.pycodestyle')
 else:
@@ -165,6 +154,14 @@ PROJECT_CONFIG = ('setup.cfg', 'tox.ini', '.pep8', '.flake8')
 
 MAX_PYTHON_FILE_DETECTION_BYTES = 1024
 
+IS_SUPPORT_TOKEN_FSTRING = False
+if sys.version_info >= (3, 12):  # pgrama: no cover
+    IS_SUPPORT_TOKEN_FSTRING = True
+
+
+def _custom_formatwarning(message, category, _, __, line=None):
+    return f"{category.__name__}: {message}\n"
+
 
 def open_with_encoding(filename, mode='r', encoding=None, limit_byte_check=-1):
     """Return opened file with a specific encoding."""
@@ -175,16 +172,31 @@ def open_with_encoding(filename, mode='r', encoding=None, limit_byte_check=-1):
                    newline='')  # Preserve line endings
 
 
+def _detect_encoding_from_file(filename: str):
+    try:
+        with open(filename) as input_file:
+            for idx, line in enumerate(input_file):
+                if idx == 0 and line[0] == '\ufeff':
+                    return "utf-8-sig"
+                if idx >= 2:
+                    break
+                match = ENCODING_MAGIC_COMMENT.search(line)
+                if match:
+                    return match.groups()[0]
+    except Exception:
+        pass
+    # Python3's default encoding
+    return 'utf-8'
+
+
 def detect_encoding(filename, limit_byte_check=-1):
     """Return file encoding."""
+    encoding = _detect_encoding_from_file(filename)
+    if encoding == "utf-8-sig":
+        return encoding
     try:
-        with open(filename, 'rb') as input_file:
-            from lib2to3.pgen2 import tokenize as lib2to3_tokenize
-            encoding = lib2to3_tokenize.detect_encoding(input_file.readline)[0]
-
         with open_with_encoding(filename, encoding=encoding) as test_file:
             test_file.read(limit_byte_check)
-
         return encoding
     except (LookupError, SyntaxError, UnicodeDecodeError):
         return 'latin-1'
@@ -202,7 +214,7 @@ def extended_blank_lines(logical_line,
                          indent_level,
                          previous_logical):
     """Check for missing blank lines after class declaration."""
-    if previous_logical.startswith('def '):
+    if previous_logical.startswith(('def ', 'async def ')):
         if blank_lines and pycodestyle.DOCSTRING_REGEX.match(logical_line):
             yield (0, 'E303 too many blank lines ({})'.format(blank_lines))
     elif pycodestyle.DOCSTRING_REGEX.match(previous_logical):
@@ -211,13 +223,10 @@ def extended_blank_lines(logical_line,
             indent_level and
             not blank_lines and
             not blank_before and
-            logical_line.startswith(('def ')) and
+            logical_line.startswith(('def ', 'async def ')) and
             '(self' in logical_line
         ):
             yield (0, 'E301 expected 1 blank line, found 0')
-
-
-pycodestyle.register_check(extended_blank_lines)
 
 
 def continued_indentation(logical_line, tokens, indent_level, hang_closing,
@@ -411,7 +420,11 @@ def continued_indentation(logical_line, tokens, indent_level, hang_closing,
             yield (pos, 'E125 {}'.format(desired_indent))
 
 
+# NOTE: need reload with runpy and call twice
+#   see: https://github.com/hhatto/autopep8/issues/625
+importlib.reload(pycodestyle)
 del pycodestyle._checks['logical_line'][pycodestyle.continued_indentation]
+pycodestyle.register_check(extended_blank_lines)
 pycodestyle.register_check(continued_indentation)
 
 
@@ -449,7 +462,7 @@ class FixPEP8(object):
         - e502
         - e701,e702,e703,e704
         - e711,e712,e713,e714
-        - e722
+        - e721,e722
         - e731
         - w291
         - w503,504
@@ -468,6 +481,7 @@ class FixPEP8(object):
             self.source = sio.readlines()
         self.options = options
         self.indent_word = _get_indentword(''.join(self.source))
+        self.original_source = copy.copy(self.source)
 
         # collect imports line
         self.imports = {}
@@ -495,6 +509,7 @@ class FixPEP8(object):
         self.fix_e133 = self.fix_e131
         self.fix_e202 = self.fix_e201
         self.fix_e203 = self.fix_e201
+        self.fix_e204 = self.fix_e201
         self.fix_e211 = self.fix_e201
         self.fix_e221 = self.fix_e271
         self.fix_e222 = self.fix_e271
@@ -518,6 +533,13 @@ class FixPEP8(object):
         self.fix_e703 = self.fix_e702
         self.fix_w292 = self.fix_w291
         self.fix_w293 = self.fix_w291
+
+    def _check_affected_anothers(self, result) -> bool:
+        """Check if the fix affects the number of lines of another remark."""
+        line_index = result['line'] - 1
+        target = self.source[line_index]
+        original_target = self.original_source[line_index]
+        return target != original_target
 
     def _fix_source(self, results):
         try:
@@ -552,8 +574,12 @@ class FixPEP8(object):
                                 completed_lines):
                             continue
 
+                    if self._check_affected_anothers(result):
+                        continue
                     modified_lines = fix(result, logical)
                 else:
+                    if self._check_affected_anothers(result):
+                        continue
                     modified_lines = fix(result)
 
                 if modified_lines is None:
@@ -757,8 +783,14 @@ class FixPEP8(object):
                 return
             if not check_syntax(fixed.lstrip()):
                 return
-            errors = list(
-                pycodestyle.missing_whitespace_around_operator(fixed, ts))
+            try:
+                _missing_whitespace = (
+                    pycodestyle.missing_whitespace_around_operator
+                )
+            except AttributeError:
+                # pycodestyle >= 2.11.0
+                _missing_whitespace = pycodestyle.missing_whitespace
+            errors = list(_missing_whitespace(fixed, ts))
             for e in reversed(errors):
                 if error_code != e[1].split()[0]:
                     continue
@@ -1083,8 +1115,11 @@ class FixPEP8(object):
         # Avoid applying this when indented.
         # https://docs.python.org/reference/compound_stmts.html
         for line in logical_lines:
-            if (result['id'] == 'E702' and ':' in line
-                    and STARTSWITH_INDENT_STATEMENT_REGEX.match(line)):
+            if (
+                result['id'] == 'E702'
+                and ':' in line
+                and pycodestyle.STARTSWITH_INDENT_STATEMENT_REGEX.match(line)
+            ):
                 if self.options.verbose:
                     print(
                         '---> avoid fixing {error} with '
@@ -1255,6 +1290,76 @@ class FixPEP8(object):
                     new_target = '{}{} {}'.format(
                         new_target[:pos_start], 'is not', new_target[pos_end:])
                 self.source[line_index] = new_target
+
+    def fix_e721(self, result):
+        """fix comparison type"""
+        (line_index, _, target) = get_index_offset_contents(result,
+                                                            self.source)
+        match = COMPARE_TYPE_REGEX.search(target)
+        if match:
+            # NOTE: match objects
+            #  * type(a) == type(b)  -> (None, None, 'a', '==')
+            #  * str == type(b)      -> ('==', 'b', None, None)
+            #  * type(b) == str      -> (None, None, 'b', '==')
+            #  * type("") != type(b) -> (None, None, '""', '!=')
+            start = match.start()
+            end = match.end()
+            _prefix = ""
+            _suffix = ""
+            first_match_type_obj = match.groups()[1]
+            if first_match_type_obj is None:
+                _target_obj = match.groups()[2]
+            else:
+                _target_obj = match.groups()[1]
+                _suffix = target[end:]
+
+            isinstance_stmt = " isinstance"
+            is_not_condition = (
+                match.groups()[0] == "!=" or match.groups()[3] == "!="
+            )
+            if is_not_condition:
+                isinstance_stmt = " not isinstance"
+
+            _type_comp = f"{_target_obj}, {target[:start]}"
+            indent_match = re.match(r'^\s+', target)
+            indent = ""
+            if indent_match:
+                indent = indent_match.group()
+
+            _prefix_tmp = target[:start].split()
+            if len(_prefix_tmp) >= 1:
+                _type_comp = f"{_target_obj}, {target[:start]}"
+                if first_match_type_obj is not None:
+                    _prefix = " ".join(_prefix_tmp[:-1])
+                    _type_comp = f"{_target_obj}, {_prefix_tmp[-1]}"
+                else:
+                    _prefix = " ".join(_prefix_tmp)
+
+            _suffix_tmp = target[end:]
+            _suffix_type_match = TYPE_REGEX.search(_suffix_tmp)
+            if _suffix_type_match:
+                if len(_suffix_tmp.split()) >= 1:
+                    type_match_end = _suffix_type_match.end()
+                    _suffix = _suffix_tmp[type_match_end:]
+                cmp_b = _suffix_type_match.groups()[0]
+                _type_comp = f"{_target_obj}, {cmp_b}"
+            else:
+                _else_suffix_match = re.match(
+                    r"^\s*([^\s:]+)(.*)$",
+                    _suffix_tmp,
+                )
+                if _else_suffix_match:
+                    _else_suffix = _else_suffix_match.group(1)
+                    _else_suffix_other = _else_suffix_match.group(2)
+                    _type_comp = f"{_target_obj}, {_else_suffix}"
+                    _else_suffix_end = _suffix_tmp[_else_suffix_match.end():]
+                    _suffix = f"{_else_suffix_other}{_else_suffix_end}"
+                # `else` route is not care
+
+            fix_line = (
+                f"{indent}{_prefix}{isinstance_stmt}({_type_comp}){_suffix}"
+            )
+            self.source[line_index] = fix_line
 
     def fix_e722(self, result):
         """fix bare except"""
@@ -1532,7 +1637,7 @@ def get_index_offset_contents(result, source):
 
 def get_fixed_long_line(target, previous_line, original,
                         indent_word='    ', max_line_length=79,
-                        aggressive=False, experimental=False, verbose=False):
+                        aggressive=0, experimental=False, verbose=False):
     """Break up long line and return result.
 
     Do this by generating multiple reformatted candidates and then
@@ -1711,69 +1816,6 @@ def split_and_strip_non_empty_lines(text):
     return [line.strip() for line in text.splitlines() if line.strip()]
 
 
-def refactor(source, fixer_names, ignore=None, filename=''):
-    """Return refactored code using lib2to3.
-
-    Skip if ignore string is produced in the refactored code.
-
-    """
-    not_found_end_of_file_newline = source and source.rstrip("\r\n") == source
-    if not_found_end_of_file_newline:
-        input_source = source + "\n"
-    else:
-        input_source = source
-
-    from lib2to3 import pgen2
-    try:
-        new_text = refactor_with_2to3(input_source,
-                                      fixer_names=fixer_names,
-                                      filename=filename)
-    except (pgen2.parse.ParseError,
-            SyntaxError,
-            UnicodeDecodeError,
-            UnicodeEncodeError):
-        return source
-
-    if ignore:
-        if ignore in new_text and ignore not in source:
-            return source
-
-    if not_found_end_of_file_newline:
-        return new_text.rstrip("\r\n")
-
-    return new_text
-
-
-def code_to_2to3(select, ignore, where='', verbose=False):
-    fixes = set()
-    for code, fix in CODE_TO_2TO3.items():
-        if code_match(code, select=select, ignore=ignore):
-            if verbose:
-                print('--->  Applying {} fix for {}'.format(where,
-                                                            code.upper()),
-                      file=sys.stderr)
-            fixes |= set(fix)
-    return fixes
-
-
-def fix_2to3(source,
-             aggressive=True, select=None, ignore=None, filename='',
-             where='global', verbose=False):
-    """Fix various deprecated code (via lib2to3)."""
-    if not aggressive:
-        return source
-
-    select = select or []
-    ignore = ignore or []
-
-    return refactor(source,
-                    code_to_2to3(select=select,
-                                 ignore=ignore,
-                                 where=where,
-                                 verbose=verbose),
-                    filename=filename)
-
-
 def find_newline(source):
     """Return type of newline used in source.
 
@@ -1872,7 +1914,7 @@ def _priority_key(pep8_result):
 
 
 def shorten_line(tokens, source, indentation, indent_word, max_line_length,
-                 aggressive=False, experimental=False, previous_line=''):
+                 aggressive=0, experimental=False, previous_line=''):
     """Separate line at OPERATOR.
 
     Multiple candidates will be yielded.
@@ -1910,7 +1952,7 @@ def shorten_line(tokens, source, indentation, indent_word, max_line_length,
 
 
 def _shorten_line(tokens, source, indentation, indent_word,
-                  aggressive=False, previous_line=''):
+                  aggressive=0, previous_line=''):
     """Separate line at OPERATOR.
 
     The input is expected to be free of newlines except for inside multiline
@@ -1919,10 +1961,19 @@ def _shorten_line(tokens, source, indentation, indent_word,
     Multiple candidates will be yielded.
 
     """
+    in_string = False
     for (token_type,
          token_string,
          start_offset,
          end_offset) in token_offsets(tokens):
+
+        if IS_SUPPORT_TOKEN_FSTRING:
+            if token_type == tokenize.FSTRING_START:
+                in_string = True
+            elif token_type == tokenize.FSTRING_END:
+                in_string = False
+        if in_string:
+            continue
 
         if (
             token_type == tokenize.COMMENT and
@@ -2042,6 +2093,7 @@ class ReformattedLines(object):
         self._bracket_depth = 0
         self._prev_item = None
         self._prev_prev_item = None
+        self._in_fstring = False
 
     def __repr__(self):
         return self.emit()
@@ -2169,6 +2221,11 @@ class ReformattedLines(object):
         inserted inside of a container or not.
 
         """
+        if item.is_fstring_start:
+            self._in_fstring = True
+        elif self._prev_item and self._prev_item.is_fstring_end:
+            self._in_fstring = False
+
         if self._prev_item and self._prev_item.is_string and item.is_string:
             # Place consecutive string literals on separate lines.
             self._lines.append(self._LineBreak())
@@ -2195,10 +2252,10 @@ class ReformattedLines(object):
         self._lines.append(item)
         self._prev_item, self._prev_prev_item = item, self._prev_item
 
-        if item_text in '([{':
+        if item_text in '([{' and not self._in_fstring:
             self._bracket_depth += 1
 
-        elif item_text in '}])':
+        elif item_text in '}])' and not self._in_fstring:
             self._bracket_depth -= 1
             assert self._bracket_depth >= 0
 
@@ -2396,6 +2453,18 @@ class Atom(object):
     @property
     def is_string(self):
         return self._atom.token_type == tokenize.STRING
+
+    @property
+    def is_fstring_start(self):
+        if not IS_SUPPORT_TOKEN_FSTRING:
+            return False
+        return self._atom.token_type == tokenize.FSTRING_START
+
+    @property
+    def is_fstring_end(self):
+        if not IS_SUPPORT_TOKEN_FSTRING:
+            return False
+        return self._atom.token_type == tokenize.FSTRING_END
 
     @property
     def is_name(self):
@@ -2908,7 +2977,7 @@ def normalize_multiline(line):
     This is for purposes of checking syntax.
 
     """
-    if line.startswith('def ') and line.rstrip().endswith(':'):
+    if line.startswith(('def ', 'async def ')) and line.rstrip().endswith(':'):
         return line + ' pass'
     elif line.startswith('return '):
         return 'def _(): ' + line
@@ -3169,24 +3238,6 @@ def _leading_space_count(line):
     return i
 
 
-def refactor_with_2to3(source_text, fixer_names, filename=''):
-    """Use lib2to3 to refactor the source.
-
-    Return the refactored source code.
-
-    """
-    from lib2to3.refactor import RefactoringTool
-    fixers = ['lib2to3.fixes.fix_' + name for name in fixer_names]
-    tool = RefactoringTool(fixer_names=fixers, explicit=fixers)
-
-    from lib2to3.pgen2 import tokenize as lib2to3_tokenize
-    try:
-        # The name parameter is necessary particularly for the "import" fixer.
-        return str(tool.refactor_string(source_text, name=filename))
-    except lib2to3_tokenize.TokenError:
-        return source_text
-
-
 def check_syntax(code):
     """Return True if syntax is okay."""
     try:
@@ -3353,13 +3404,20 @@ def multiline_string_lines(source, include_docstrings=False):
     """
     line_numbers = set()
     previous_token_type = ''
+    _check_target_tokens = [tokenize.STRING]
+    if IS_SUPPORT_TOKEN_FSTRING:
+        _check_target_tokens.extend([
+            tokenize.FSTRING_START,
+            tokenize.FSTRING_MIDDLE,
+            tokenize.FSTRING_END,
+        ])
     try:
         for t in generate_tokens(source):
             token_type = t[0]
             start_row = t[2][0]
             end_row = t[3][0]
 
-            if token_type == tokenize.STRING and start_row != end_row:
+            if token_type in _check_target_tokens and start_row != end_row:
                 if (
                     include_docstrings or
                     previous_token_type != tokenize.INDENT
@@ -3488,6 +3546,16 @@ def fix_code(source, options=None, encoding=None, apply_config=False):
 
     """
     options = _get_options(options, apply_config)
+    # normalize
+    options.ignore = [opt.upper() for opt in options.ignore]
+    options.select = [opt.upper() for opt in options.select]
+
+    # check ignore args
+    # NOTE: If W50x is not included, add W50x because the code
+    #       correction result is indefinite.
+    ignore_opt = options.ignore
+    if not {"W50", "W503", "W504"} & set(ignore_opt):
+        options.ignore.append("W50")
 
     if not isinstance(source, str):
         source = source.decode(encoding or get_encoding())
@@ -3648,15 +3716,17 @@ def apply_global_fixes(source, options, where='global', filename='',
         codes = []
     if any(code_match(code, select=options.select, ignore=options.ignore)
            for code in ['E101', 'E111']):
-        source = reindent(source,
-                          indent_size=options.indent_size,
-                          leave_tabs=not (
-                              code_match(
-                                    'W191',
-                                    select=options.select,
-                                    ignore=options.ignore)
-                                         )
-                          )
+        source = reindent(
+            source,
+            indent_size=options.indent_size,
+            leave_tabs=not (
+                code_match(
+                    'W191',
+                    select=options.select,
+                    ignore=options.ignore
+                )
+            )
+        )
 
     for (code, function) in global_fixes():
         if code_match(code, select=options.select, ignore=options.ignore):
@@ -3666,14 +3736,6 @@ def apply_global_fixes(source, options, where='global', filename='',
                       file=sys.stderr)
             source = function(source,
                               aggressive=options.aggressive)
-
-    source = fix_2to3(source,
-                      aggressive=options.aggressive,
-                      select=options.select,
-                      ignore=options.ignore,
-                      filename=filename,
-                      where=where,
-                      verbose=options.verbose)
 
     return source
 
@@ -3811,13 +3873,23 @@ def _expand_codes(codes, ignore_codes):
     return ret
 
 
+def _parser_error_with_code(
+    parser: argparse.ArgumentParser, code: int, msg: str,
+) -> None:
+    """wrap parser.error with exit code"""
+    parser.print_usage(sys.stderr)
+    parser.exit(code, f"{msg}\n")
+
+
 def parse_args(arguments, apply_config=False):
     """Parse command-line options."""
     parser = create_parser()
     args = parser.parse_args(arguments)
 
     if not args.files and not args.list_fixes:
-        parser.exit(EXIT_CODE_ARGPARSE_ERROR, 'incorrect number of arguments')
+        _parser_error_with_code(
+            parser, EXIT_CODE_ARGPARSE_ERROR, 'incorrect number of arguments',
+        )
 
     args.files = [decode_filename(name) for name in args.files]
 
@@ -3835,56 +3907,65 @@ def parse_args(arguments, apply_config=False):
 
     if '-' in args.files:
         if len(args.files) > 1:
-            parser.exit(
+            _parser_error_with_code(
+                parser,
                 EXIT_CODE_ARGPARSE_ERROR,
                 'cannot mix stdin and regular files',
             )
 
         if args.diff:
-            parser.exit(
+            _parser_error_with_code(
+                parser,
                 EXIT_CODE_ARGPARSE_ERROR,
                 '--diff cannot be used with standard input',
             )
 
         if args.in_place:
-            parser.exit(
+            _parser_error_with_code(
+                parser,
                 EXIT_CODE_ARGPARSE_ERROR,
                 '--in-place cannot be used with standard input',
             )
 
         if args.recursive:
-            parser.exit(
+            _parser_error_with_code(
+                parser,
                 EXIT_CODE_ARGPARSE_ERROR,
                 '--recursive cannot be used with standard input',
             )
 
     if len(args.files) > 1 and not (args.in_place or args.diff):
-        parser.exit(
+        _parser_error_with_code(
+            parser,
             EXIT_CODE_ARGPARSE_ERROR,
             'autopep8 only takes one filename as argument '
             'unless the "--in-place" or "--diff" args are used',
         )
 
     if args.recursive and not (args.in_place or args.diff):
-        parser.exit(
+        _parser_error_with_code(
+            parser,
             EXIT_CODE_ARGPARSE_ERROR,
             '--recursive must be used with --in-place or --diff',
         )
 
     if args.in_place and args.diff:
-        parser.exit(
+        _parser_error_with_code(
+            parser,
             EXIT_CODE_ARGPARSE_ERROR,
             '--in-place and --diff are mutually exclusive',
         )
 
     if args.max_line_length <= 0:
-        parser.exit(
+        _parser_error_with_code(
+            parser,
             EXIT_CODE_ARGPARSE_ERROR,
             '--max-line-length must be greater than 0',
         )
 
     if args.indent_size <= 0:
-        parser.exit(
+        _parser_error_with_code(
+            parser,
             EXIT_CODE_ARGPARSE_ERROR,
             '--indent-size must be greater than 0',
         )
@@ -3924,23 +4005,36 @@ def parse_args(arguments, apply_config=False):
         args.jobs = multiprocessing.cpu_count()
 
     if args.jobs > 1 and not (args.in_place or args.diff):
-        parser.exit(
+        _parser_error_with_code(
+            parser,
             EXIT_CODE_ARGPARSE_ERROR,
             'parallel jobs requires --in-place',
         )
 
     if args.line_range:
         if args.line_range[0] <= 0:
-            parser.exit(
+            _parser_error_with_code(
+                parser,
                 EXIT_CODE_ARGPARSE_ERROR,
                 '--range must be positive numbers',
             )
         if args.line_range[0] > args.line_range[1]:
-            parser.exit(
+            _parser_error_with_code(
+                parser,
                 EXIT_CODE_ARGPARSE_ERROR,
                 'First value of --range should be less than or equal '
                 'to the second',
             )
+
+    original_formatwarning = warnings.formatwarning
+    warnings.formatwarning = _custom_formatwarning
+    if args.experimental:
+        warnings.warn(
+            "`experimental` option is deprecated and will be "
+            "removed in a future version.",
+            DeprecationWarning,
+        )
+    warnings.formatwarning = original_formatwarning
 
     return args
 
@@ -4046,7 +4140,7 @@ def read_pyproject_toml(args, parser):
     if config.get("tool", {}).get("autopep8") is None:
         return None
 
-    config = config.get("tool").get("autopep8")
+    config = config.get("tool", {}).get("autopep8")
 
     defaults = {}
     option_list = {o.dest: o.type or type(o.default)
@@ -4108,10 +4202,6 @@ def supported_fixes():
     for (code, function) in sorted(global_fixes()):
         yield (code.upper() + (4 - len(code)) * ' ',
                re.sub(r'\s+', ' ', docstring_summary(function.__doc__)))
-
-    for code in sorted(CODE_TO_2TO3):
-        yield (code.upper() + (4 - len(code)) * ' ',
-               re.sub(r'\s+', ' ', docstring_summary(fix_2to3.__doc__)))
 
 
 def docstring_summary(docstring):
