@@ -216,6 +216,14 @@ void ZeroServer::selfPlay()
         if (sp_data.is_terminal_) {
             game_lengths.push_back(sp_data.game_length_);
             game_returns.push_back(sp_data.return_);
+            if (config::zero_display_latest_games > 0) {
+                latest_game_lengths_.push_back(sp_data.game_length_);
+                latest_game_returns_.push_back(sp_data.return_);
+                if (static_cast<int>(latest_game_lengths_.size()) > config::zero_display_latest_games) {
+                    latest_game_lengths_.erase(latest_game_lengths_.begin());
+                    latest_game_returns_.erase(latest_game_returns_.begin());
+                }
+            }
         }
 
         // display progress
@@ -239,7 +247,19 @@ void ZeroServer::selfPlay()
         shared_data_.logger_.addTrainingLog("[SelfPlay Max. Game Returns] " + std::to_string(*std::max_element(game_returns.begin(), game_returns.end())));
         shared_data_.logger_.addTrainingLog("[SelfPlay Avg. Game Returns] " + std::to_string(std::accumulate(game_returns.begin(), game_returns.end(), 0.0f) / game_returns.size()));
         shared_data_.logger_.addTrainingLog("[SelfPlay Std. Game Returns] " + std::to_string(utils::stddev(game_returns)));
+        if (config::zero_display_latest_games > 0 && static_cast<int>(latest_game_lengths_.size()) == config::zero_display_latest_games) {
+            std::string n = std::to_string(config::zero_display_latest_games);
+            shared_data_.logger_.addTrainingLog("[SelfPlay Min. Latest " + n + " Game Lengths] " + std::to_string(*std::min_element(latest_game_lengths_.begin(), latest_game_lengths_.end())));
+            shared_data_.logger_.addTrainingLog("[SelfPlay Max. Latest " + n + " Game Lengths] " + std::to_string(*std::max_element(latest_game_lengths_.begin(), latest_game_lengths_.end())));
+            shared_data_.logger_.addTrainingLog("[SelfPlay Avg. Latest " + n + " Game Lengths] " + std::to_string(std::accumulate(latest_game_lengths_.begin(), latest_game_lengths_.end(), 0.0f) / latest_game_lengths_.size()));
+            shared_data_.logger_.addTrainingLog("[SelfPlay Std. Latest " + n + " Game Lengths] " + std::to_string(utils::stddev(latest_game_lengths_)));
+            shared_data_.logger_.addTrainingLog("[SelfPlay Min. Latest " + n + " Game Returns] " + std::to_string(*std::min_element(latest_game_returns_.begin(), latest_game_returns_.end())));
+            shared_data_.logger_.addTrainingLog("[SelfPlay Max. Latest " + n + " Game Returns] " + std::to_string(*std::max_element(latest_game_returns_.begin(), latest_game_returns_.end())));
+            shared_data_.logger_.addTrainingLog("[SelfPlay Avg. Latest " + n + " Game Returns] " + std::to_string(std::accumulate(latest_game_returns_.begin(), latest_game_returns_.end(), 0.0f) / latest_game_returns_.size()));
+            shared_data_.logger_.addTrainingLog("[SelfPlay Std. Latest " + n + " Game Returns] " + std::to_string(utils::stddev(latest_game_returns_)));
+        }
     }
+
     if (static_cast<int>(game_lengths.size()) != num_collect_game) { shared_data_.logger_.addTrainingLog("[SelfPlay Avg. Data Lengths] " + std::to_string(total_data_length * 1.0f / num_collect_game)); }
 }
 

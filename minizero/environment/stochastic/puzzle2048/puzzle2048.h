@@ -138,6 +138,7 @@ public:
         config::env_board_size = 4;
         config::learner_n_step_return = 10;
         config::zero_actor_intermediate_sequence_length = 200;
+        config::zero_display_latest_games = 100;
     }
 
 private:

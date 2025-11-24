@@ -9,6 +9,7 @@
 #include <fstream>
 #include <queue>
 #include <string>
+#include <vector>
 
 namespace minizero::zero {
 
@@ -117,6 +118,9 @@ protected:
     int iteration_;
     ZeroWorkerSharedData shared_data_;
     boost::asio::deadline_timer keep_alive_timer_;
+
+    std::vector<int> latest_game_lengths_;
+    std::vector<float> latest_game_returns_;
 };
 
 } // namespace minizero::zero
