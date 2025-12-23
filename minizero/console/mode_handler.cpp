@@ -1,5 +1,6 @@
 #include "mode_handler.h"
 #include "actor_group.h"
+#include "color_message.h"
 #include "console.h"
 #include "git_info.h"
 #include "obs_recover.h"
@@ -56,6 +57,7 @@ void ModeHandler::run(int argc, char* argv[])
     }
 
     if (!readConfiguration(cl, config_file, config_string)) { exit(-1); }
+    utils::setColorOutputEnabled(config::program_use_color_message);                                      // set color message output
     utils::OstreamRedirector::silence(std::cerr, config::program_quiet);                                  // silence std::cerr if program_quiet
     utils::Random::seed(config::program_auto_seed ? static_cast<int>(time(NULL)) : config::program_seed); // setup random seed
 

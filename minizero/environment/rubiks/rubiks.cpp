@@ -164,23 +164,27 @@ std::string RubiksEnv::toString() const
 {
     std::ostringstream oss;
     std::unordered_map<char, std::string> color_code_to_rgb({{'G', "\033[48;2;0;155;72m"}, {'W', "\033[48;2;255;255;255m"}, {'R', "\033[48;2;183;18;52m"}, {'Y', "\033[48;2;255;213;0m"}, {'B', "\033[48;2;0;70;173m"}, {'O', "\033[48;2;255;88;0m"}});
+    auto renderCell = [&](char color) {
+        if (!utils::isColorOutputEnabled()) { return std::string(2, color); }
+        return color_code_to_rgb[color] + "  \033[m";
+    };
     for (int row = 0; row < board_size_; row++) {
         for (int col = 0; col < board_size_; col++) oss << "  ";
         for (int col = 0; col < board_size_; col++) {
-            oss << color_code_to_rgb[board_[0][row][col]] + "  \033[m";
+            oss << renderCell(board_[0][row][col]);
         }
         oss << std::endl;
     }
     for (int row = 0; row < board_size_; row++) {
         for (int col = 0; col < board_size_ * 4; col++) {
-            oss << color_code_to_rgb[board_[col / board_size_ + 1][row][col % board_size_]] + "  \033[m";
+            oss << renderCell(board_[col / board_size_ + 1][row][col % board_size_]);
         }
         oss << std::endl;
     }
     for (int row = 0; row < board_size_; row++) {
         for (int col = 0; col < board_size_; col++) oss << "  ";
         for (int col = 0; col < board_size_; col++) {
-            oss << color_code_to_rgb[board_[5][row][col]] + "  \033[m";
+            oss << renderCell(board_[5][row][col]);
         }
         oss << std::endl;
     }

@@ -7,6 +7,7 @@ namespace minizero::config {
 int program_seed = 0;
 bool program_auto_seed = false;
 bool program_quiet = false;
+bool program_use_color_message = true;
 
 // actor parameters
 int actor_num_simulation = 50;
@@ -94,6 +95,7 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("program_seed", program_seed, "assign a program seed", "Program");
     cl.addParameter("program_auto_seed", program_auto_seed, "true for assigning a random seed automatically", "Program");
     cl.addParameter("program_quiet", program_quiet, "true for silencing the error message", "Program");
+    cl.addParameter("program_use_color_message", program_use_color_message, "true for enabling color message output", "Program");
 
     // actor parameters
     cl.addParameter("actor_num_simulation", actor_num_simulation, "simulation number of MCTS", "Actor");

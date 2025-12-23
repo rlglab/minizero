@@ -7,6 +7,7 @@
 #include <random>
 #include <string>
 #include <vector>
+#include "color_message.h"
 
 namespace minizero::env::tetrisblockpuzzle {
 class Bitboard {
@@ -63,13 +64,13 @@ public:
             }
         }
         last_crash_ = 0;
-        for (int i : rows) { 
+        for (int i : rows) {
             clearRow(i);
-            last_crash_ = last_crash_ | getRowMask(i); 
+            last_crash_ = last_crash_ | getRowMask(i);
         }
-        for (int i : cols) { 
+        for (int i : cols) {
             clearColumn(i);
-            last_crash_ = last_crash_ | getColumnMask(i); 
+            last_crash_ = last_crash_ | getColumnMask(i);
         }
         return count;
     }
@@ -194,22 +195,26 @@ public:
         std::string blue_color = "\033[48;2;100;149;237m";
         std::string orange_color = "\033[48;2;255;165;0m";
         std::string light_orange_color = "\033[48;2;210;230;90m";
-        
+
         std::string reset_color = "\033[0m";
+        auto renderCell = [&](const std::string& color, char ascii) {
+            if (!utils::isColorOutputEnabled()) { return std::string(2, ascii); }
+            return color + "  " + reset_color;
+        };
         out << "  +------------------+" << std::endl;
         for (int y = 0; y < 8; ++y) {
             out << "  | ";
             for (int x = 0; x < 8; ++x) {
                 if (b.get(y, x) && b.check(y, x, b.getLastPlace())) {
-                    out << orange_color << "  " << reset_color;
+                    out << renderCell(orange_color, '@');
                 } else if (b.get(y, x)) {
-                    out << blue_color << "  " << reset_color;
+                    out << renderCell(blue_color, '#');
                 } else if (b.check(y, x, b.getLastCrash()) && b.check(y, x, b.getLastPlace())) {
-                    out << light_orange_color << "  " << reset_color;
+                    out << renderCell(light_orange_color, '*');
                 } else if (b.check(y, x, b.getLastCrash())) {
-                    out << light_green_color << "  " << reset_color;
+                    out << renderCell(light_green_color, '+');
                 } else {
-                    out << white_color << "  " << reset_color;
+                    out << renderCell(white_color, '.');
                 }
             }
             out << " |" << std::endl;

@@ -9,6 +9,7 @@ namespace minizero::config {
 extern int program_seed;
 extern bool program_auto_seed;
 extern bool program_quiet;
+extern bool program_use_color_message;
 
 // actor parameters
 extern int actor_num_simulation;

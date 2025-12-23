@@ -1,7 +1,9 @@
 #include "tetrisblockpuzzle.h"
+#include "color_message.h"
 #include "random.h"
 #include "sgf_loader.h"
 #include <algorithm>
+#include <deque>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -380,6 +382,10 @@ std::string TetrisBlockPuzzleEnv::toString() const
     std::string asure_color = "\033[48;2;173;216;230m";
     std::string blue_color = "\033[48;2;100;149;237m";
     std::string reset_color = "\033[0m";
+    auto renderBlockCell = [&](bool filled, bool preview) {
+        if (!utils::isColorOutputEnabled()) { return std::string(2, filled ? '#' : (preview ? '~' : '.')); }
+        return (filled ? blue_color : (preview ? asure_color : white_color)) + "  " + reset_color;
+    };
     oss << board_ << std::endl;
     oss << "holding blocks: \n";
 
@@ -396,9 +402,9 @@ std::string TetrisBlockPuzzleEnv::toString() const
                     }
                 }
                 if (contain_block) {
-                    oss << blue_color << "  " << reset_color;
+                    oss << renderBlockCell(true, false);
                 } else {
-                    oss << white_color << "  " << reset_color;
+                    oss << renderBlockCell(false, false);
                 }
             }
             oss << " ";
@@ -422,9 +428,9 @@ std::string TetrisBlockPuzzleEnv::toString() const
                         }
                     }
                     if (contain_block) {
-                        oss << blue_color << "  " << reset_color;
+                        oss << renderBlockCell(true, false);
                     } else {
-                        oss << asure_color << "  " << reset_color;
+                        oss << renderBlockCell(false, true);
                     }
                 }
                 oss << " ";
