@@ -71,6 +71,11 @@ public:
     inline int getRotateAction(int action_id, utils::Rotation rotation) const override { return action_id; }
     LinesOfActionHashKey computeHashKey() const;
     LinesOfActionHashKey computeHashKey(const GamePair<LinesOfActionBitBoard>& bitboard, Player turn) const;
+    static void setUpEnv()
+    {
+        linesofaction::initialize();
+        config::env_board_size = 8;
+    }
 
 private:
     bool isLegalActionInternal(const LinesOfActionAction& action, bool forbid_circular) const;

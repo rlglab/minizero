@@ -49,6 +49,7 @@ public:
     inline int getNumPlayer() const override { return kConnect6NumPlayer; }
     inline int getRotatePosition(int position, utils::Rotation rotation) const override { return utils::getPositionByRotating(rotation, position, getBoardSize()); };
     inline int getRotateAction(int action_id, utils::Rotation rotation) const override { return getRotatePosition(action_id, rotation); };
+    static void setUpEnv() { config::env_board_size = 19; }
 
 private:
     Connect6Bitboard scanThreadSpace(Player p, int target) const;

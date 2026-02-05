@@ -113,74 +113,7 @@ namespace minizero::env {
 
 inline void setUpEnv()
 {
-#if AMAZONS
-    amazons::initialize();
-#elif ATARI
-    atari::initialize();
-#elif BREAKTHROUGH
-    breakthrough::initialize();
-#elif GO
-    go::initialize();
-#elif KILLALLGO
-    killallgo::initialize();
-#elif LINESOFACTION
-    linesofaction::initialize();
-#elif NOGO
-    nogo::initialize();
-#elif TETRISBLOCKPUZZLE
-    tetrisblockpuzzle::initialize();
-#endif
-
-#if AMAZONS
-    config::env_board_size = 10;
-#elif ATARI
-    config::learner_n_step_return = 10;
-    config::zero_actor_intermediate_sequence_length = 200;
-#elif BREAKTHROUGH
-    config::env_board_size = 8;
-#elif CLOBBER
-    config::env_board_size = 10;
-#elif CONNECT6
-    config::env_board_size = 19;
-#elif CONHEX
-    config::env_board_size = 9;
-#elif DOTSANDBOXES
-    config::env_board_size = 9;
-#elif GO
-    config::env_board_size = 9;
-#elif HAVANNAH
-    config::env_board_size = 8;
-#elif HEX
-    config::env_board_size = 11;
-#elif KILLALLGO
-    config::env_board_size = 7;
-#elif LINESOFACTION
-    config::env_board_size = 8;
-#elif OTHELLO
-    config::env_board_size = 8;
-#elif GOMOKU
-    config::env_board_size = 15;
-#elif CHESS
-    config::env_board_size = 8;
-#elif NOGO
-    config::env_board_size = 9;
-#elif TICTACTOE
-    config::env_board_size = 3;
-#elif PUZZLE2048
-    config::env_board_size = 4;
-    config::learner_n_step_return = 10;
-    config::zero_actor_intermediate_sequence_length = 200;
-#elif RUBIKS
-    config::env_board_size = 3;
-#elif SANTORINI
-    config::env_board_size = 5;
-#elif SURAKARTA
-    config::env_board_size = 6;
-#elif TETRISBLOCKPUZZLE
-    config::env_board_size = 8;
-    config::learner_n_step_return = 10;
-    config::zero_actor_intermediate_sequence_length = 200;
-#endif
+    Environment::setUpEnv();
 }
 
 } // namespace minizero::env

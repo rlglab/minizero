@@ -76,6 +76,12 @@ public:
     inline int getRotatePosition(int position, utils::Rotation rotation) const override { return utils::getPositionByRotating(rotation, position, getBoardSize()); };
     inline int getRotateAction(int action_id, utils::Rotation rotation) const override { return getRotatePosition(action_id, rotation); };
 
+    static void setUpEnv()
+    {
+        go::initialize();
+        config::env_board_size = 9;
+    }
+
 protected:
     void initialize();
     GoBlock* newBlock();

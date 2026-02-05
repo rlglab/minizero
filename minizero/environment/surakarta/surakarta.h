@@ -77,6 +77,8 @@ public:
     SurakartaHashKey computeHashKey() const;
     SurakartaHashKey computeHashKey(const GamePair<SurakartaBitboard>& bitboard, Player turn) const;
 
+    static void setUpEnv() { config::env_board_size = 6; }
+
 private:
     enum class Direction {
         kNone,

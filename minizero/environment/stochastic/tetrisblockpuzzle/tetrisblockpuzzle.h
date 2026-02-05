@@ -81,6 +81,14 @@ public:
     float getReward() const override { return reward_; }
     float getEvalScore(bool is_resign = false) const override { return total_reward_; }
 
+    static void setUpEnv()
+    {
+        tetrisblockpuzzle::initialize();
+        config::env_board_size = 8;
+        config::learner_n_step_return = 10;
+        config::zero_actor_intermediate_sequence_length = 200;
+    }
+
 private:
     struct TetrisBlockPuzzleChanceEvent {
         int block;

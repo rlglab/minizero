@@ -160,6 +160,8 @@ public:
     inline int getSeed() const { return seed_; }
     inline int getScramble() const { return scramble_; }
 
+    static void setUpEnv() { config::env_board_size = 3; }
+
 private:
     void transpose(int face);
     void rotate(int face, int layer, bool prime);

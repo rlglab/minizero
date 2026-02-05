@@ -64,6 +64,7 @@ public:
     inline int getNumPlayer() const override { return kSantoriniNumPlayer; }
     inline int getRotatePosition(int position, utils::Rotation rotation) const override { return position; };
     inline int getRotateAction(int action_id, utils::Rotation rotation) const override { return action_id; };
+    static void setUpEnv() { config::env_board_size = 5; }
 
 private:
     Board board_;

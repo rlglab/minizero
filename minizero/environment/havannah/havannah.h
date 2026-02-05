@@ -71,6 +71,8 @@ public:
     inline int getRotatePosition(int position, utils::Rotation rotation) const override { return position; };
     inline int getRotateAction(int action_id, utils::Rotation rotation) const override { return action_id; };
 
+    static void setUpEnv() { config::env_board_size = 8; }
+
 private:
     class HavannahPath {
     public:

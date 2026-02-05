@@ -83,6 +83,13 @@ public:
     inline int getEpisodeFrameNumber() const { return ale_.getEpisodeFrameNumber(); }
     inline const std::vector<int> getLivesHistory() const { return lives_history_; }
 
+    static void setUpEnv()
+    {
+        atari::initialize();
+        config::learner_n_step_return = 10;
+        config::zero_actor_intermediate_sequence_length = 200;
+    }
+
 private:
     std::vector<float> getObservation(bool scale_01 = true) const;
     std::string getObservationString() const;

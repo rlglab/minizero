@@ -73,6 +73,11 @@ public:
     inline int getNumPlayer() const override { return kAmazonsNumPlayer; }
     inline int getRotatePosition(int position, utils::Rotation rotation) const override { return position; }
     inline int getRotateAction(int action_id, utils::Rotation rotation) const override { return action_id; }
+    static void setUpEnv()
+    {
+        amazons::initialize();
+        config::env_board_size = 10;
+    }
 
 private:
     inline int xyToPosition(const int x, const int y) const { return y * getBoardSize() + x; }

@@ -30,6 +30,12 @@ public:
 
     inline std::string name() const override { return kKillAllGoName + "_" + std::to_string(board_size_) + "x" + std::to_string(board_size_); }
     inline int getNumPlayer() const override { return kKillAllGoNumPlayer; }
+
+    static void setUpEnv()
+    {
+        killallgo::initialize();
+        config::env_board_size = 7;
+    }
 };
 
 class KillAllGoEnvLoader : public go::GoEnvLoader {

@@ -105,6 +105,8 @@ public:
     inline const std::vector<Action>& getActionHistory() const { return actions_; }
     inline const std::vector<std::string>& getObservationHistory() const { return observations_; }
 
+    static void setUpEnv();
+
 protected:
     Player turn_;
     std::vector<Action> actions_;

@@ -133,6 +133,13 @@ public:
     float getEvalScore(bool is_resign = false) const override { return total_reward_; }
     const Bitboard& getBitboard() const { return board_; }
 
+    static void setUpEnv()
+    {
+        config::env_board_size = 4;
+        config::learner_n_step_return = 10;
+        config::zero_actor_intermediate_sequence_length = 200;
+    }
+
 private:
     Bitboard board_;
     int reward_;

@@ -70,6 +70,7 @@ public:
     inline int getInputChannelWidth() const override { return full_board_size_width_; }
     inline int getHiddenChannelHeight() const override { return full_board_size_height_; }
     inline int getHiddenChannelWidth() const override { return full_board_size_width_; }
+    static void setUpEnv() { config::env_board_size = 9; }
 
 private:
     typedef std::vector<Grid> Board;

@@ -77,6 +77,12 @@ public:
 
     inline std::string name() const override { return kNoGoName + "_" + std::to_string(board_size_) + "x" + std::to_string(board_size_); }
     inline int getNumPlayer() const override { return kNoGoNumPlayer; }
+
+    static void setUpEnv()
+    {
+        nogo::initialize();
+        config::env_board_size = 9;
+    }
 };
 
 class NoGoEnvLoader : public go::GoEnvLoader {
