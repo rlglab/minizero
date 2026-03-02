@@ -61,7 +61,7 @@ public:
         return oss.str();
     }
 
-    int pushBackInitialData(std::vector<float> features)
+    virtual int pushBackInitialData(std::vector<float> features)
     {
         assert(static_cast<int>(features.size()) == getNumInputChannels() * getInputChannelHeight() * getInputChannelWidth());
 
@@ -75,7 +75,7 @@ public:
         return index;
     }
 
-    int pushBackRecurrentData(std::vector<float> features, std::vector<float> actions)
+    virtual int pushBackRecurrentData(std::vector<float> features, std::vector<float> actions)
     {
         assert(static_cast<int>(features.size()) == getNumHiddenChannels() * getHiddenChannelHeight() * getHiddenChannelWidth());
         assert(static_cast<int>(actions.size()) == getNumActionFeatureChannels() * getHiddenChannelHeight() * getHiddenChannelWidth());
@@ -92,7 +92,7 @@ public:
         return index;
     }
 
-    inline std::vector<std::shared_ptr<NetworkOutput>> initialInference()
+    virtual std::vector<std::shared_ptr<NetworkOutput>> initialInference()
     {
         assert(initial_input_batch_size_ > 0);
         auto outputs = forward("initial_inference", {torch::cat(initial_tensor_input_).to(getDevice())}, initial_input_batch_size_);
@@ -102,7 +102,7 @@ public:
         return outputs;
     }
 
-    inline std::vector<std::shared_ptr<NetworkOutput>> recurrentInference()
+    virtual std::vector<std::shared_ptr<NetworkOutput>> recurrentInference()
     {
         assert(recurrent_input_batch_size_ > 0);
         auto outputs = forward("recurrent_inference",
@@ -121,7 +121,7 @@ public:
     inline int getRecurrentInputBatchSize() const { return recurrent_input_batch_size_; }
 
 protected:
-    std::vector<std::shared_ptr<NetworkOutput>> forward(const std::string& method, const std::vector<torch::jit::IValue>& inputs, int batch_size)
+    virtual std::vector<std::shared_ptr<NetworkOutput>> forward(const std::string& method, const std::vector<torch::jit::IValue>& inputs, int batch_size)
     {
         assert(network_.find_method(method));
 

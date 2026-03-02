@@ -45,7 +45,7 @@ public:
         return oss.str();
     }
 
-    int pushBack(std::vector<float> features)
+    virtual int pushBack(std::vector<float> features)
     {
         assert(static_cast<int>(features.size()) == getNumInputChannels() * getInputChannelHeight() * getInputChannelWidth());
         assert(batch_size_ < kReserved_batch_size);
@@ -60,7 +60,7 @@ public:
         return index;
     }
 
-    std::vector<std::shared_ptr<NetworkOutput>> forward()
+    virtual std::vector<std::shared_ptr<NetworkOutput>> forward()
     {
         assert(batch_size_ > 0);
         auto forward_result = network_.forward(std::vector<torch::jit::IValue>{torch::cat(tensor_input_).to(getDevice())}).toGenericDict();
@@ -106,7 +106,7 @@ public:
     inline int getBatchSize() const { return batch_size_; }
 
 protected:
-    inline void clear()
+    virtual void clear()
     {
         batch_size_ = 0;
         tensor_input_.clear();
