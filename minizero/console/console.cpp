@@ -36,6 +36,7 @@ Console::Console()
     RegisterFunction("game_string", this, &Console::cmdGameString);
     RegisterFunction("load_model", this, &Console::cmdLoadModel);
     RegisterFunction("get_conf_str", this, &Console::cmdGetConfigString);
+    RegisterFunction("load_game", this, &Console::cmdLoadGame);
 }
 
 void Console::initialize()
@@ -263,6 +264,48 @@ void Console::cmdGetConfigString(const std::vector<std::string>& args)
     oss << std::endl;
     for (auto& conf_key : utils::stringToVector(args[1], ":")) { oss << cl.getConfig(conf_key); }
     reply(ConsoleResponse::kSuccess, oss.str());
+}
+
+void Console::cmdLoadGame(const std::vector<std::string>& args)
+{
+    if (!checkArgument(args, 2, 2)) { return; }
+
+    EnvironmentLoader env_loader;
+    if (!env_loader.loadFromFile(args[1])) { return reply(ConsoleResponse::kFail, "Failed to load SGF file"); }
+
+    if (!env_loader.getTag("SZ").empty()) {
+        int board_size = std::stoi(env_loader.getTag("SZ"));
+        if (board_size != config::env_board_size) {
+            config::env_board_size = board_size;
+            network_ = nullptr;
+            actor_ = nullptr;
+            initialize();
+        }
+    }
+
+    actor_->reset();
+    if (!env_loader.getTag("SD").empty()) { // environment requires specific seed
+#if ATARI || PUZZLE2048 || TETRISBLOCKPUZZLE
+        actor_->getEnvironment().reset(std::stoi(env_loader.getTag("SD")));
+#elif RUBIKS
+        actor_->getEnvironment().reset(std::stoi(env_loader.getTag("SD")), std::stoi(env_loader.getTag("SC")));
+#else
+        return reply(ConsoleResponse::kFail, "Failed to set environment seed");
+#endif
+    }
+
+    const auto& action_pairs = env_loader.getActionPairs();
+    for (size_t i = 0; i < action_pairs.size(); ++i) {
+        const Action& act = action_pairs[i].first;
+        bool ok = actor_->act(act);
+        if (!ok) {
+            std::ostringstream oss;
+            oss << "Invalid SGF action at move " << (i + 1) << ": " << act.toConsoleString();
+            return reply(ConsoleResponse::kFail, oss.str());
+        }
+    }
+
+    reply(ConsoleResponse::kSuccess, "\n" + actor_->getEnvironment().toString());
 }
 
 void Console::calculatePolicyValue(std::vector<float>& policy, float& value, utils::Rotation rotation /* = utils::Rotation::kRotationNone */)

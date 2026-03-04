@@ -63,6 +63,7 @@ protected:
     void cmdGameString(const std::vector<std::string>& args);
     void cmdLoadModel(const std::vector<std::string>& args);
     void cmdGetConfigString(const std::vector<std::string>& args);
+    void cmdLoadGame(const std::vector<std::string>& args);
 
     virtual void calculatePolicyValue(std::vector<float>& policy, float& value, utils::Rotation rotation = utils::Rotation::kRotationNone);
     bool checkArgument(const std::vector<std::string>& args, int min_argc, int max_argc);
