@@ -92,7 +92,7 @@ public:
     }
 
 private:
-    std::vector<float> getObservation(bool scale_01 = true) const;
+    std::vector<float> getObservation(bool scale_01 = true, int resize_h = kAtariResolution, int resize_w = kAtariResolution) const;
     std::string getObservationString() const;
 
     int seed_;

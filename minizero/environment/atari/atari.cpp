@@ -1,5 +1,8 @@
 #include "atari.h"
+#include <algorithm>
 #include <opencv2/opencv.hpp>
+#include <sstream>
+#include <string>
 #include <utility>
 
 namespace minizero::env::atari {
@@ -129,16 +132,69 @@ std::vector<float> AtariEnv::getActionFeatures(const AtariAction& action, utils:
     return action_features;
 }
 
+std::string renderRgbTruecolorToString(const std::vector<unsigned char>& rgb, int H, int W)
+{
+    assert(H > 0 && W > 0);
+    assert(static_cast<int>(rgb.size()) >= H * W * 3);
+    std::stringstream output;
+
+    auto sample = [&](int y, int x, int c) -> int {
+        return static_cast<int>(rgb[(y * W + x) * 3 + c]);
+    };
+
+    output << "\x1b[2J\x1b[H"; // Clear terminal screen and move cursor to home position
+
+    for (int y = 0; y < H; y += 2) {
+        for (int x = 0; x < W; ++x) {
+            output << "\x1b[38;2;" << sample(y, x, 0) << ';' << sample(y, x, 1) << ';' << sample(y, x, 2) << 'm'; // Foreground color for upper pixel
+
+            output << "\x1b[48;2;" << sample(y + 1, x, 0) << ';' << sample(y + 1, x, 1) << ';' << sample(y + 1, x, 2) << 'm'; // Background color for lower pixel
+            output << "\xE2\x96\x80";                                                                                         // Unicode half block character (U+2588) to represent two pixels (upper and lower)
+        }
+
+        output << "\x1b[0m" << '\n'; // Reset terminal screen
+    }
+
+    return output.str();
+}
+
 std::string AtariEnv::toString() const
 {
     // get current screen rgb
-    std::vector<unsigned char> screen_rgb;
-    ale_.getScreenRGB(screen_rgb);
-    std::string rgb_binary_string(screen_rgb.begin(), screen_rgb.end());
-    return utils::compressString(rgb_binary_string) + '\n';
+    if (config::program_use_color_message == false) {
+        std::vector<unsigned char> screen_rgb;
+        ale_.getScreenRGB(screen_rgb);
+        std::string rgb_binary_string(screen_rgb.begin(), screen_rgb.end());
+        return utils::compressString(rgb_binary_string) + '\n';
+    } else {
+        const int H = 80;
+        const int W = 60;
+        const int HW = H * W;
+
+        const std::vector<float> observation = getObservation(false, H, W);
+
+        std::vector<unsigned char> rgb(H * W * 3);
+        for (int i = 0; i < HW; ++i) {
+            const int out_idx = i * 3;
+
+            float r = observation[i];
+            float g = observation[HW + i];
+            float b = observation[2 * HW + i];
+
+            r = std::min(255.0f, std::max(0.0f, r));
+            g = std::min(255.0f, std::max(0.0f, g));
+            b = std::min(255.0f, std::max(0.0f, b));
+
+            rgb[out_idx + 0] = static_cast<unsigned char>(r);
+            rgb[out_idx + 1] = static_cast<unsigned char>(g);
+            rgb[out_idx + 2] = static_cast<unsigned char>(b);
+        }
+
+        return renderRgbTruecolorToString(rgb, H, W);
+    }
 }
 
-std::vector<float> AtariEnv::getObservation(bool scale_01 /* = true */) const
+std::vector<float> AtariEnv::getObservation(bool scale_01 /* = true */, int resize_h /* = kAtariResolution */, int resize_w /* = kAtariResolution */) const
 {
     // get current screen rgb
     std::vector<unsigned char> screen_rgb;
@@ -147,14 +203,16 @@ std::vector<float> AtariEnv::getObservation(bool scale_01 /* = true */) const
     // resize observation
     cv::Mat source_matrix(ale_.getScreen().height(), ale_.getScreen().width(), CV_8UC3, screen_rgb.data());
     cv::Mat reshape_matrix;
-    cv::resize(source_matrix, reshape_matrix, cv::Size(kAtariResolution, kAtariResolution), 0, 0, cv::INTER_AREA);
+    cv::resize(source_matrix, reshape_matrix, cv::Size(resize_w, resize_h), 0, 0, cv::INTER_AREA);
 
     // change hwc to chw
-    std::vector<float> observation(3 * kAtariResolution * kAtariResolution);
+    const int HW = resize_h * resize_w;
+    std::vector<float> observation(3 * HW);
+
     for (int i = 0; i < 3; ++i) {
-        for (int j = 0; j < kAtariResolution * kAtariResolution; ++j) {
-            observation[i * kAtariResolution * kAtariResolution + j] = static_cast<float>(reshape_matrix.at<unsigned char>(j * 3 + i));
-            if (scale_01) { observation[i * kAtariResolution * kAtariResolution + j] /= 255.0f; }
+        for (int j = 0; j < HW; ++j) {
+            observation[i * HW + j] = static_cast<float>(reshape_matrix.at<unsigned char>(j * 3 + i));
+            if (scale_01) { observation[i * HW + j] /= 255.0f; }
         }
     }
     return observation;
