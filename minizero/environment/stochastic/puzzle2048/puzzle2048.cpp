@@ -86,7 +86,7 @@ std::vector<Puzzle2048Action> Puzzle2048Env::getLegalChanceEvents() const
 
 float Puzzle2048Env::getChanceEventProbability(const Puzzle2048Action& action) const
 {
-    if (turn_ != Player::kPlayerNone) { return 0; }
+    if (turn_ != Player::kPlayerNone || !isLegalChanceEvent(action)) { return 0; }
     return (Puzzle2048ChanceEvent(action).getTile() == 1 ? 0.9f : 0.1f) / board_.countEmptyPositions();
 }
 
