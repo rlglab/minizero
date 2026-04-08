@@ -169,13 +169,24 @@ void ModeHandler::runEnvTest()
     while (!env.isTerminal()) {
         std::vector<Action> legal_actions = env.getLegalActions();
         int index = utils::Random::randInt() % legal_actions.size();
-        env.act(legal_actions[index]);
+        bool legal = env.isLegalAction(legal_actions[index]);
+        bool success = env.act(legal_actions[index]);
+        if (!legal || !success) { assert(false); }
     }
     std::cout << env.toString() << std::endl;
 
     EnvironmentLoader env_loader;
     env_loader.loadFromEnvironment(env);
     std::cout << env_loader.toString() << std::endl;
+
+    std::string env_str = env.toString();
+    env.reset();
+    for (const auto& action_pair : env_loader.getActionPairs()) {
+        bool legal = env.isLegalAction(action_pair.first);
+        bool success = env.act(action_pair.first);
+        if (!legal || !success) { assert(false); }
+    }
+    assert(env.toString() == env_str);
 }
 
 void ModeHandler::runRemoveObs()
