@@ -49,7 +49,7 @@ def get_myDict(lines, iter):
                     myDict[key] = []
                 myDict[key].append(float(ret3[0][3]))
                 continue
-            ret1 = re.findall(r'(\[SelfPlay\s[^Std]\w+.\s[^Data]\w+\s(Lengths|Returns)\])\s(-?\d+\.\d+|\d+)', line)
+            ret1 = re.findall(r'(\[SelfPlay\s(?:Min\.|Max\.|Avg\.)\s(?!Data Lengths\])(.*?)\])\s(-?\d+\.\d+|\d+)', line)
             if ret1 != []:
                 key = ret1[0][0]
                 if key not in myDict:
@@ -163,57 +163,60 @@ def analysis_(dir, path, iter, all: bool = False, name: bool = False):
     Training_log.close()
     # plt target
     myDict, learner_training_display_step, learner_training_step = get_myDict(lines, iter)
-    Fig_list = list(set(["Lengths", "Time", "Returns"] + [re.sub(r"_\d+$", "", key) for key in myDict if re.match(r'^(loss|accuracy)_', key)]))
+    sp_items = list(set([re.search(r'\[SelfPlay (?:Min\.|Max\.|Avg\.) (.*?)\]', key).group(1).replace("Game ", "")
+                         for key in myDict if re.match(r'^\[SelfPlay (?:Min\.|Max\.|Avg\.) .*?\]', key)]))
+    op_items = list(set([re.sub(r"_\d+$", "", key) for key in myDict if re.match(r'^(loss|accuracy)_', key)]))
+    Fig_list = list(set(sp_items + op_items + ["Time"]))
     # plt figure
-    counter_subplot = sum([1 for word in Fig_list if word in ' '.join(myDict.keys())])
+    counter_subplot = len(Fig_list)
     if counter_subplot == 0 or len(myDict["Time"]) == 0:
         return
     plt.rcParams.update({'font.size': 30})
-    fig, axs = plt.subplots(1, counter_subplot, figsize=(190, 30))
+    fig, axs = plt.subplots(1, counter_subplot, figsize=(25 * counter_subplot, 20))
     counter_fig = 0
-    for item in Fig_list:
+    for item in sorted(Fig_list):
         fig_one = plt.figure(figsize=(25, 20))
         ax1 = fig_one.add_subplot(111)
         ax2 = ax1.twiny()
         width = 4
+        legend_fontsize = 30
         bool_print = False
-        for key in myDict:
-            if item in key:
+        for key in sorted(myDict.keys()):
+            if re.search(r'SelfPlay (?:Min\.|Max\.|Avg\.) ' + item, key.replace("Game ", "")):
                 bool_print = True
-                if "Returns" in item or "Lengths" in item:
-                    step_interval = learner_training_step
-                    if "[SelfPlay Avg. Game Returns]" in key:
-                        ax1.plot([x * step_interval for x in myDict["[Iteration]"]], myDict[key], color='red', label=f'{key}', linewidth=width)
-                    else:
-                        ax1.plot([x * step_interval for x in myDict["[Iteration]"]], myDict[key], label=f'{key}', linewidth=width)
-                    axs[counter_fig].plot([x * step_interval for x in myDict["[Iteration]"]], myDict[key], label=f'{key}', linewidth=width)
-                    ax1.yaxis.set_major_formatter(ticker.FuncFormatter(format_y_axis_labels))
-                else:
-                    step_interval = learner_training_display_step
-                    if "Time" in item:
-                        step_interval = learner_training_step
-                    ax1.plot([(x + 1) * step_interval for x in list(range(len(myDict[key])))], myDict[key], label=f'{key}', linewidth=width)
-                    axs[counter_fig].plot([(x + 1) * step_interval for x in list(range(len(myDict[key])))], myDict[key], label=f'{key}', linewidth=width)
-                ax2.set_xlim([ax1.get_xlim()[0] / learner_training_step, ax1.get_xlim()[1] / learner_training_step])
-                axs_twiny = axs[counter_fig].twiny()
-                axs_twiny.set_xlim([ax1.get_xlim()[0] / learner_training_step, ax1.get_xlim()[1] / learner_training_step])
+                step_interval = learner_training_step
+                legend_fontsize = min(legend_fontsize, 30 if len(key) <= 30 else 20)
+                linecolor = 'red' if "Avg." in key else None
+                ax1.plot([x * step_interval for x in myDict["[Iteration]"][-len(myDict[key]):]], myDict[key], label=f'{key}', linewidth=width, color=linecolor)
+                axs[counter_fig].plot([x * step_interval for x in myDict["[Iteration]"][-len(myDict[key]):]], myDict[key], label=f'{key}', linewidth=width, color=linecolor)
+                ax1.yaxis.set_major_formatter(ticker.FuncFormatter(format_y_axis_labels))
+            elif "SelfPlay" not in key and item in key:
+                bool_print = True
+                step_interval = learner_training_step if "Time" in item else learner_training_display_step
+                legend_fontsize = min(legend_fontsize, 30 if len(key) <= 30 else 20)
+                ax1.plot([(x + 1) * step_interval for x in list(range(len(myDict[key])))], myDict[key], label=f'{key}', linewidth=width)
+                axs[counter_fig].plot([(x + 1) * step_interval for x in list(range(len(myDict[key])))], myDict[key], label=f'{key}', linewidth=width)
         if bool_print:
-            plt.title(f'{item} of {dir} in op.log', fontsize=30)
-            axs[counter_fig].set_title(f'{item} of {dir} in op.log')
-            axs[counter_fig].legend(loc='upper center', bbox_to_anchor=(0.5, -0.05), ncol=3)
-            ax1.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05), ncol=3)
+            plt.title(f'{item} of {dir}', fontsize=30)
+            axs[counter_fig].set_title(f'{item} of {dir}')
+            ax1.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05), ncol=3, fontsize=legend_fontsize)
+            axs[counter_fig].legend(loc='upper center', bbox_to_anchor=(0.5, -0.05), ncol=3, fontsize=legend_fontsize)
             ax1.set_xlabel('nn steps', fontsize=30)
             ax2.set_xlabel('iterations', fontsize=30)
-            axs[counter_fig].set(xlabel='nn steps', ylabel=f'{item}')
+            ax2.set_xlim([ax1.get_xlim()[0] / learner_training_step, ax1.get_xlim()[1] / learner_training_step])
+            axs_twiny = axs[counter_fig].twiny()
             axs_twiny.set_xlabel('iterations', fontsize=30)
+            axs_twiny.set_xlim([ax1.get_xlim()[0] / learner_training_step, ax1.get_xlim()[1] / learner_training_step])
             ax1.set_ylabel(f'{item}', fontsize=30)
+            axs[counter_fig].set(xlabel='nn steps', ylabel=f'{item}')
             ax1.grid()
             axs[counter_fig].grid()
             plt.tight_layout()
             dir = os.path.dirname(dir + "/")
-            plt.savefig(os.path.join(f'{path}', f'{str(dir.split("/")[-1])}_{item}.png'))
+            fig_file = os.path.join(path, f'{dir.split("/")[-1]}_{re.sub(r"[^A-Za-z0-9]+", "_", item).strip("_")}.png')
+            plt.savefig(fig_file)
             if name:
-                eprint(os.path.join(f'{path}', f'{str(dir.split("/")[-1])}_{item}.png'))
+                eprint(fig_file)
             plt.cla()
             counter_fig += 1
     if all:
