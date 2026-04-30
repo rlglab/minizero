@@ -7,8 +7,12 @@
 #include <boost/thread.hpp>
 #include <ctime>
 #include <fstream>
+#include <iomanip>
+#include <map>
 #include <queue>
+#include <sstream>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 namespace minizero::zero {
@@ -20,14 +24,39 @@ public:
 
     inline void addWorkerLog(const std::string& log_str) { addLog(log_str, worker_log_); }
     inline void addTrainingLog(const std::string& log_str) { addLog(log_str, training_log_); }
+
+    template <typename T>
+    void addTrainingLog(const std::string& log_str, T log_value, const std::string& metric_group = "", const std::string& metric_name = "", int iteration = -1)
+    {
+        static_assert(std::is_arithmetic<T>::value, "log_value must be numeric");
+
+        std::string value_str;
+        if constexpr (std::is_integral<T>::value) {
+            value_str = std::to_string(log_value);
+        } else {
+            std::ostringstream oss;
+            oss << std::fixed << std::setprecision(6) << static_cast<double>(log_value);
+            value_str = oss.str();
+        }
+
+        addTrainingLog(log_str + " " + value_str);
+
+        if (!metric_group.empty() && !metric_name.empty() && iteration >= 0) { addSelfPlayMetric(metric_group, metric_name, value_str, iteration); }
+    }
+
+    void flushSelfPlayMetricsJsonl(int iteration);
     inline std::fstream& getSelfPlayFileStream() { return self_play_game_; }
 
 private:
     void addLog(const std::string& log_str, std::fstream& log_file);
+    void addSelfPlayMetric(const std::string& metric_group, const std::string& metric_name, const std::string& metric_value, int iteration);
+    void appendSelfPlayMetricsJsonl(int iteration);
 
     std::fstream worker_log_;
     std::fstream training_log_;
     std::fstream self_play_game_;
+    int pending_selfplay_metrics_iteration_ = -1;
+    std::map<std::string, std::map<std::string, std::string>> pending_selfplay_metrics_;
 };
 
 class ZeroSelfPlayData {

@@ -8,6 +8,7 @@ import torch.optim as optim
 import numpy as np
 from minizero.network.py.create_network import create_network
 from tools.analysis import analysis
+from tools.tensorboard_logger import TensorBoardLogger
 
 
 def eprint(*args, **kwargs):
@@ -160,7 +161,7 @@ def calculate_accuracy(output, label, batch_size):
     return (max_output == max_label).sum() / batch_size
 
 
-def train(model, training_dir, data_loader, start_iter, end_iter):
+def train(model, training_dir, data_loader, tb_writer, start_iter, end_iter):
     if start_iter == -1:
         model.save_model(training_dir)
         return
@@ -223,9 +224,14 @@ def train(model, training_dir, data_loader, start_iter, end_iter):
             eprint("[{}] nn step {}, lr: {}.".format(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), model.training_step, round(model.optimizer.param_groups[0]["lr"], 6)))
             for loss in training_info:
                 eprint("\t{}: {}".format(loss, round(training_info[loss] / py.get_training_display_step(), 5)))
+
+            tb_writer.log_training_info(training_info, model.training_step, py.get_training_display_step())
+            tb_writer.flush()
             training_info = {}
 
     model.save_model(training_dir)
+    tb_writer.log_selfplay_metrics(end_iter)
+    tb_writer.flush()
     print("Optimization_Done", model.training_step, flush=True)
     eprint("Optimization_Done", model.training_step)
     analysis(training_dir, "analysis")
@@ -246,6 +252,7 @@ if __name__ == '__main__':
 
     py.load_config_file(conf_file_name)
     data_loader = MinizeroDadaLoader(conf_file_name)
+    tb_writer = TensorBoardLogger(training_dir)
     model = Model()
 
     while True:
@@ -269,8 +276,9 @@ if __name__ == '__main__':
                 if model.network is None:
                     model.load_model(training_dir, model_file)
 
-                train(model, training_dir, data_loader, int(start_iter), int(end_iter))
+                train(model, training_dir, data_loader, tb_writer, int(start_iter), int(end_iter))
             elif command_prefix == "quit":
+                tb_writer.close()
                 exit(0)
 
         except (KeyboardInterrupt, EOFError) as e:

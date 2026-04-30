@@ -31,7 +31,9 @@ RUN rm /etc/apt/sources.list.d/cuda.list || true && \
     numpy \
     pandas \
     jupyter \
-    matplotlib && \
+    matplotlib \
+    "tensorboard>=2.13,<2.16" \
+    "protobuf>=3.20.3,<5" && \
     python3 -m pip cache purge && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
