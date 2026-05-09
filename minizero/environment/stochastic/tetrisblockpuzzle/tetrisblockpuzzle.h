@@ -3,6 +3,7 @@
 #include "bitboard.h"
 #include "stochastic_env.h"
 #include <algorithm>
+#include <deque>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -109,19 +110,14 @@ private:
 class TetrisBlockPuzzleEnvLoader : public StochasticEnvLoader<TetrisBlockPuzzleAction, TetrisBlockPuzzleEnv> {
 public:
     std::vector<float> getActionFeatures(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const override { return TetrisBlockPuzzleEnv().getActionFeatures(pos < static_cast<int>(action_pairs_.size()) ? action_pairs_[pos].first : TetrisBlockPuzzleAction(), rotation); }
-    std::vector<float> getChanceEventFeatures(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const override { return TetrisBlockPuzzleEnv().getChanceEventFeatures(pos < static_cast<int>(action_pairs_.size()) ? action_pairs_[pos].first : TetrisBlockPuzzleAction(), rotation); }
-    std::vector<float> getChance(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::vector<float> getValue(const int pos) const override { return toDiscreteValue(pos < static_cast<int>(action_pairs_.size()) ? utils::transformValue(calculateNStepValue(pos)) : 0.0f); }
-    std::vector<float> getAfterstateValue(const int pos) const override { return toDiscreteValue(pos < static_cast<int>(action_pairs_.size()) ? utils::transformValue(calculateNStepValue(pos) - BaseEnvLoader::getReward(pos)[0]) : 0.0f); }
     std::vector<float> getReward(const int pos) const override { return toDiscreteValue(pos < static_cast<int>(action_pairs_.size()) ? utils::transformValue(BaseEnvLoader::getReward(pos)[0]) : 0.0f); }
     float getPriority(const int pos) const override { return fabs(calculateNStepValue(pos) - BaseEnvLoader::getValue(pos)[0]); }
 
     std::string name() const override { return kTetrisBlockPuzzleName; }
     int getPolicySize() const override { return kTetrisBlockPuzzleActionSize; }
-    int getChanceEventSize() const override { return kTetrisChanceEventSize; }
     int getRotatePosition(int position, utils::Rotation rotation) const override { return utils::getPositionByRotating(rotation, position, kTetrisBlockPuzzleBoardSize); }
     int getRotateAction(int action_id, utils::Rotation rotation) const override { return TetrisBlockPuzzleEnv().getRotateAction(action_id, rotation); }
-    int getRotateChanceEvent(int event_id, utils::Rotation rotation) const override { return event_id; }
 
 private:
     float calculateNStepValue(const int pos) const;

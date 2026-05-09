@@ -155,35 +155,6 @@ std::vector<float> Puzzle2048EnvLoader::getActionFeatures(const int pos, utils::
     return Puzzle2048Env().getActionFeatures(action, rotation);
 }
 
-std::vector<float> Puzzle2048EnvLoader::getChanceEventFeatures(const int pos, utils::Rotation rotation /*= utils::Rotation::kRotationNone*/) const
-{
-    Puzzle2048Env env;
-    Puzzle2048Action event;
-    if (pos < static_cast<int>(action_pairs_.size())) {
-        env.reset(getSeed());
-        for (int i = 0; i <= std::min<int>(pos, action_pairs_.size() - 1); ++i) { env.act(action_pairs_[i].first); }
-        event = env.getChanceEventHistory().back();
-    } else { // absorbing states
-        event = Puzzle2048ChanceEvent(utils::Random::randInt() % 16, utils::Random::randInt() % 10 ? 1 : 2);
-    }
-    return env.getChanceEventFeatures(event, rotation);
-}
-
-std::vector<float> Puzzle2048EnvLoader::getChance(const int pos, utils::Rotation rotation /*= utils::Rotation::kRotationNone*/) const
-{
-    std::vector<float> chance(getChanceEventSize(), 0.0f);
-    if (pos < static_cast<int>(action_pairs_.size())) {
-        Puzzle2048Env env;
-        env.reset(getSeed());
-        for (int i = 0; i <= std::min<int>(pos, action_pairs_.size() - 1); ++i) { env.act(action_pairs_[i].first); }
-        Puzzle2048ChanceEvent rotated_event = getRotateChanceEvent(env.getChanceEventHistory().back().getActionID(), rotation);
-        chance[rotated_event.getActionID() - env.getPolicySize()] = 1.0f;
-    } else { // absorbing states
-        std::fill(chance.begin(), chance.end(), 1.0f / getChanceEventSize());
-    }
-    return chance;
-}
-
 float Puzzle2048EnvLoader::calculateNStepValue(const int pos) const
 {
     assert(pos < static_cast<int>(action_pairs_.size()));

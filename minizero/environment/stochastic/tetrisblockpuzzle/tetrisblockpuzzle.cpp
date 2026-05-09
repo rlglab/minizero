@@ -348,20 +348,6 @@ std::vector<float> TetrisBlockPuzzleEnv::getChanceEventFeatures(const TetrisBloc
     return features;
 }
 
-std::vector<float> TetrisBlockPuzzleEnvLoader::getChance(const int pos, utils::Rotation rotation /*= utils::Rotation::kRotationNone*/) const
-{
-    std::vector<float> chance(getChanceEventSize(), 0.0f);
-    if (pos < static_cast<int>(action_pairs_.size())) {
-        TetrisBlockPuzzleEnv env;
-        env.reset(getSeed());
-        for (int i = 0; i <= std::min<int>(pos, action_pairs_.size() - 1); ++i) { env.act(action_pairs_[i].first); }
-        chance[env.getChanceEventHistory().back().getActionID() - env.getPolicySize()] = 1.0f;
-    } else { // absorbing states
-        std::fill(chance.begin(), chance.end(), 1.0f / getChanceEventSize());
-    }
-    return chance;
-}
-
 TetrisBlockPuzzleEnv::TetrisBlockPuzzleChanceEvent TetrisBlockPuzzleEnv::TetrisBlockPuzzleChanceEvent::toChanceEvent(const TetrisBlockPuzzleAction& action)
 {
     int id = action.getActionID();

@@ -74,12 +74,6 @@ public:
         if (!env.isTerminal() && pos < static_cast<int>(action_pairs_.size())) { env.act(action_pairs_[pos].first, false); }
         return env.getFeatures(rotation);
     }
-
-    virtual std::vector<float> getChance(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const = 0;
-    virtual std::vector<float> getChanceEventFeatures(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const = 0;
-    virtual std::vector<float> getAfterstateValue(const int pos) const = 0;
-    virtual int getChanceEventSize() const = 0;
-    virtual int getRotateChanceEvent(int event_id, utils::Rotation rotation) const = 0;
 };
 
 } // namespace minizero::env

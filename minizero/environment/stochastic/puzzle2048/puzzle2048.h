@@ -150,19 +150,14 @@ private:
 class Puzzle2048EnvLoader : public StochasticEnvLoader<Puzzle2048Action, Puzzle2048Env> {
 public:
     std::vector<float> getActionFeatures(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
-    std::vector<float> getChanceEventFeatures(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
-    std::vector<float> getChance(const int pos, utils::Rotation rotation = utils::Rotation::kRotationNone) const override;
     std::vector<float> getValue(const int pos) const override { return toDiscreteValue(pos < static_cast<int>(action_pairs_.size()) ? utils::transformValue(calculateNStepValue(pos)) : 0.0f); }
-    std::vector<float> getAfterstateValue(const int pos) const override { return toDiscreteValue(pos < static_cast<int>(action_pairs_.size()) ? utils::transformValue(calculateNStepValue(pos) - BaseEnvLoader::getReward(pos)[0]) : 0.0f); }
     std::vector<float> getReward(const int pos) const override { return toDiscreteValue(pos < static_cast<int>(action_pairs_.size()) ? utils::transformValue(BaseEnvLoader::getReward(pos)[0]) : 0.0f); }
     float getPriority(const int pos) const override { return fabs(calculateNStepValue(pos) - BaseEnvLoader::getValue(pos)[0]); }
 
     std::string name() const override { return kPuzzle2048Name; }
     int getPolicySize() const override { return kPuzzle2048ActionSize; }
-    int getChanceEventSize() const override { return kPuzzle2048ChanceEventSize; }
     int getRotatePosition(int position, utils::Rotation rotation) const override { return Puzzle2048Env().getRotatePosition(position, rotation); }
     int getRotateAction(int action_id, utils::Rotation rotation) const override { return Puzzle2048Env().getRotateAction(action_id, rotation); }
-    int getRotateChanceEvent(int event_id, utils::Rotation rotation) const override { return Puzzle2048Env().getRotateChanceEvent(event_id, rotation); }
 
 private:
     float calculateNStepValue(const int pos) const;
