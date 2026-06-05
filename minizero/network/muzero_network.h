@@ -133,7 +133,7 @@ protected:
         auto hidden_state_output = forward_result.at("hidden_state").toTensor().to(at::kCPU);
         assert(policy_output.numel() == batch_size * getActionSize());
         assert(policy_logits_output.numel() == batch_size * getActionSize());
-        assert((getNetworkTypeName() != "muzero_atari" && value_output.numel() == batch_size) || (getNetworkTypeName() == "muzero_atari" && value_output.numel() == batch_size * getDiscreteValueSize()));
+        assert(value_output.numel() == batch_size);
         assert(!forward_result.contains("reward") || (forward_result.contains("reward") && reward_output.numel() == batch_size * getDiscreteValueSize()));
         assert(hidden_state_output.numel() == batch_size * getNumHiddenChannels() * getHiddenChannelHeight() * getHiddenChannelWidth());
 
@@ -154,24 +154,7 @@ protected:
                       hidden_state_output.data_ptr<float>() + (i + 1) * hidden_state_size,
                       muzero_network_output->hidden_state_.begin());
 
-            if (getNetworkTypeName() == "muzero_atari") {
-                int start_value = -getDiscreteValueSize() / 2;
-                muzero_network_output->value_ = std::accumulate(value_output.data_ptr<float>() + i * getDiscreteValueSize(),
-                                                                value_output.data_ptr<float>() + (i + 1) * getDiscreteValueSize(),
-                                                                0.0f,
-                                                                [&start_value](const float& sum, const float& value) { return sum + value * start_value++; });
-                muzero_network_output->value_ = utils::invertValue(muzero_network_output->value_);
-                if (forward_result.contains("reward")) {
-                    start_value = -getDiscreteValueSize() / 2;
-                    muzero_network_output->reward_ = std::accumulate(reward_output.data_ptr<float>() + i * getDiscreteValueSize(),
-                                                                     reward_output.data_ptr<float>() + (i + 1) * getDiscreteValueSize(),
-                                                                     0.0f,
-                                                                     [&start_value](const float& sum, const float& value) { return sum + value * start_value++; });
-                    muzero_network_output->reward_ = utils::invertValue(muzero_network_output->reward_);
-                }
-            } else {
-                muzero_network_output->value_ = value_output[i].item<float>();
-            }
+            muzero_network_output->value_ = value_output[i].item<float>();
         }
 
         return network_outputs;

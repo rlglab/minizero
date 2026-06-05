@@ -3,8 +3,6 @@
 #include "color_message.h"
 #include "console.h"
 #include "git_info.h"
-#include "obs_recover.h"
-#include "obs_remover.h"
 #include "ostream_redirector.h"
 #include "random.h"
 #include "zero_server.h"
@@ -22,8 +20,6 @@ ModeHandler::ModeHandler()
     RegisterFunction("zero_server", this, &ModeHandler::runZeroServer);
     RegisterFunction("zero_training_name", this, &ModeHandler::runZeroTrainingName);
     RegisterFunction("env_test", this, &ModeHandler::runEnvTest);
-    RegisterFunction("remove_obs", this, &ModeHandler::runRemoveObs);
-    RegisterFunction("recover_obs", this, &ModeHandler::runRecoverObs);
 }
 
 void ModeHandler::run(int argc, char* argv[])
@@ -189,30 +185,6 @@ void ModeHandler::runEnvTest()
         if (!legal || !success) { assert(false); }
     }
     assert(env.toString() == env_str);
-}
-
-void ModeHandler::runRemoveObs()
-{
-    std::string obs_file_path;
-    std::cin >> obs_file_path;
-
-    minizero::env::atari::ObsRemover ob;
-    ob.initialize();
-    ob.run(obs_file_path);
-}
-
-void ModeHandler::runRecoverObs()
-{
-    std::string obs_file_path;
-    std::cin >> obs_file_path;
-
-#if ATARI
-    minizero::env::atari::ObsRecover ob;
-    ob.initialize();
-    ob.run(obs_file_path);
-#else
-    std::cout << "Currently, only support recover observation for atari games" << std::endl;
-#endif
 }
 
 } // namespace minizero::console

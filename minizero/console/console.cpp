@@ -56,7 +56,7 @@ void Console::initialize()
             for (int j = 0; j < config::actor_mcts_think_batch_size; ++j) { alphazero_network->pushBack(actor_->getEnvironment().getFeatures()); }
             alphazero_network->forward();
         }
-    } else if (network_->getNetworkTypeName() == "muzero" || network_->getNetworkTypeName() == "muzero_atari") {
+    } else if (network_->getNetworkTypeName() == "muzero") {
         std::shared_ptr<network::MuZeroNetwork> muzero_network = std::static_pointer_cast<network::MuZeroNetwork>(network_);
         for (int i = 0; i < num_warmup_forward; ++i) {
             for (int j = 0; j < config::actor_mcts_think_batch_size; ++j) { muzero_network->pushBackInitialData(actor_->getEnvironment().getFeatures()); }
@@ -285,13 +285,7 @@ void Console::cmdLoadGame(const std::vector<std::string>& args)
 
     actor_->reset();
     if (!env_loader.getTag("SD").empty()) { // environment requires specific seed
-#if ATARI || PUZZLE2048 || TETRISBLOCKPUZZLE
-        actor_->getEnvironment().reset(std::stoi(env_loader.getTag("SD")));
-#elif RUBIKS
-        actor_->getEnvironment().reset(std::stoi(env_loader.getTag("SD")), std::stoi(env_loader.getTag("SC")));
-#else
-        return reply(ConsoleResponse::kFail, "Failed to set environment seed");
-#endif
+        return reply(ConsoleResponse::kFail, "Failed to set environment seed: remaining games do not support seeded reset");
     }
 
     const auto& action_pairs = env_loader.getActionPairs();
@@ -321,7 +315,7 @@ void Console::calculatePolicyValue(std::vector<float>& policy, float& value, uti
             int rotated_id = actor_->getEnvironment().getRotateAction(action_id, rotation);
             policy.push_back(zero_output->policy_[rotated_id]);
         }
-    } else if (network_->getNetworkTypeName() == "muzero" || network_->getNetworkTypeName() == "muzero_atari") {
+    } else if (network_->getNetworkTypeName() == "muzero") {
         std::shared_ptr<network::MuZeroNetwork> muzero_network = std::static_pointer_cast<network::MuZeroNetwork>(network_);
         int index = muzero_network->pushBackInitialData(actor_->getEnvironment().getFeatures());
         std::shared_ptr<NetworkOutput> network_output = muzero_network->initialInference()[index];

@@ -78,20 +78,8 @@ extern std::string nn_type_name;
 extern int env_board_size;
 
 // environment parameters for specific game
-extern std::string env_atari_rom_dir;
-extern std::string env_atari_name;
-extern bool env_conhex_use_swap_rule;
 extern float env_go_komi;
 extern std::string env_go_ko_rule;
-extern std::string env_gomoku_rule;
-extern bool env_gomoku_exactly_five_stones;
-extern bool env_havannah_use_swap_rule;
-extern bool env_hex_use_swap_rule;
-extern bool env_killallgo_use_seki;
-extern int env_rubiks_scramble_rotate;
-extern int env_surakarta_no_capture_plies;
-extern int env_tetris_block_puzzle_num_holding_block;
-extern int env_tetris_block_puzzle_num_preview_holding_block;
 
 void setConfiguration(ConfigureLoader& cl);
 
