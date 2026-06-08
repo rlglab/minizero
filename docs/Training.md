@@ -24,12 +24,7 @@ tools/quick-run.sh train tictactoe az 50
 
 # train a 9x9 Go model using Gumbel AlphaZero with a simulation of 16 for 100 iterations
 tools/quick-run.sh train go gaz 100 -conf_str env_board_size=9:actor_num_simulation=16
-
-# train a Ms.Pac-Man model (an Atari game) using Gumbel MuZero for 200 iterations
-tools/quick-run.sh train atari gmz 200 -conf_str env_atari_name=ms_pacman
 ```
-
-</details>
 
 ## Launch Training Components Manually
 
@@ -129,14 +124,6 @@ However, it is required to run `to-sgf.py` to convert the SGF format first. The 
 ```bash
 tools/to-sgf.py -in_file [INPUT_SGF] -out_file [OUTPUT_SGF]
 ```
-
-For Atari games, use `to-video.py` to convert the self-playing records into videos.
-The records will be saved as `*.mp4` in `[OUTPUT_DIR]`.
-```bash
-tools/to-video.py -in_file [INPUT_SGF] -out_dir [OUTPUT_DIR]
-```
-
-</details>
 
 ## Miscellaneous Training Tips
 

@@ -19,9 +19,7 @@ RUN rm /etc/apt/sources.list.d/cuda.list || true && \
     clang-format \
     python3-pip \
     python3-dev \
-    python3-opencv \
     python3-pybind11 \
-    libopencv-dev \
     libarchive-tools \
     libboost-all-dev && \
     ln -s /usr/bin/python3 /usr/bin/python && \
@@ -40,21 +38,6 @@ RUN python3 -m pip install torch==1.13.0+cu116 --extra-index-url https://downloa
     wget -qO- https://download.pytorch.org/libtorch/cu116/libtorch-cxx11-abi-shared-with-deps-1.13.0%2Bcu116.zip | bsdtar -xvf- -C /usr/local && \
     rm /usr/local/libtorch/lib/libcudnn.so.8
 ENV CMAKE_PREFIX_PATH=/usr/local/libtorch/share/cmake/Torch
-
-# install gym/atari & Arcade Learning Environment (ALE v0.8.0)
-# You can download Atari game ROMs from the following link: https://www.atarimania.com/rom_collection_archive_atari_2600_roms.html
-COPY atari57/ /opt/atari57
-RUN python3 -m pip install gym[atari] && \
-    python3 -m pip cache purge && \
-    ale-import-roms /opt/atari57 && \
-    cd /opt/ && \
-    git clone https://github.com/mgbellemare/Arcade-Learning-Environment.git && \
-    cd Arcade-Learning-Environment && \
-    git checkout d59d00688b58c5c14dff5fc79db5c22e86987f5d && \
-    mkdir build && cd build && \
-    cmake ../ -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=17 -DBUILD_PYTHON_LIB=OFF && \
-    cmake --build . --target install -j && \
-    cd /opt/ && rm -rf Arcade-Learning-Environment
 
 # install gogui
 RUN apt-get update && \

@@ -164,22 +164,8 @@ if ! printf "%s\n" "${support_games[@]}" | grep -q "^$game$"; then
         usage $game # assume usage for MODE
         exit 0
     fi
-    atari_games=(
-        alien amidar assault asterix asteroids atlantis bank_heist battle_zone beam_rider berzerk
-        bowling boxing breakout centipede chopper_command crazy_climber defender demon_attack double_dunk enduro
-        fishing_derby freeway frostbite gopher gravitar hero ice_hockey jamesbond kangaroo krull
-        kung_fu_master montezuma_revenge ms_pacman name_this_game phoenix pitfall pong private_eye qbert riverraid
-        road_runner robotank seaquest skiing solaris space_invaders star_gunner surround tennis time_pilot
-        tutankham up_n_down venture video_pinball wizard_of_wor yars_revenge zaxxon
-    )
-    if [[ $game =~ ^($( IFS=\|; echo "${atari_games[*]}"; ))$ ]]; then
-        env_atari_name=$game
-        conf_str=env_atari_name=${env_atari_name}${conf_str:+:}${conf_str}
-        game=atari
-    else
-        log ERR "Unsupported game: $game"
-        exit 1
-    fi
+    log ERR "Unsupported game: $game"
+    exit 1
 fi
 
 # parse optional arguments
@@ -331,8 +317,8 @@ if [[ $mode == train ]]; then # ================================ TRAIN =========
     if [[ $train_algorithm ]]; then
         case "$train_algorithm" in
         g*) # gaz, gmz
-            [[ $game != atari ]] && gxx_actor_num_simulation=16 || gxx_actor_num_simulation=18
-            [[ $game != atari ]] && gxx_actor_gumbel_sigma_scale_c=1 || gxx_actor_gumbel_sigma_scale_c=0.1
+            gxx_actor_num_simulation=16
+            gxx_actor_gumbel_sigma_scale_c=1
             alg_conf_str+=${alg_conf_str:+:}actor_num_simulation=$gxx_actor_num_simulation:actor_use_dirichlet_noise=false
             alg_conf_str+=${alg_conf_str:+:}actor_use_gumbel=true:actor_use_gumbel_noise=true:actor_gumbel_sample_size=$gxx_actor_num_simulation
             alg_conf_str+=${alg_conf_str:+:}actor_gumbel_sigma_visit_c=50:actor_gumbel_sigma_scale_c=$gxx_actor_gumbel_sigma_scale_c
@@ -349,21 +335,8 @@ if [[ $mode == train ]]; then # ================================ TRAIN =========
         log INFO "Use training algorithm $train_algorithm, set additional config: $alg_conf_str"
     elif [[ ! $auto_conf_file ]]; then
         : # Config file provided
-        env_atari_name=$({ grep env_atari_name= $conf_file || echo =; } | sed -E "s/^[^=]*=| *[#].*$//g")
     else
         log WARN "Neither config file nor training algorithm is specified"
-    fi
-
-    if [[ $game == atari ]]; then
-        if [[ ! $env_atari_name ]]; then
-            env_atari_name=$({ grep env_atari_name= $conf_file || echo =unknown; } | sed -E "s/^[^=]*=| *[#].*$//g")
-            log WARN "Config env_atari_name unspecified, will use default game: $env_atari_name"
-        fi
-        nn_type_name=$({ { printf "%s\n" ${conf_str//:/ }; cat $conf_file; } | grep -m1 nn_type_name= || echo =alphazero; } | sed -E "s/^[^=]*=| *[#].*$//g")
-        if [[ $nn_type_name != muzero ]]; then
-            log ERR "Unsupported training algorithm: ${train_algorithm:-$nn_type_name}"
-            exit 1
-        fi
     fi
 
     if [[ ! $batch_size && $zero_num_parallel_games ]]; then
@@ -525,10 +498,6 @@ elif [[ $mode == self-eval ]]; then # ================================ SELF-EVAL
 
 elif [[ $mode == fight-eval ]]; then # ================================ FIGHT-EVAL ================================
 
-    if [[ $game == atari || $game == puzzle2048 ]]; then
-        log "Unsupported mode: $mode"
-        exit 1
-    fi
     if [ ! -d "$eval_dir" ] || [ ! -d "$eval_dir_2" ]; then
         log ERR "Evaluation folder unspecified"
         exit 1
