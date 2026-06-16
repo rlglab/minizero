@@ -1,11 +1,13 @@
 # This docker file is to build a zero training environment
-FROM nvidia/cuda:11.6.2-cudnn8-devel-ubuntu20.04
+FROM nvidia/cuda:12.9.1-cudnn-devel-ubuntu22.04
 
 ARG DEBIAN_FRONTEND=noninteractive
 
 ENV TZ=Asia/Taipei
 
 RUN rm /etc/apt/sources.list.d/cuda.list || true && \
+    printf 'Acquire::ForceIPv4 "true";\nAcquire::Retries "5";\n' > /etc/apt/apt.conf.d/99force-ipv4 && \
+    sed -i 's|http://archive.ubuntu.com/ubuntu|https://tw.archive.ubuntu.com/ubuntu|g; s|http://security.ubuntu.com/ubuntu|https://security.ubuntu.com/ubuntu|g' /etc/apt/sources.list && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
     vim \
@@ -14,7 +16,6 @@ RUN rm /etc/apt/sources.list.d/cuda.list || true && \
     less \
     htop \
     wget \
-    cmake \
     ffmpeg \
     clang-format \
     python3-pip \
@@ -23,24 +24,28 @@ RUN rm /etc/apt/sources.list.d/cuda.list || true && \
     python3-pybind11 \
     libopencv-dev \
     libarchive-tools \
-    libboost-all-dev && \
+    libboost-all-dev \
+    texlive-full && \
     ln -s /usr/bin/python3 /usr/bin/python && \
     python3 -m pip install -U pip \
     gdown \
-    cmake==3.25.2 \
+    cmake \
     numpy \
     pandas \
     jupyter \
     matplotlib \
+    pyecharts \
+    einops \
+    black \
     "tensorboard>=2.13,<2.16" \
     "protobuf>=3.20.3,<5" && \
     python3 -m pip cache purge && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # install pytorch & libtorch
-RUN python3 -m pip install torch==1.13.0+cu116 --extra-index-url https://download.pytorch.org/whl/cu116 && \
-    wget -qO- https://download.pytorch.org/libtorch/cu116/libtorch-cxx11-abi-shared-with-deps-1.13.0%2Bcu116.zip | bsdtar -xvf- -C /usr/local && \
-    rm /usr/local/libtorch/lib/libcudnn.so.8
+RUN python3 -m pip install torch==2.9.0+cu128 --extra-index-url https://download.pytorch.org/whl/cu128 && \
+    wget -qO- https://download.pytorch.org/libtorch/cu128/libtorch-shared-with-deps-2.8.0%2Bcu128.zip | bsdtar -xvf- -C /usr/local
+RUN sed -i 's/Python::Interpreter/${Python_EXECUTABLE}/g' /usr/local/libtorch/share/cmake/Caffe2/public/cuda.cmake
 ENV CMAKE_PREFIX_PATH=/usr/local/libtorch/share/cmake/Torch
 
 # install gym/atari & Arcade Learning Environment (ALE v0.8.0)

@@ -1,6 +1,7 @@
 file(GLOB SRCS *.cpp)
 
 find_package(pybind11 REQUIRED)
+find_package(Python COMPONENTS Interpreter Development REQUIRED)
 pybind11_add_module(minizero_py ${SRCS})
 target_link_libraries(
     minizero_py

@@ -823,7 +823,7 @@ std::pair<bool, std::vector<killallgo::GHIPattern>> SekiSearch::findLoopPatterns
             int pos = search_bitboard._Find_first();
             search_bitboard.reset(pos);
             KillAllGoAction action(pos, turn);
-            GoHashKey hashkey_after_play;
+            GoHashKey hashkey_after_play = 0;
             if (env.getGrid(action.getActionID()).getPlayer() == Player::kPlayerNone && !env.isPassAction(action) && !isSuicidalMove(env, action)) {
                 hashkey_after_play = getHashKeyAfterPlay(env, action);
             }

@@ -15,7 +15,10 @@ usage()
 	exit 1
 }
 
-image_name=kds285/minizero:latest
+legacy_image_name=rlglab/minizero:11.6.2
+new_image_name=rlglab/minizero:latest
+image_name=${legacy_image_name}
+image_overridden=false
 container_tool=$(basename $(which podman || which docker) 2>/dev/null)
 if [[ ! $container_tool ]]; then
 	echo "Neither podman nor docker is installed." >&2
@@ -28,7 +31,7 @@ while :; do
 	case $1 in
 		-h|--help) shift; usage
 		;;
-		--image) shift; image_name=${1}
+		--image) shift; image_name=${1}; image_overridden=true
 		;;
 		-v|--volume) shift; container_volume="${container_volume} -v ${1}"
 		;;
@@ -56,6 +59,33 @@ if ! command -v nvidia-container-cli &> /dev/null; then
 	echo "Error: 'nvidia-container-cli' not found. NVIDIA Container Toolkit is likely not installed." >&2
 	echo "Visit https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html" >&2
 	exit 1
+fi
+
+if [ "${image_overridden}" = false ]; then
+	cuda_ok=false
+	sm_ok=false
+
+	cuda_version=$(nvidia-smi --query-gpu=cuda_version --format=csv,noheader 2>/dev/null | head -n1 | tr -d '[:space:]')
+	if ! echo "${cuda_version}" | grep -Eq '^[0-9]+(\.[0-9]+)?$'; then
+		cuda_version=$(nvidia-smi 2>/dev/null | sed -n 's/.*CUDA Version: \([0-9.]\+\).*/\1/p' | head -n1)
+	fi
+
+	if [ -n "${cuda_version}" ] && awk -v v="${cuda_version}" 'BEGIN { split(v, a, "."); major = a[1] + 0; minor = a[2] + 0; exit !((major > 12) || (major == 12 && minor >= 9)) }'; then
+		cuda_ok=true
+	fi
+
+	sm_version=$(nvidia-smi --query-gpu=compute_cap --format=csv,noheader 2>/dev/null | head -n1 | tr -d '[:space:]')
+	if ! echo "${sm_version}" | grep -Eq '^[0-9]+(\.[0-9]+)?$'; then
+		sm_version=$(nvidia-smi --query-gpu=compute_capability --format=csv,noheader 2>/dev/null | head -n1 | tr -d '[:space:]')
+	fi
+	if [ -n "${sm_version}" ] && echo "${sm_version}" | grep -Eq '^[0-9]+(\.[0-9]+)?$' && awk -v v="${sm_version}" 'BEGIN { split(v, a, "."); major = a[1] + 0; minor = a[2] + 0; exit !((major > 7) || (major == 7 && minor >= 0)) }'; then
+		sm_ok=true
+	fi
+	echo "Detected CUDA version: ${cuda_version}, SM version: ${sm_version}"
+
+	if [ "${cuda_ok}" = true ] && [ "${sm_ok}" = true ]; then
+		image_name=${new_image_name}
+	fi
 fi
 
 if [ "$record_history" = true ]; then

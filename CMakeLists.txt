@@ -1,13 +1,13 @@
 cmake_minimum_required(VERSION 3.16)
-
 project(minizero)
 
 # specify the C++ standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto=auto")
 
 find_package(Torch REQUIRED)
-find_package(Boost COMPONENTS system thread iostreams)
+find_package(Boost COMPONENTS system thread iostreams CONFIG REQUIRED)
 find_package(ale REQUIRED)
 find_package(OpenCV REQUIRED)
 
