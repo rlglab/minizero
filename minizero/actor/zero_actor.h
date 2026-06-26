@@ -34,7 +34,7 @@ public:
     void resetSearch() override;
     Action think(bool with_play = false, bool display_board = false) override;
     void beforeNNEvaluation() override;
-    void afterNNEvaluation(const std::shared_ptr<network::NetworkOutput>& network_output) override;
+    void afterNNEvaluation(const std::shared_ptr<network::NetworkOutput>& network_output, bool defer_search_done_handling = false) override;
     bool isSearchDone() const override { return getMCTS()->reachMaximumSimulation(); }
     Action getSearchAction() const override { return mcts_search_data_.selected_node_->getAction(); }
     bool isResign() const override { return enable_resign_ && getMCTS()->isResign(mcts_search_data_.selected_node_); }

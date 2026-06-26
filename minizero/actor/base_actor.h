@@ -34,7 +34,7 @@ public:
 
     virtual Action think(bool with_play = false, bool display_board = false) = 0;
     virtual void beforeNNEvaluation() = 0;
-    virtual void afterNNEvaluation(const std::shared_ptr<network::NetworkOutput>& network_output) = 0;
+    virtual void afterNNEvaluation(const std::shared_ptr<network::NetworkOutput>& network_output, bool defer_search_done_handling = false) = 0;
     virtual bool isSearchDone() const = 0;
     virtual Action getSearchAction() const = 0;
     virtual bool isResign() const = 0;

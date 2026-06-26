@@ -29,7 +29,7 @@ void ZeroActor::reset()
 void ZeroActor::resetSearch()
 {
     BaseActor::resetSearch();
-    mcts_search_data_.node_path_.clear();
+    mcts_search_data_.clear();
     getMCTS()->getRootNode()->setAction(Action(-1, env::getPreviousPlayer(env_.getTurn(), env_.getNumPlayer())));
 }
 
@@ -42,7 +42,7 @@ Action ZeroActor::think(bool with_play /*= false*/, bool display_board /*= false
         int spent_million_second = (utils::TimeSystem::getLocalTime() - start_ptime).total_milliseconds();
         if (config::actor_mcts_think_time_limit > 0 && spent_million_second >= config::actor_mcts_think_time_limit * 1000) { break; }
     }
-    if (!isSearchDone()) { handleSearchDone(); }
+    handleSearchDone();
     if (with_play) { act(getSearchAction()); }
     if (display_board) { std::cerr << env_.toString() << mcts_search_data_.search_info_ << std::endl; }
     return getSearchAction();
@@ -71,7 +71,7 @@ void ZeroActor::beforeNNEvaluation()
     }
 }
 
-void ZeroActor::afterNNEvaluation(const std::shared_ptr<NetworkOutput>& network_output)
+void ZeroActor::afterNNEvaluation(const std::shared_ptr<NetworkOutput>& network_output, bool defer_search_done_handling /*= false*/)
 {
     const std::vector<MCTSNode*>& node_path = mcts_search_data_.node_path_;
     MCTSNode* leaf_node = node_path.back();
@@ -93,8 +93,8 @@ void ZeroActor::afterNNEvaluation(const std::shared_ptr<NetworkOutput>& network_
         assert(false);
     }
     if (leaf_node == getMCTS()->getRootNode()) { addNoiseToNodeChildren(leaf_node); }
-    if (isSearchDone()) { handleSearchDone(); }
     if (config::actor_use_gumbel) { gumbel_zero_.sequentialHalving(getMCTS()); }
+    if (!defer_search_done_handling && isSearchDone()) { handleSearchDone(); }
 }
 
 void ZeroActor::setNetwork(const std::shared_ptr<network::Network>& network)
@@ -150,7 +150,7 @@ void ZeroActor::step()
         nn_evaluation_batch_id_ = std::get<0>(query);
         feature_rotation_ = std::get<1>(query);
         mcts_search_data_.node_path_ = std::get<2>(query);
-        afterNNEvaluation(network_output[nn_evaluation_batch_id_]);
+        afterNNEvaluation(network_output[nn_evaluation_batch_id_], true);
         auto virtual_loss = mcts_search_data_.node_path_.back()->getVirtualLoss();
         for (auto node : mcts_search_data_.node_path_) { node->removeVirtualLoss(virtual_loss); }
     }
