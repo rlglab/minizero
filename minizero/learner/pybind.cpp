@@ -1,7 +1,7 @@
 #include "configuration.h"
 #include "data_loader.h"
 #include "environment.h"
-#include <algorithm>
+#include <memory>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -15,6 +15,17 @@ using namespace minizero;
 std::shared_ptr<Environment> kEnvInstance;
 
 namespace {
+
+bool env_set_up = false;
+
+// Environment constructors bake in config values seeded by Environment::setUpEnv()
+// (e.g. env_board_size), so it must have run before the first construction.
+void ensureEnvSetUp()
+{
+    if (env_set_up) { return; }
+    minizero::env::setUpEnv();
+    env_set_up = true;
+}
 
 minizero::env::Player playerFromInt(int player)
 {
@@ -38,6 +49,13 @@ bool isPolicyActionID(const Environment& env, int action_id)
     return action_id >= 0 && action_id < env.getPolicySize();
 }
 
+// not every env's act() validates by itself (e.g. AtariEnv), so guard like the C++ callers do
+bool actIfLegal(Environment& env, const Action& action)
+{
+    if (env.isTerminal() || !env.isLegalAction(action)) { return false; }
+    return env.act(action);
+}
+
 std::vector<int> getActionIDs(const std::vector<Action>& actions)
 {
     std::vector<int> action_ids;
@@ -53,11 +71,7 @@ py::array_t<float> makeFloatArray(const std::vector<float>& values, const std::v
     if (static_cast<py::ssize_t>(values.size()) != expected_size) {
         throw std::runtime_error("array size does not match requested shape");
     }
-
-    py::array_t<float> array(shape);
-    py::buffer_info buffer = array.request();
-    std::copy(values.begin(), values.end(), static_cast<float*>(buffer.ptr));
-    return array;
+    return py::array_t<float>(shape, values.data());
 }
 
 std::vector<py::ssize_t> getInputShape(const Environment& env)
@@ -87,6 +101,7 @@ PYBIND11_MODULE(minizero_py, m)
 {
     m.def("load_config_file", [](std::string file_name) {
         minizero::env::setUpEnv();
+        env_set_up = true;
         minizero::config::ConfigureLoader cl;
         minizero::config::setConfiguration(cl);
         bool success = cl.loadFromFile(file_name);
@@ -94,6 +109,7 @@ PYBIND11_MODULE(minizero_py, m)
         return success;
     });
     m.def("load_config_string", [](std::string conf_str) {
+        ensureEnvSetUp();
         minizero::config::ConfigureLoader cl;
         minizero::config::setConfiguration(cl);
         bool success = cl.loadFromString(conf_str);
@@ -128,20 +144,26 @@ PYBIND11_MODULE(minizero_py, m)
     m.def("get_nn_type_name", []() { return config::nn_type_name; });
 
     py::class_<Environment>(m, "Environment", "MiniZero environment for the compiled GAME_TYPE.")
-        .def(py::init<>())
-        .def("reset", &Environment::reset)
+        .def(py::init([]() {
+            ensureEnvSetUp();
+            auto env = std::make_unique<Environment>();
+            env->reset(); // stochastic env constructors do not set up the initial position
+            return env;
+        }))
+        .def("reset", [](Environment& env) { env.reset(); })
         .def(
             "act",
             [](Environment& env, int action_id) {
                 if (!isPolicyActionID(env, action_id)) { return false; }
-                return env.act(Action(action_id, env.getTurn()));
+                return actIfLegal(env, Action(action_id, env.getTurn()));
             },
             py::arg("action_id"))
         .def(
             "act",
             [](Environment& env, int action_id, int player) {
-                if (!isPolicyActionID(env, action_id)) { return false; }
-                return env.act(Action(action_id, playerFromInt(player)));
+                minizero::env::Player action_player = playerFromInt(player);
+                if (!isPolicyActionID(env, action_id) || action_player != env.getTurn()) { return false; }
+                return actIfLegal(env, Action(action_id, action_player));
             },
             py::arg("action_id"),
             py::arg("player"))
@@ -183,22 +205,8 @@ PYBIND11_MODULE(minizero_py, m)
         .def("name", &Environment::name)
         .def("policy_size", &Environment::getPolicySize)
         .def("num_players", &Environment::getNumPlayer)
-        .def(
-            "input_shape",
-            [](const Environment& env) {
-                return std::vector<int>{
-                    env.getNumInputChannels(),
-                    env.getInputChannelHeight(),
-                    env.getInputChannelWidth()};
-            })
-        .def(
-            "action_feature_shape",
-            [](const Environment& env) {
-                return std::vector<int>{
-                    env.getNumActionFeatureChannels(),
-                    env.getHiddenChannelHeight(),
-                    env.getHiddenChannelWidth()};
-            })
+        .def("input_shape", &getInputShape)
+        .def("action_feature_shape", &getActionFeatureShape)
         .def(
             "hidden_shape",
             [](const Environment& env) {
