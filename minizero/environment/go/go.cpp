@@ -373,7 +373,7 @@ void GoEnv::initialize()
 GoBlock* GoEnv::newBlock()
 {
     assert(!free_block_id_bitboard_.none());
-    int id = free_block_id_bitboard_._Find_first();
+    int id = findFirstSetBit(free_block_id_bitboard_);
     free_block_id_bitboard_.reset(id);
     return &blocks_[id];
 }
@@ -393,7 +393,7 @@ void GoEnv::removeBlockFromBoard(GoBlock* block)
     GoArea* area = nullptr;
     GoBitboard area_id = block->getNeighborAreaIDBitboard();
     while (!area_id.none()) {
-        int id = area_id._Find_first();
+        int id = findFirstSetBit(area_id);
         area_id.reset(id);
         if (!area) {
             area = &areas_[id];
@@ -414,7 +414,7 @@ void GoEnv::removeBlockFromBoard(GoBlock* block)
     // remove block
     GoBitboard grid_bitboard = block->getGridBitboard();
     while (!grid_bitboard.none()) {
-        int pos = grid_bitboard._Find_first();
+        int pos = findFirstSetBit(grid_bitboard);
         grid_bitboard.reset(pos);
 
         GoGrid& grid = grids_[pos];
@@ -442,7 +442,7 @@ GoBlock* GoEnv::combineBlocks(GoBlock* block1, GoBlock* block2)
     // link grid to new block
     GoBitboard grid_bitboard = block2->getGridBitboard();
     while (!grid_bitboard.none()) {
-        int pos = grid_bitboard._Find_first();
+        int pos = findFirstSetBit(grid_bitboard);
         grid_bitboard.reset(pos);
         grids_[pos].setBlock(block1);
     }
@@ -450,7 +450,7 @@ GoBlock* GoEnv::combineBlocks(GoBlock* block1, GoBlock* block2)
     // link area to new block
     GoBitboard new_area_id_bitboard = block2->getNeighborAreaIDBitboard();
     while (!new_area_id_bitboard.none()) {
-        int id = new_area_id_bitboard._Find_first();
+        int id = findFirstSetBit(new_area_id_bitboard);
         new_area_id_bitboard.reset(id);
         areas_[id].removeNeighborBlockIDBitboard(block2->getID());
         areas_[id].addNeighborBlockIDBitboard(block1->getID());
@@ -496,7 +496,7 @@ void GoEnv::addArea(Player player, const GoBitboard& area_bitboard)
     assert(!free_area_id_bitboard_.none());
 
     // get available area id
-    int area_id = free_area_id_bitboard_._Find_first();
+    int area_id = findFirstSetBit(free_area_id_bitboard_);
     free_area_id_bitboard_.reset(area_id);
 
     GoArea* area = &areas_[area_id];
@@ -507,7 +507,7 @@ void GoEnv::addArea(Player player, const GoBitboard& area_bitboard)
     // link grids pointer
     GoBitboard grid_bitboard = area_bitboard;
     while (!grid_bitboard.none()) {
-        int pos = grid_bitboard._Find_first();
+        int pos = findFirstSetBit(grid_bitboard);
         grid_bitboard.reset(pos);
         grids_[pos].setArea(player, area);
     }
@@ -515,7 +515,7 @@ void GoEnv::addArea(Player player, const GoBitboard& area_bitboard)
     // link blocks pointer
     GoBitboard neighbor_block_bitboard = dilateBitboard(area_bitboard) & stone_bitboard_.get(player);
     while (!neighbor_block_bitboard.none()) {
-        int pos = neighbor_block_bitboard._Find_first();
+        int pos = findFirstSetBit(neighbor_block_bitboard);
         GoBlock* block = grids_[pos].getBlock();
         block->addNeighborAreaIDBitboard(area->getID());
         area->addNeighborBlockIDBitboard(block->getID());
@@ -530,7 +530,7 @@ void GoEnv::removeArea(GoArea* area)
     // remove grids pointer
     GoBitboard area_bitboard = area->getAreaBitboard();
     while (!area_bitboard.none()) {
-        int pos = area_bitboard._Find_first();
+        int pos = findFirstSetBit(area_bitboard);
         area_bitboard.reset(pos);
         grids_[pos].setArea(area->getPlayer(), nullptr);
     }
@@ -538,7 +538,7 @@ void GoEnv::removeArea(GoArea* area)
     // remove blocks pointer
     GoBitboard neighbor_block_id = area->getNeighborBlockIDBitboard();
     while (!neighbor_block_id.none()) {
-        int block_id = neighbor_block_id._Find_first();
+        int block_id = findFirstSetBit(neighbor_block_id);
         neighbor_block_id.reset(block_id);
         blocks_[block_id].removeNeighborAreaIDBitboard(area->getID());
     }
@@ -558,12 +558,12 @@ GoArea* GoEnv::mergeArea(GoArea* area1, GoArea* area2)
     area1->combineWithArea(area2);
     removeArea(area2);
     while (!area2_bitboard.none()) { // link grid to area
-        int pos = area2_bitboard._Find_first();
+        int pos = findFirstSetBit(area2_bitboard);
         area2_bitboard.reset(pos);
         grids_[pos].setArea(area1->getPlayer(), area1);
     }
     while (!area2_nbr_block_id.none()) { // link block to area
-        int id = area2_nbr_block_id._Find_first();
+        int id = findFirstSetBit(area2_nbr_block_id);
         area2_nbr_block_id.reset(id);
         blocks_[id].addNeighborAreaIDBitboard(area1->getID());
     }
@@ -618,13 +618,13 @@ GoBitboard GoEnv::findBensonBitboard(GoBitboard block_bitboard) const
     std::vector<GoBitboard> block_neighbor_vital_areas(board_size_ * board_size_, GoBitboard());
     GoBitboard stone_bitboard = stone_bitboard_.get(Player::kPlayer1) | stone_bitboard_.get(Player::kPlayer2);
     while (!block_bitboard.none()) {
-        int pos = block_bitboard._Find_first();
+        int pos = findFirstSetBit(block_bitboard);
         const GoBlock* block = grids_[pos].getBlock();
         block_bitboard &= ~block->getGridBitboard();
 
         GoBitboard block_neighbor_area_id = block->getNeighborAreaIDBitboard();
         while (!block_neighbor_area_id.none()) {
-            int area_id = block_neighbor_area_id._Find_first();
+            int area_id = findFirstSetBit(block_neighbor_area_id);
             block_neighbor_area_id.reset(area_id);
 
             const GoArea* area = &areas_[area_id];
@@ -645,7 +645,7 @@ GoBitboard GoEnv::findBensonBitboard(GoBitboard block_bitboard) const
         // 1. Remove from X all Black chains with less than two vital Black-enclosed regions in R
         GoBitboard next_benson_block_id;
         while (!benson_block_id.none()) {
-            int block_id = benson_block_id._Find_first();
+            int block_id = findFirstSetBit(benson_block_id);
             benson_block_id.reset(block_id);
 
             if ((block_neighbor_vital_areas[block_id] & benson_area_id).count() < 2) {
@@ -660,7 +660,7 @@ GoBitboard GoEnv::findBensonBitboard(GoBitboard block_bitboard) const
         // 2. Remove from R all Black - enclosed regions with a surrounding stone in a chain not in X
         GoBitboard next_benson_area_id;
         while (!benson_area_id.none()) {
-            int area_id = benson_area_id._Find_first();
+            int area_id = findFirstSetBit(benson_area_id);
             benson_area_id.reset(area_id);
 
             if (!(areas_[area_id].getNeighborBlockIDBitboard() & ~benson_block_id).none()) {
@@ -705,7 +705,7 @@ GamePair<float> GoEnv::calculateTrompTaylorTerritory() const
     GamePair<float> territory(stone_bitboard_.get(Player::kPlayer1).count(), stone_bitboard_.get(Player::kPlayer2).count() + komi_);
     GoBitboard empty_stone_bitboard = ~(stone_bitboard_.get(Player::kPlayer1) | stone_bitboard_.get(Player::kPlayer2)) & board_mask_bitboard_;
     while (!empty_stone_bitboard.none()) {
-        int pos = empty_stone_bitboard._Find_first();
+        int pos = findFirstSetBit(empty_stone_bitboard);
 
         // check is surrounded by only one's color
         GoBitboard flood_fill_bitboard = floodFillBitBoard(pos, empty_stone_bitboard);

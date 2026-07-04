@@ -46,7 +46,7 @@ bool GoEnv::checkBlockDataStructure() const
     GoHashKey hash_key = actions_.size() % 2 == 0 ? 0 : getGoTurnHashKey();
     GoBitboard block_id_bitboard = ~free_block_id_bitboard_ & board_mask_bitboard_;
     while (!block_id_bitboard.none()) {
-        int id = block_id_bitboard._Find_first();
+        int id = findFirstSetBit(block_id_bitboard);
         block_id_bitboard.reset(id);
 
         assert(id < static_cast<int>(blocks_.size()));
@@ -61,7 +61,7 @@ bool GoEnv::checkBlockDataStructure() const
         GoBitboard liberty_bitboard;
         GoBitboard grid_bitboard = block->getGridBitboard();
         while (!grid_bitboard.none()) {
-            int pos = grid_bitboard._Find_first();
+            int pos = findFirstSetBit(grid_bitboard);
             grid_bitboard.reset(pos);
 
             const GoGrid& grid = grids_[pos];
@@ -80,7 +80,7 @@ bool GoEnv::checkBlockDataStructure() const
         // areas
         GoBitboard area_id = block->getNeighborAreaIDBitboard();
         while (!area_id.none()) {
-            int id = area_id._Find_first();
+            int id = findFirstSetBit(area_id);
             area_id.reset(id);
             assert(areas_[id].getPlayer() == block->getPlayer());
             assert(!free_area_id_bitboard_.test(areas_[id].getID()));
@@ -98,21 +98,21 @@ bool GoEnv::checkAreaDataStructure() const
     GamePair<GoBitboard> area_bitboard_pair;
     GoBitboard area_id_bitboard = ~free_area_id_bitboard_ & board_mask_bitboard_;
     while (!area_id_bitboard.none()) {
-        int id = area_id_bitboard._Find_first();
+        int id = findFirstSetBit(area_id_bitboard);
         area_id_bitboard.reset(id);
 
         assert(id < static_cast<int>(areas_.size()));
         const GoArea* area = &areas_[id];
         assert(!area->getAreaBitboard().none());
         assert(area->getNumGrid() == static_cast<int>(area->getAreaBitboard().count()));
-        assert(floodFillBitBoard(area->getAreaBitboard()._Find_first(), (~stone_bitboard_.get(area->getPlayer()) & board_mask_bitboard_)) == area->getAreaBitboard());
+        assert(floodFillBitBoard(findFirstSetBit(area->getAreaBitboard()), (~stone_bitboard_.get(area->getPlayer()) & board_mask_bitboard_)) == area->getAreaBitboard());
         assert((area->getAreaBitboard() & area_bitboard_pair.get(area->getPlayer())).none());
         area_bitboard_pair.get(area->getPlayer()) |= area->getAreaBitboard();
 
         // grids
         GoBitboard area_bitboard = area->getAreaBitboard();
         while (!area_bitboard.none()) {
-            int pos = area_bitboard._Find_first();
+            int pos = findFirstSetBit(area_bitboard);
             area_bitboard.reset(pos);
             assert(grids_[pos].getPlayer() != area->getPlayer());
             assert(grids_[pos].getArea(area->getPlayer()) == area);
@@ -121,7 +121,7 @@ bool GoEnv::checkAreaDataStructure() const
         // blocks
         GoBitboard area_neighbor_block_bitboard = dilateBitboard(area->getAreaBitboard()) & stone_bitboard_.get(area->getPlayer());
         while (!area_neighbor_block_bitboard.none()) {
-            int pos = area_neighbor_block_bitboard._Find_first();
+            int pos = findFirstSetBit(area_neighbor_block_bitboard);
             const GoBlock* block = grids_[pos].getBlock();
             assert(block);
             assert(block->getNeighborAreaIDBitboard().test(area->getID()));
