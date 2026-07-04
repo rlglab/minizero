@@ -93,6 +93,9 @@ std::vector<int> getActionHistoryIDs(const Environment& env)
 
 Environment& getEnvInstance()
 {
+    // NOTE: unlike the Environment binding, this fallback can construct before setUpEnv() runs.
+    // It is safe today because module getters are only used after load_config_file; a future
+    // change could route this through ensureEnvSetUp() to make the invariant hold everywhere.
     if (!kEnvInstance) { kEnvInstance = std::make_shared<Environment>(); }
     return *kEnvInstance;
 }
