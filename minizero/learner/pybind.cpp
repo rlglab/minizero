@@ -1,14 +1,81 @@
 #include "configuration.h"
 #include "data_loader.h"
+#include "environment.h"
+#include <algorithm>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace py = pybind11;
 using namespace minizero;
 
 std::shared_ptr<Environment> kEnvInstance;
+
+namespace {
+
+minizero::env::Player playerFromInt(int player)
+{
+    switch (player) {
+        case 1: return minizero::env::Player::kPlayer1;
+        case 2: return minizero::env::Player::kPlayer2;
+        default: throw std::invalid_argument("player must be 1 or 2");
+    }
+}
+
+utils::Rotation rotationFromInt(int rotation)
+{
+    if (rotation < 0 || rotation >= static_cast<int>(utils::Rotation::kRotateSize)) {
+        throw std::invalid_argument("rotation must be in [0, 7]; 0 means no rotation");
+    }
+    return static_cast<utils::Rotation>(rotation);
+}
+
+bool isPolicyActionID(const Environment& env, int action_id)
+{
+    return action_id >= 0 && action_id < env.getPolicySize();
+}
+
+std::vector<int> getActionIDs(const std::vector<Action>& actions)
+{
+    std::vector<int> action_ids;
+    action_ids.reserve(actions.size());
+    for (const auto& action : actions) { action_ids.push_back(action.getActionID()); }
+    return action_ids;
+}
+
+py::array_t<float> makeFloatArray(const std::vector<float>& values, const std::vector<py::ssize_t>& shape)
+{
+    py::ssize_t expected_size = 1;
+    for (py::ssize_t dim : shape) { expected_size *= dim; }
+    if (static_cast<py::ssize_t>(values.size()) != expected_size) {
+        throw std::runtime_error("array size does not match requested shape");
+    }
+
+    py::array_t<float> array(shape);
+    py::buffer_info buffer = array.request();
+    std::copy(values.begin(), values.end(), static_cast<float*>(buffer.ptr));
+    return array;
+}
+
+std::vector<py::ssize_t> getInputShape(const Environment& env)
+{
+    return {env.getNumInputChannels(), env.getInputChannelHeight(), env.getInputChannelWidth()};
+}
+
+std::vector<py::ssize_t> getActionFeatureShape(const Environment& env)
+{
+    return {env.getNumActionFeatureChannels(), env.getHiddenChannelHeight(), env.getHiddenChannelWidth()};
+}
+
+std::vector<int> getActionHistoryIDs(const Environment& env)
+{
+    return getActionIDs(env.getActionHistory());
+}
+
+} // namespace
 
 Environment& getEnvInstance()
 {
@@ -59,6 +126,90 @@ PYBIND11_MODULE(minizero_py, m)
     m.def("get_nn_num_value_hidden_channels", []() { return config::nn_num_value_hidden_channels; });
     m.def("get_nn_discrete_value_size", []() { return kEnvInstance->getDiscreteValueSize(); });
     m.def("get_nn_type_name", []() { return config::nn_type_name; });
+
+    py::class_<Environment>(m, "Environment", "MiniZero environment for the compiled GAME_TYPE.")
+        .def(py::init<>())
+        .def("reset", &Environment::reset)
+        .def(
+            "act",
+            [](Environment& env, int action_id) {
+                if (!isPolicyActionID(env, action_id)) { return false; }
+                return env.act(Action(action_id, env.getTurn()));
+            },
+            py::arg("action_id"))
+        .def(
+            "act",
+            [](Environment& env, int action_id, int player) {
+                if (!isPolicyActionID(env, action_id)) { return false; }
+                return env.act(Action(action_id, playerFromInt(player)));
+            },
+            py::arg("action_id"),
+            py::arg("player"))
+        .def("legal_actions", [](const Environment& env) { return getActionIDs(env.getLegalActions()); })
+        .def(
+            "is_legal_action",
+            [](const Environment& env, int action_id) {
+                if (!isPolicyActionID(env, action_id)) { return false; }
+                return env.isLegalAction(Action(action_id, env.getTurn()));
+            },
+            py::arg("action_id"))
+        .def(
+            "is_legal_action",
+            [](const Environment& env, int action_id, int player) {
+                if (!isPolicyActionID(env, action_id)) { return false; }
+                return env.isLegalAction(Action(action_id, playerFromInt(player)));
+            },
+            py::arg("action_id"),
+            py::arg("player"))
+        .def("is_terminal", &Environment::isTerminal)
+        .def("turn", [](const Environment& env) { return static_cast<int>(env.getTurn()); })
+        .def("reward", &Environment::getReward)
+        .def("eval_score", &Environment::getEvalScore, py::arg("is_resign") = false)
+        .def(
+            "features",
+            [](const Environment& env, int rotation) {
+                return makeFloatArray(env.getFeatures(rotationFromInt(rotation)), getInputShape(env));
+            },
+            py::arg("rotation") = 0)
+        .def(
+            "action_features",
+            [](const Environment& env, int action_id, int rotation) {
+                if (!isPolicyActionID(env, action_id)) { throw std::invalid_argument("action_id out of policy range"); }
+                return makeFloatArray(env.getActionFeatures(Action(action_id, env.getTurn()), rotationFromInt(rotation)), getActionFeatureShape(env));
+            },
+            py::arg("action_id"),
+            py::arg("rotation") = 0)
+        .def("action_history", &getActionHistoryIDs)
+        .def("name", &Environment::name)
+        .def("policy_size", &Environment::getPolicySize)
+        .def("num_players", &Environment::getNumPlayer)
+        .def(
+            "input_shape",
+            [](const Environment& env) {
+                return std::vector<int>{
+                    env.getNumInputChannels(),
+                    env.getInputChannelHeight(),
+                    env.getInputChannelWidth()};
+            })
+        .def(
+            "action_feature_shape",
+            [](const Environment& env) {
+                return std::vector<int>{
+                    env.getNumActionFeatureChannels(),
+                    env.getHiddenChannelHeight(),
+                    env.getHiddenChannelWidth()};
+            })
+        .def(
+            "hidden_shape",
+            [](const Environment& env) {
+                return std::vector<int>{
+                    config::nn_num_hidden_channels,
+                    env.getHiddenChannelHeight(),
+                    env.getHiddenChannelWidth()};
+            })
+        .def("discrete_value_size", &Environment::getDiscreteValueSize)
+        .def("to_string", &Environment::toString)
+        .def("__str__", &Environment::toString);
 
     py::class_<learner::DataLoader>(m, "DataLoader")
         .def(py::init<std::string>())
