@@ -341,7 +341,7 @@ std::string HavannahEnv::getCoordinateString() const
 HavannahEnv::HavannahPath* HavannahEnv::newPath()
 {
     assert(!free_path_id_bitboard_.none());
-    int id = free_path_id_bitboard_._Find_first();
+    int id = findFirstSetBit(free_path_id_bitboard_);
     free_path_id_bitboard_.reset(id);
     return &paths_[id];
 }
@@ -357,7 +357,7 @@ HavannahEnv::HavannahPath* HavannahEnv::combinePaths(HavannahPath* path1, Havann
     // link cell to new cell
     HavannahBitboard cell_bitboard = path2->getCells();
     while (!cell_bitboard.none()) {
-        int pos = cell_bitboard._Find_first();
+        int pos = findFirstSetBit(cell_bitboard);
         cell_bitboard.reset(pos);
         cells_[pos].setPath(path1);
     }
@@ -411,7 +411,7 @@ bool HavannahEnv::detectHole(const HavannahPath* path) const
 
     HavannahBitboard bitboard = path->getCells();
     while (bitboard.any()) {
-        int pos = bitboard._Find_first();
+        int pos = findFirstSetBit(bitboard);
         bitboard.reset(pos);
         cells.emplace_back(HavannahCell(pos, extended_board_size_));
     }

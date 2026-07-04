@@ -349,7 +349,7 @@ void SekiSearch::generateSekiTable(Seki7x7Table& seki_table, int min_area_size, 
             // Check no stone is captured
             if (!(env.getStoneBitboard() == GamePair<GoBitboard>{black_bitboard | boundary_bitboard, white_bitboard})) { continue; }
 
-            KillAllGoAction inner_black_action(black_bitboard._Find_first(), Player::kPlayer1);
+            KillAllGoAction inner_black_action(findFirstSetBit(black_bitboard), Player::kPlayer1);
             std::pair<GamePair<GoBitboard>, std::string> seki_result = searchSekiBitboard(env, inner_black_action);
             GamePair<GoBitboard> b = seki_result.first;
             std::string ghi_data = seki_result.second;
@@ -392,7 +392,7 @@ GamePair<GoBitboard> SekiSearch::lookupSekiBitboard(Seki7x7Table& seki_table, co
             GoBitboard neighbor_id = area->getNeighborBlockIDBitboard();
             int surrouding_block_count = 0;
             while (!neighbor_id.none()) {
-                int block_id = neighbor_id._Find_first();
+                int block_id = findFirstSetBit(neighbor_id);
                 neighbor_id.reset(block_id);
 
                 const GoBlock* block = &env.getBlock(block_id);
@@ -414,7 +414,7 @@ GamePair<GoBitboard> SekiSearch::lookupSekiBitboard(Seki7x7Table& seki_table, co
         const GoBlock* block = grid.getBlock();
         GoBitboard area_bitboard_id = block->getNeighborAreaIDBitboard();
         while (!area_bitboard_id.none()) {
-            int area_id = area_bitboard_id._Find_first();
+            int area_id = findFirstSetBit(area_bitboard_id);
             area_bitboard_id.reset(area_id);
 
             const GoArea* area = &env.getArea(area_id);
@@ -423,7 +423,7 @@ GamePair<GoBitboard> SekiSearch::lookupSekiBitboard(Seki7x7Table& seki_table, co
             GoBitboard neighbor_id = area->getNeighborBlockIDBitboard();
             int surrouding_block_count = 0;
             while (!neighbor_id.none()) {
-                int block_id = neighbor_id._Find_first();
+                int block_id = findFirstSetBit(neighbor_id);
                 neighbor_id.reset(block_id);
                 const GoBlock* block = &env.getBlock(block_id);
                 assert(block);
@@ -446,7 +446,7 @@ GamePair<GoBitboard> SekiSearch::lookupSekiBitboard(Seki7x7Table& seki_table, co
     seki_bitboard.get(Player::kPlayer2) |= seki_area->getAreaBitboard();
     GoBitboard nbrBlockID_bitboard = seki_area->getNeighborBlockIDBitboard();
     while (nbrBlockID_bitboard.any()) {
-        int id = nbrBlockID_bitboard._Find_first();
+        int id = findFirstSetBit(nbrBlockID_bitboard);
         nbrBlockID_bitboard.reset(id);
         seki_bitboard.get(Player::kPlayer2) |= env.getBlock(id).getGridBitboard();
     }
@@ -484,7 +484,7 @@ std::vector<GamePair<GoBitboard>> SekiSearch::getPatternsFromGHIString(const Kil
         GoBitboard white_bitboard(bitboard_strings[1]);
         GoBitboard dilated_white_bitboard = white_bitboard;
         while (white_bitboard.any()) {
-            int id = white_bitboard._Find_first();
+            int id = findFirstSetBit(white_bitboard);
             white_bitboard.reset(id);
             const GoGrid& grid = env.getGrid(id);
             if (grid.getPlayer() != Player::kPlayerNone) { white_bitboard &= ~grid.getBlock()->getGridBitboard(); }
@@ -558,7 +558,7 @@ std::pair<GamePair<GoBitboard>, std::string> SekiSearch::searchSekiBitboard(cons
         const GoBlock* block = grid.getBlock();
         GoBitboard area_bitboard_id = block->getNeighborAreaIDBitboard();
         while (!area_bitboard_id.none()) {
-            int area_id = area_bitboard_id._Find_first();
+            int area_id = findFirstSetBit(area_bitboard_id);
             area_bitboard_id.reset(area_id);
 
             const GoArea* area = &env.getArea(area_id);
@@ -572,7 +572,7 @@ std::pair<GamePair<GoBitboard>, std::string> SekiSearch::searchSekiBitboard(cons
     if (!seki_area) { return {GamePair<GoBitboard>(), ghi_data}; }
     GamePair<GoBitboard> seki_bitboard;
     seki_bitboard.get(Player::kPlayer2) |= seki_area->getAreaBitboard();
-    seki_bitboard.get(Player::kPlayer2) |= env.getBlock(seki_area->getNeighborBlockIDBitboard()._Find_first()).getGridBitboard();
+    seki_bitboard.get(Player::kPlayer2) |= env.getBlock(findFirstSetBit(seki_area->getNeighborBlockIDBitboard())).getGridBitboard();
     return {seki_bitboard, ghi_data};
 }
 
@@ -582,9 +582,9 @@ std::pair<bool, std::string> SekiSearch::isEnclosedSeki(const KillAllGoEnv& env,
 
     // find the white surrounding block with maximum stones
     GoBitboard neighbor_block_id = area->getNeighborBlockIDBitboard(); // find white surrounding blocks
-    const GoBlock* surrounding_block = &env.getBlock(neighbor_block_id._Find_first());
+    const GoBlock* surrounding_block = &env.getBlock(findFirstSetBit(neighbor_block_id));
     while (!neighbor_block_id.none()) {
-        int block_id = neighbor_block_id._Find_first();
+        int block_id = findFirstSetBit(neighbor_block_id);
         neighbor_block_id.reset(block_id);
         const GoBlock* neighbor_block = &env.getBlock(block_id);
         if (neighbor_block->getPlayer() == Player::kPlayer2) {
@@ -605,7 +605,7 @@ std::pair<bool, std::string> SekiSearch::isEnclosedSeki(const KillAllGoEnv& env,
     GoBitboard search_area_bitboard = inner_bitboard;
     GoBitboard area_neighbor_block_id = area->getNeighborBlockIDBitboard(); // find white surrounding block
     while (!area_neighbor_block_id.none()) {
-        int area_block_id = area_neighbor_block_id._Find_first();
+        int area_block_id = findFirstSetBit(area_neighbor_block_id);
         area_neighbor_block_id.reset(area_block_id);
         const GoBlock* neighbor_block = &env.getBlock(area_block_id);
         if (neighbor_block->getPlayer() == Player::kPlayer2) {
@@ -671,7 +671,7 @@ std::pair<bool, std::string> SekiSearch::enclosedSekiSearch(const KillAllGoEnv& 
     for (size_t set_index = 0; set_index < search_proirity_set.size(); set_index++) {
         GoBitboard search_bitboard = search_proirity_set[set_index];
         while (!search_bitboard.none()) {
-            int pos = search_bitboard._Find_first();
+            int pos = findFirstSetBit(search_bitboard);
             search_bitboard.reset(pos);
             KillAllGoAction action(pos, turn);
             if (!env_copy.isLegalAction(action)) { continue; }
@@ -679,7 +679,7 @@ std::pair<bool, std::string> SekiSearch::enclosedSekiSearch(const KillAllGoEnv& 
             KillAllGoEnv current_env = env_copy;
             current_env.act(action);
 
-            int block_pos = block->getGridBitboard()._Find_first();
+            int block_pos = findFirstSetBit(block->getGridBitboard());
             const GoBlock* new_block = env_copy.getGrid(block_pos).getBlock();
 
             if (turn == attacker) { // attack player
@@ -757,7 +757,7 @@ bool SekiSearch::checkSSK(const KillAllGoEnv& env, const GoBlock* block, const G
     for (size_t set_index = 0; set_index < search_proirity_set.size(); set_index++) {
         GoBitboard search_bitboard = search_proirity_set[set_index];
         while (!search_bitboard.none()) {
-            int pos = search_bitboard._Find_first();
+            int pos = findFirstSetBit(search_bitboard);
             search_bitboard.reset(pos);
             KillAllGoAction action(pos, turn);
             GoHashKey hashkey_after_play;
@@ -781,7 +781,7 @@ std::vector<GoBitboard> SekiSearch::findSearchPrioritySet(const KillAllGoEnv& en
     GoBitboard eat_stone_act_bitboard = act_area_bitboard.reset();
     GoBitboard pass_act_bitboard = act_area_bitboard.reset();
     while (!act_area_bitboard.none()) { // first order: action that can eat stone
-        int pos = act_area_bitboard._Find_first();
+        int pos = findFirstSetBit(act_area_bitboard);
         act_area_bitboard.reset(pos);
         KillAllGoAction action(pos, turn);
         if (!env.isLegalAction(action)) { continue; }
@@ -820,7 +820,7 @@ std::pair<bool, std::vector<killallgo::GHIPattern>> SekiSearch::findLoopPatterns
     for (size_t set_index = 0; set_index < search_proirity_set.size(); set_index++) { // check ghi loop
         GoBitboard search_bitboard = search_proirity_set[set_index];
         while (!search_bitboard.none()) {
-            int pos = search_bitboard._Find_first();
+            int pos = findFirstSetBit(search_bitboard);
             search_bitboard.reset(pos);
             KillAllGoAction action(pos, turn);
             GoHashKey hashkey_after_play;
