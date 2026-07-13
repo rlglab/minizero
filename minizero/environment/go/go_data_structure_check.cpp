@@ -2,6 +2,8 @@
 
 namespace minizero::env::go {
 
+using minizero::utils::findFirstSetBit;
+
 bool GoEnv::checkDataStructure() const
 {
     assert(actions_.size() == stone_bitboard_history_.size());

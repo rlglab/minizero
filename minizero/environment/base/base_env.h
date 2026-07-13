@@ -6,9 +6,7 @@
 #include "utils.h"
 #include "vector_map.h"
 #include <algorithm>
-#include <bitset>
 #include <cassert>
-#include <cstdint>
 #include <fstream>
 #include <memory>
 #include <sstream>
@@ -19,22 +17,6 @@
 namespace minizero::env {
 
 using namespace minizero;
-
-template <size_t N>
-inline int findFirstSetBit(const std::bitset<N>& bitboard)
-{
-#if defined(__GLIBCXX__)
-    return static_cast<int>(bitboard._Find_first());
-#else
-    constexpr size_t kWordBits = 64;
-    const std::bitset<N> word_mask(~0ULL);
-    for (size_t offset = 0; offset < N; offset += kWordBits) {
-        uint64_t word = ((bitboard >> offset) & word_mask).to_ullong();
-        if (word) { return static_cast<int>(offset + __builtin_ctzll(word)); }
-    }
-    return static_cast<int>(N);
-#endif
-}
 
 // only support up to two players currently
 enum class Player {
