@@ -1,10 +1,12 @@
 #pragma once
 
 #include <algorithm>
+#include <bitset>
 #include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/filtering_streambuf.hpp>
 #include <cmath>
+#include <cstdint>
 #include <iomanip>
 #include <numeric>
 #include <sstream>
@@ -12,6 +14,22 @@
 #include <vector>
 
 namespace minizero::utils {
+
+template <size_t N>
+inline int findFirstSetBit(const std::bitset<N>& bitboard)
+{
+#if defined(__GLIBCXX__)
+    return static_cast<int>(bitboard._Find_first());
+#else
+    constexpr size_t kWordBits = 64;
+    const std::bitset<N> word_mask(~0ULL);
+    for (size_t offset = 0; offset < N; offset += kWordBits) {
+        uint64_t word = ((bitboard >> offset) & word_mask).to_ullong();
+        if (word) { return static_cast<int>(offset + __builtin_ctzll(word)); }
+    }
+    return static_cast<int>(N);
+#endif
+}
 
 inline std::vector<std::string> stringToVector(const std::string& s, const std::string& delim = " ", bool compress = true)
 {
