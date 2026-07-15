@@ -134,13 +134,6 @@ PYBIND11_MODULE(minizero_py, m)
                 return env.act(Action(action_id, env.getTurn()));
             },
             py::arg("action_id"))
-        .def(
-            "act",
-            [](Environment& env, int action_id, int player) {
-                return env.act(Action(action_id, playerFromInt(player)));
-            },
-            py::arg("action_id"),
-            py::arg("player"))
         .def("legal_actions", [](const Environment& env) { return getActionIDs(env.getLegalActions()); })
         .def(
             "is_legal_action",
