@@ -6,7 +6,6 @@
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -47,16 +46,6 @@ std::vector<int> getActionIDs(const std::vector<Action>& actions)
     action_ids.reserve(actions.size());
     for (const auto& action : actions) { action_ids.push_back(action.getActionID()); }
     return action_ids;
-}
-
-py::array_t<float> makeFloatArray(const std::vector<float>& values, const std::vector<py::ssize_t>& shape)
-{
-    py::ssize_t expected_size = 1;
-    for (py::ssize_t dim : shape) { expected_size *= dim; }
-    if (static_cast<py::ssize_t>(values.size()) != expected_size) {
-        throw std::runtime_error("array size does not match requested shape");
-    }
-    return py::array_t<float>(shape, values.data());
 }
 
 std::vector<py::ssize_t> getInputShape(const Environment& env)
@@ -173,13 +162,15 @@ PYBIND11_MODULE(minizero_py, m)
         .def(
             "features",
             [](const Environment& env, int rotation) {
-                return makeFloatArray(env.getFeatures(rotationFromInt(rotation)), getInputShape(env));
+                const std::vector<float> features = env.getFeatures(rotationFromInt(rotation));
+                return py::array_t<float>(getInputShape(env), features.data());
             },
             py::arg("rotation") = 0)
         .def(
             "action_features",
             [](const Environment& env, int action_id, int rotation) {
-                return makeFloatArray(env.getActionFeatures(Action(action_id, env.getTurn()), rotationFromInt(rotation)), getActionFeatureShape(env));
+                const std::vector<float> action_features = env.getActionFeatures(Action(action_id, env.getTurn()), rotationFromInt(rotation));
+                return py::array_t<float>(getActionFeatureShape(env), action_features.data());
             },
             py::arg("action_id"),
             py::arg("rotation") = 0)
