@@ -7,6 +7,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace py = pybind11;
@@ -58,9 +59,14 @@ std::vector<py::ssize_t> getActionFeatureShape(const Environment& env)
     return {env.getNumActionFeatureChannels(), env.getHiddenChannelHeight(), env.getHiddenChannelWidth()};
 }
 
-std::vector<int> getActionHistoryIDs(const Environment& env)
+std::vector<std::pair<int, int>> getActionHistory(const Environment& env)
 {
-    return getActionIDs(env.getActionHistory());
+    std::vector<std::pair<int, int>> action_history;
+    action_history.reserve(env.getActionHistory().size());
+    for (const auto& action : env.getActionHistory()) {
+        action_history.emplace_back(action.getActionID(), static_cast<int>(action.getPlayer()));
+    }
+    return action_history;
 }
 
 } // namespace
@@ -167,7 +173,7 @@ PYBIND11_MODULE(minizero_py, m)
             },
             py::arg("action_id"),
             py::arg("rotation") = 0)
-        .def("action_history", &getActionHistoryIDs)
+        .def("action_history", &getActionHistory)
         .def("name", &Environment::name)
         .def("policy_size", &Environment::getPolicySize)
         .def("num_players", &Environment::getNumPlayer)
