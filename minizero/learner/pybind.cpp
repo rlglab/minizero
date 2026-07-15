@@ -44,18 +44,6 @@ utils::Rotation rotationFromInt(int rotation)
     return static_cast<utils::Rotation>(rotation);
 }
 
-bool isPolicyActionID(const Environment& env, int action_id)
-{
-    return action_id >= 0 && action_id < env.getPolicySize();
-}
-
-// not every env's act() validates by itself (e.g. AtariEnv), so guard like the C++ callers do
-bool actIfLegal(Environment& env, const Action& action)
-{
-    if (env.isTerminal() || !env.isLegalAction(action)) { return false; }
-    return env.act(action);
-}
-
 std::vector<int> getActionIDs(const std::vector<Action>& actions)
 {
     std::vector<int> action_ids;
@@ -157,16 +145,13 @@ PYBIND11_MODULE(minizero_py, m)
         .def(
             "act",
             [](Environment& env, int action_id) {
-                if (!isPolicyActionID(env, action_id)) { return false; }
-                return actIfLegal(env, Action(action_id, env.getTurn()));
+                return env.act(Action(action_id, env.getTurn()));
             },
             py::arg("action_id"))
         .def(
             "act",
             [](Environment& env, int action_id, int player) {
-                minizero::env::Player action_player = playerFromInt(player);
-                if (!isPolicyActionID(env, action_id) || action_player != env.getTurn()) { return false; }
-                return actIfLegal(env, Action(action_id, action_player));
+                return env.act(Action(action_id, playerFromInt(player)));
             },
             py::arg("action_id"),
             py::arg("player"))
@@ -174,14 +159,12 @@ PYBIND11_MODULE(minizero_py, m)
         .def(
             "is_legal_action",
             [](const Environment& env, int action_id) {
-                if (!isPolicyActionID(env, action_id)) { return false; }
                 return env.isLegalAction(Action(action_id, env.getTurn()));
             },
             py::arg("action_id"))
         .def(
             "is_legal_action",
             [](const Environment& env, int action_id, int player) {
-                if (!isPolicyActionID(env, action_id)) { return false; }
                 return env.isLegalAction(Action(action_id, playerFromInt(player)));
             },
             py::arg("action_id"),
@@ -199,7 +182,6 @@ PYBIND11_MODULE(minizero_py, m)
         .def(
             "action_features",
             [](const Environment& env, int action_id, int rotation) {
-                if (!isPolicyActionID(env, action_id)) { throw std::invalid_argument("action_id out of policy range"); }
                 return makeFloatArray(env.getActionFeatures(Action(action_id, env.getTurn()), rotationFromInt(rotation)), getActionFeatureShape(env));
             },
             py::arg("action_id"),
