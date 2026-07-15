@@ -1,6 +1,7 @@
 #include "configuration.h"
 #include "data_loader.h"
 #include "environment.h"
+#include <cassert>
 #include <memory>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
@@ -29,18 +30,14 @@ void ensureEnvSetUp()
 
 minizero::env::Player playerFromInt(int player)
 {
-    switch (player) {
-        case 1: return minizero::env::Player::kPlayer1;
-        case 2: return minizero::env::Player::kPlayer2;
-        default: throw std::invalid_argument("player must be 1 or 2");
-    }
+    assert(player == static_cast<int>(minizero::env::Player::kPlayer1) ||
+           player == static_cast<int>(minizero::env::Player::kPlayer2));
+    return static_cast<minizero::env::Player>(player);
 }
 
 utils::Rotation rotationFromInt(int rotation)
 {
-    if (rotation < 0 || rotation >= static_cast<int>(utils::Rotation::kRotateSize)) {
-        throw std::invalid_argument("rotation must be in [0, 7]; 0 means no rotation");
-    }
+    assert(rotation >= 0 && rotation < static_cast<int>(utils::Rotation::kRotateSize));
     return static_cast<utils::Rotation>(rotation);
 }
 
