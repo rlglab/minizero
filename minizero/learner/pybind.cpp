@@ -1,17 +1,81 @@
 #include "configuration.h"
 #include "data_loader.h"
+#include "environment.h"
+#include <cassert>
+#include <memory>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace py = pybind11;
 using namespace minizero;
 
 std::shared_ptr<Environment> kEnvInstance;
 
+namespace {
+
+bool env_set_up = false;
+
+// Environment constructors bake in config values seeded by Environment::setUpEnv()
+// (e.g. env_board_size), so it must have run before the first construction.
+void ensureEnvSetUp()
+{
+    if (env_set_up) { return; }
+    minizero::env::setUpEnv();
+    env_set_up = true;
+}
+
+minizero::env::Player playerFromInt(int player)
+{
+    assert(player == static_cast<int>(minizero::env::Player::kPlayer1) ||
+           player == static_cast<int>(minizero::env::Player::kPlayer2));
+    return static_cast<minizero::env::Player>(player);
+}
+
+utils::Rotation rotationFromInt(int rotation)
+{
+    assert(rotation >= 0 && rotation < static_cast<int>(utils::Rotation::kRotateSize));
+    return static_cast<utils::Rotation>(rotation);
+}
+
+std::vector<int> getActionIDs(const std::vector<Action>& actions)
+{
+    std::vector<int> action_ids;
+    action_ids.reserve(actions.size());
+    for (const auto& action : actions) { action_ids.push_back(action.getActionID()); }
+    return action_ids;
+}
+
+std::vector<py::ssize_t> getInputShape(const Environment& env)
+{
+    return {env.getNumInputChannels(), env.getInputChannelHeight(), env.getInputChannelWidth()};
+}
+
+std::vector<py::ssize_t> getActionFeatureShape(const Environment& env)
+{
+    return {env.getNumActionFeatureChannels(), env.getHiddenChannelHeight(), env.getHiddenChannelWidth()};
+}
+
+std::vector<std::pair<int, int>> getActionHistory(const Environment& env)
+{
+    std::vector<std::pair<int, int>> action_history;
+    action_history.reserve(env.getActionHistory().size());
+    for (const auto& action : env.getActionHistory()) {
+        action_history.emplace_back(action.getActionID(), static_cast<int>(action.getPlayer()));
+    }
+    return action_history;
+}
+
+} // namespace
+
 Environment& getEnvInstance()
 {
+    // NOTE: unlike the Environment binding, this fallback can construct before setUpEnv() runs.
+    // It is safe today because module getters are only used after load_config_file; a future
+    // change could route this through ensureEnvSetUp() to make the invariant hold everywhere.
     if (!kEnvInstance) { kEnvInstance = std::make_shared<Environment>(); }
     return *kEnvInstance;
 }
@@ -20,6 +84,7 @@ PYBIND11_MODULE(minizero_py, m)
 {
     m.def("load_config_file", [](std::string file_name) {
         minizero::env::setUpEnv();
+        env_set_up = true;
         minizero::config::ConfigureLoader cl;
         minizero::config::setConfiguration(cl);
         bool success = cl.loadFromFile(file_name);
@@ -27,6 +92,7 @@ PYBIND11_MODULE(minizero_py, m)
         return success;
     });
     m.def("load_config_string", [](std::string conf_str) {
+        ensureEnvSetUp();
         minizero::config::ConfigureLoader cl;
         minizero::config::setConfiguration(cl);
         bool success = cl.loadFromString(conf_str);
@@ -59,6 +125,71 @@ PYBIND11_MODULE(minizero_py, m)
     m.def("get_nn_num_value_hidden_channels", []() { return config::nn_num_value_hidden_channels; });
     m.def("get_nn_discrete_value_size", []() { return kEnvInstance->getDiscreteValueSize(); });
     m.def("get_nn_type_name", []() { return config::nn_type_name; });
+
+    py::class_<Environment>(m, "Environment", "MiniZero environment for the compiled GAME_TYPE.")
+        .def(py::init([]() {
+            ensureEnvSetUp();
+            auto env = std::make_unique<Environment>();
+            env->reset(); // stochastic env constructors do not set up the initial position
+            return env;
+        }))
+        .def("reset", [](Environment& env) { env.reset(); })
+        .def(
+            "act",
+            [](Environment& env, int action_id) {
+                return env.act(Action(action_id, env.getTurn()));
+            },
+            py::arg("action_id"))
+        .def("legal_actions", [](const Environment& env) { return getActionIDs(env.getLegalActions()); })
+        .def(
+            "is_legal_action",
+            [](const Environment& env, int action_id) {
+                return env.isLegalAction(Action(action_id, env.getTurn()));
+            },
+            py::arg("action_id"))
+        .def(
+            "is_legal_action",
+            [](const Environment& env, int action_id, int player) {
+                return env.isLegalAction(Action(action_id, playerFromInt(player)));
+            },
+            py::arg("action_id"),
+            py::arg("player"))
+        .def("is_terminal", &Environment::isTerminal)
+        .def("turn", [](const Environment& env) { return static_cast<int>(env.getTurn()); })
+        .def("reward", &Environment::getReward)
+        .def("eval_score", &Environment::getEvalScore, py::arg("is_resign") = false)
+        .def(
+            "features",
+            [](const Environment& env, int rotation) {
+                const std::vector<float> features = env.getFeatures(rotationFromInt(rotation));
+                return py::array_t<float>(getInputShape(env), features.data());
+            },
+            py::arg("rotation") = 0)
+        .def(
+            "action_features",
+            [](const Environment& env, int action_id, int rotation) {
+                const std::vector<float> action_features = env.getActionFeatures(Action(action_id, env.getTurn()), rotationFromInt(rotation));
+                return py::array_t<float>(getActionFeatureShape(env), action_features.data());
+            },
+            py::arg("action_id"),
+            py::arg("rotation") = 0)
+        .def("action_history", &getActionHistory)
+        .def("name", &Environment::name)
+        .def("policy_size", &Environment::getPolicySize)
+        .def("num_players", &Environment::getNumPlayer)
+        .def("input_shape", &getInputShape)
+        .def("action_feature_shape", &getActionFeatureShape)
+        .def(
+            "hidden_shape",
+            [](const Environment& env) {
+                return std::vector<int>{
+                    config::nn_num_hidden_channels,
+                    env.getHiddenChannelHeight(),
+                    env.getHiddenChannelWidth()};
+            })
+        .def("discrete_value_size", &Environment::getDiscreteValueSize)
+        .def("to_string", &Environment::toString)
+        .def("__str__", &Environment::toString);
 
     py::class_<learner::DataLoader>(m, "DataLoader")
         .def(py::init<std::string>())
