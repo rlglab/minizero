@@ -262,12 +262,23 @@ float GoEnv::getEvalScore(bool is_resign /*= false*/) const
     if (is_resign) {
         eval = getNextPlayer(turn_, kGoNumPlayer);
     } else {
-        GamePair<float> territory = calculateTrompTaylorTerritory();
-        eval = (territory.get(Player::kPlayer1) > territory.get(Player::kPlayer2))
-                   ? Player::kPlayer1
-                   : ((territory.get(Player::kPlayer1) < territory.get(Player::kPlayer2))
-                          ? Player::kPlayer2
-                          : Player::kPlayerNone);
+        assert(config::env_go_scoring_rule == "tromp_taylor" || config::env_go_scoring_rule == "benson");
+        if (config::env_go_scoring_rule == "benson") {
+            if (getBensonBitboard().get(Player::kPlayer1).count() >= (board_size_ * board_size_ + komi_) / 2) {
+                eval = Player::kPlayer1;
+            } else if (getBensonBitboard().get(Player::kPlayer2).count() >= (board_size_ * board_size_ - komi_) / 2) {
+                eval = Player::kPlayer2;
+            } else {
+                eval = Player::kPlayerNone;
+            }
+        } else {
+            GamePair<float> territory = calculateTrompTaylorTerritory();
+            eval = (territory.get(Player::kPlayer1) > territory.get(Player::kPlayer2))
+                       ? Player::kPlayer1
+                       : ((territory.get(Player::kPlayer1) < territory.get(Player::kPlayer2))
+                              ? Player::kPlayer2
+                              : Player::kPlayerNone);
+        }
     }
 
     switch (eval) {
