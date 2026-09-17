@@ -144,7 +144,6 @@ protected:
     void keepAlive();
     void startKeepAlive();
 
-    int iteration_;
     ZeroWorkerSharedData shared_data_;
     boost::asio::deadline_timer keep_alive_timer_;
 

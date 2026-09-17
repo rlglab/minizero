@@ -166,6 +166,9 @@ def train(model, training_dir, data_loader, tb_writer, start_iter, end_iter):
         model.save_model(training_dir)
         return
 
+    # mark the current iteration in op.log, matching the "[Iteration] =====N=====" format in Training.log
+    eprint("[{}] [Iteration] ====={}=====".format(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), end_iter))
+
     # load data
     data_loader.load_data(training_dir, start_iter, end_iter)
 
@@ -197,11 +200,11 @@ def train(model, training_dir, data_loader, tb_writer, start_iter, end_iter):
                 network_output = model.network(network_output["hidden_state"], action_features[:, i])
                 batch_values = np.concatenate((batch_values, network_output['value'].to('cpu').detach().numpy()), axis=0)
                 loss_step_policy, loss_step_value, loss_step_reward = calculate_loss(network_output, label_policy[:, i + 1], label_value[:, i + 1], label_reward[:, i], loss_scale)
-                add_training_info(training_info, f'loss_policy_{i+1}', loss_step_policy.item() / py.get_muzero_unrolling_step())
-                add_training_info(training_info, f'accuracy_policy_{i+1}', calculate_accuracy(network_output["policy_logit"], label_policy[:, i + 1], py.get_batch_size()))
-                add_training_info(training_info, f'loss_value_{i+1}', loss_step_value.item() / py.get_muzero_unrolling_step())
+                add_training_info(training_info, f'loss_policy_{i + 1}', loss_step_policy.item() / py.get_muzero_unrolling_step())
+                add_training_info(training_info, f'accuracy_policy_{i + 1}', calculate_accuracy(network_output["policy_logit"], label_policy[:, i + 1], py.get_batch_size()))
+                add_training_info(training_info, f'loss_value_{i + 1}', loss_step_value.item() / py.get_muzero_unrolling_step())
                 if "reward_logit" in network_output:
-                    add_training_info(training_info, f'loss_reward_{i+1}', loss_step_reward.item() / py.get_muzero_unrolling_step())
+                    add_training_info(training_info, f'loss_reward_{i + 1}', loss_step_reward.item() / py.get_muzero_unrolling_step())
                 loss_policy += loss_step_policy / py.get_muzero_unrolling_step()
                 loss_value += loss_step_value / py.get_muzero_unrolling_step()
                 loss_reward += loss_step_reward / py.get_muzero_unrolling_step()

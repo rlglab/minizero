@@ -43,6 +43,7 @@ extern std::string zero_training_directory;
 extern int zero_num_games_per_iteration;
 extern int zero_start_iteration;
 extern int zero_end_iteration;
+extern int zero_current_iteration;
 extern int zero_replay_buffer;
 extern float zero_disable_resign_ratio;
 extern int zero_actor_intermediate_sequence_length;

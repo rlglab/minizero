@@ -213,7 +213,7 @@ void ZeroServer::run()
     startAccept();
     std::cerr << TimeSystem::getTimeString("[Y/m/d_H:i:s.f] ") << "Server initialize over." << std::endl;
 
-    for (iteration_ = config::zero_start_iteration; iteration_ <= config::zero_end_iteration; ++iteration_) {
+    for (config::zero_current_iteration = config::zero_start_iteration; config::zero_current_iteration <= config::zero_end_iteration; ++config::zero_current_iteration) {
         syncConfig();
         selfPlay();
         optimization();
@@ -224,6 +224,7 @@ void ZeroServer::run()
 
 void ZeroServer::initialize()
 {
+    config::zero_current_iteration = config::zero_start_iteration;
     int seed = config::program_auto_seed ? static_cast<int>(time(NULL)) : config::program_seed;
     utils::Random::seed(seed);
     shared_data_.logger_.createLog();
@@ -239,9 +240,9 @@ void ZeroServer::initialize()
 void ZeroServer::selfPlay()
 {
     // setup
-    std::string self_play_file_name = config::zero_training_directory + "/sgf/" + std::to_string(iteration_) + ".sgf";
+    std::string self_play_file_name = config::zero_training_directory + "/sgf/" + std::to_string(config::zero_current_iteration) + ".sgf";
     if (config::zero_num_games_per_iteration > 0) { shared_data_.logger_.getSelfPlayFileStream().open(self_play_file_name.c_str(), std::ios::out); }
-    shared_data_.logger_.addTrainingLog("[Iteration] =====" + std::to_string(iteration_) + "=====");
+    shared_data_.logger_.addTrainingLog("[Iteration] =====" + std::to_string(config::zero_current_iteration) + "=====");
     shared_data_.logger_.addTrainingLog("[SelfPlay] Start " + std::to_string(shared_data_.getModelIetration()));
 
     std::vector<int> game_lengths;
@@ -290,29 +291,29 @@ void ZeroServer::selfPlay()
     shared_data_.logger_.addTrainingLog("[SelfPlay] Finished.");
     if (!game_lengths.empty()) {
         shared_data_.logger_.addTrainingLog("[SelfPlay # Finished Games]", static_cast<int>(game_lengths.size()));
-        shared_data_.logger_.addTrainingLog("[SelfPlay Min. Game Lengths]", *std::min_element(game_lengths.begin(), game_lengths.end()), "game_lengths", "min", iteration_);
-        shared_data_.logger_.addTrainingLog("[SelfPlay Max. Game Lengths]", *std::max_element(game_lengths.begin(), game_lengths.end()), "game_lengths", "max", iteration_);
-        shared_data_.logger_.addTrainingLog("[SelfPlay Avg. Game Lengths]", std::accumulate(game_lengths.begin(), game_lengths.end(), 0.0) / game_lengths.size(), "game_lengths", "avg", iteration_);
-        shared_data_.logger_.addTrainingLog("[SelfPlay Std. Game Lengths]", utils::stddev(game_lengths), "game_lengths", "std", iteration_);
-        shared_data_.logger_.addTrainingLog("[SelfPlay Min. Game Returns]", static_cast<double>(*std::min_element(game_returns.begin(), game_returns.end())), "game_returns", "min", iteration_);
-        shared_data_.logger_.addTrainingLog("[SelfPlay Max. Game Returns]", static_cast<double>(*std::max_element(game_returns.begin(), game_returns.end())), "game_returns", "max", iteration_);
-        shared_data_.logger_.addTrainingLog("[SelfPlay Avg. Game Returns]", static_cast<double>(std::accumulate(game_returns.begin(), game_returns.end(), 0.0) / game_returns.size()), "game_returns", "avg", iteration_);
-        shared_data_.logger_.addTrainingLog("[SelfPlay Std. Game Returns]", static_cast<double>(utils::stddev(game_returns)), "game_returns", "std", iteration_);
+        shared_data_.logger_.addTrainingLog("[SelfPlay Min. Game Lengths]", *std::min_element(game_lengths.begin(), game_lengths.end()), "game_lengths", "min", config::zero_current_iteration);
+        shared_data_.logger_.addTrainingLog("[SelfPlay Max. Game Lengths]", *std::max_element(game_lengths.begin(), game_lengths.end()), "game_lengths", "max", config::zero_current_iteration);
+        shared_data_.logger_.addTrainingLog("[SelfPlay Avg. Game Lengths]", std::accumulate(game_lengths.begin(), game_lengths.end(), 0.0) / game_lengths.size(), "game_lengths", "avg", config::zero_current_iteration);
+        shared_data_.logger_.addTrainingLog("[SelfPlay Std. Game Lengths]", utils::stddev(game_lengths), "game_lengths", "std", config::zero_current_iteration);
+        shared_data_.logger_.addTrainingLog("[SelfPlay Min. Game Returns]", static_cast<double>(*std::min_element(game_returns.begin(), game_returns.end())), "game_returns", "min", config::zero_current_iteration);
+        shared_data_.logger_.addTrainingLog("[SelfPlay Max. Game Returns]", static_cast<double>(*std::max_element(game_returns.begin(), game_returns.end())), "game_returns", "max", config::zero_current_iteration);
+        shared_data_.logger_.addTrainingLog("[SelfPlay Avg. Game Returns]", static_cast<double>(std::accumulate(game_returns.begin(), game_returns.end(), 0.0) / game_returns.size()), "game_returns", "avg", config::zero_current_iteration);
+        shared_data_.logger_.addTrainingLog("[SelfPlay Std. Game Returns]", static_cast<double>(utils::stddev(game_returns)), "game_returns", "std", config::zero_current_iteration);
         if (config::zero_display_latest_games > 0 && static_cast<int>(latest_game_lengths_.size()) == config::zero_display_latest_games) {
             std::string n = std::to_string(config::zero_display_latest_games);
-            shared_data_.logger_.addTrainingLog("[SelfPlay Min. Latest " + n + " Game Lengths]", *std::min_element(latest_game_lengths_.begin(), latest_game_lengths_.end()), "latest_game_lengths", "min", iteration_);
-            shared_data_.logger_.addTrainingLog("[SelfPlay Max. Latest " + n + " Game Lengths]", *std::max_element(latest_game_lengths_.begin(), latest_game_lengths_.end()), "latest_game_lengths", "max", iteration_);
-            shared_data_.logger_.addTrainingLog("[SelfPlay Avg. Latest " + n + " Game Lengths]", std::accumulate(latest_game_lengths_.begin(), latest_game_lengths_.end(), 0.0f) / latest_game_lengths_.size(), "latest_game_lengths", "avg", iteration_);
-            shared_data_.logger_.addTrainingLog("[SelfPlay Std. Latest " + n + " Game Lengths]", utils::stddev(latest_game_lengths_), "latest_game_lengths", "std", iteration_);
-            shared_data_.logger_.addTrainingLog("[SelfPlay Min. Latest " + n + " Game Returns]", *std::min_element(latest_game_returns_.begin(), latest_game_returns_.end()), "latest_game_returns", "min", iteration_);
-            shared_data_.logger_.addTrainingLog("[SelfPlay Max. Latest " + n + " Game Returns]", *std::max_element(latest_game_returns_.begin(), latest_game_returns_.end()), "latest_game_returns", "max", iteration_);
-            shared_data_.logger_.addTrainingLog("[SelfPlay Avg. Latest " + n + " Game Returns]", std::accumulate(latest_game_returns_.begin(), latest_game_returns_.end(), 0.0f) / latest_game_returns_.size(), "latest_game_returns", "avg", iteration_);
-            shared_data_.logger_.addTrainingLog("[SelfPlay Std. Latest " + n + " Game Returns]", utils::stddev(latest_game_returns_), "latest_game_returns", "std", iteration_);
+            shared_data_.logger_.addTrainingLog("[SelfPlay Min. Latest " + n + " Game Lengths]", *std::min_element(latest_game_lengths_.begin(), latest_game_lengths_.end()), "latest_game_lengths", "min", config::zero_current_iteration);
+            shared_data_.logger_.addTrainingLog("[SelfPlay Max. Latest " + n + " Game Lengths]", *std::max_element(latest_game_lengths_.begin(), latest_game_lengths_.end()), "latest_game_lengths", "max", config::zero_current_iteration);
+            shared_data_.logger_.addTrainingLog("[SelfPlay Avg. Latest " + n + " Game Lengths]", std::accumulate(latest_game_lengths_.begin(), latest_game_lengths_.end(), 0.0f) / latest_game_lengths_.size(), "latest_game_lengths", "avg", config::zero_current_iteration);
+            shared_data_.logger_.addTrainingLog("[SelfPlay Std. Latest " + n + " Game Lengths]", utils::stddev(latest_game_lengths_), "latest_game_lengths", "std", config::zero_current_iteration);
+            shared_data_.logger_.addTrainingLog("[SelfPlay Min. Latest " + n + " Game Returns]", *std::min_element(latest_game_returns_.begin(), latest_game_returns_.end()), "latest_game_returns", "min", config::zero_current_iteration);
+            shared_data_.logger_.addTrainingLog("[SelfPlay Max. Latest " + n + " Game Returns]", *std::max_element(latest_game_returns_.begin(), latest_game_returns_.end()), "latest_game_returns", "max", config::zero_current_iteration);
+            shared_data_.logger_.addTrainingLog("[SelfPlay Avg. Latest " + n + " Game Returns]", std::accumulate(latest_game_returns_.begin(), latest_game_returns_.end(), 0.0f) / latest_game_returns_.size(), "latest_game_returns", "avg", config::zero_current_iteration);
+            shared_data_.logger_.addTrainingLog("[SelfPlay Std. Latest " + n + " Game Returns]", utils::stddev(latest_game_returns_), "latest_game_returns", "std", config::zero_current_iteration);
         }
     }
 
-    if (static_cast<int>(game_lengths.size()) != num_collect_game) { shared_data_.logger_.addTrainingLog("[SelfPlay Avg. Data Lengths]", total_data_length * 1.0 / num_collect_game, "data_length", "avg", iteration_); }
-    shared_data_.logger_.flushSelfPlayMetricsJsonl(iteration_);
+    if (static_cast<int>(game_lengths.size()) != num_collect_game) { shared_data_.logger_.addTrainingLog("[SelfPlay Avg. Data Lengths]", total_data_length * 1.0 / num_collect_game, "data_length", "avg", config::zero_current_iteration); }
+    shared_data_.logger_.flushSelfPlayMetricsJsonl(config::zero_current_iteration);
 }
 
 void ZeroServer::broadcastSelfPlayJob()
@@ -333,8 +334,8 @@ void ZeroServer::optimization()
 
     std::string job_command = "train ";
     job_command += "weight_iter_" + std::to_string(shared_data_.getModelIetration()) + ".pkl";
-    job_command += " " + std::to_string(std::max(1, iteration_ - config::zero_replay_buffer + 1));
-    job_command += " " + std::to_string(iteration_);
+    job_command += " " + std::to_string(std::max(1, config::zero_current_iteration - config::zero_replay_buffer + 1));
+    job_command += " " + std::to_string(config::zero_current_iteration);
 
     shared_data_.is_optimization_phase_ = true;
     while (shared_data_.isOptimizationPahse()) {
@@ -352,13 +353,13 @@ void ZeroServer::optimization()
 
 std::string ZeroServer::getUpdatedConfig()
 {
-    std::string job_command = "";
+    std::string job_command = "zero_current_iteration=" + std::to_string(config::zero_current_iteration) + ":";
     if (config::learner_use_per && config::learner_per_beta_anneal) {
-        float per_beta = std::min(config::learner_per_init_beta + (iteration_ * 1.0f / config::zero_end_iteration) * (1.0f - config::learner_per_init_beta), 1.0f);
+        float per_beta = std::min(config::learner_per_init_beta + (config::zero_current_iteration * 1.0f / config::zero_end_iteration) * (1.0f - config::learner_per_init_beta), 1.0f);
         job_command += "learner_per_init_beta=" + std::to_string(per_beta) + ":";
     }
     if (config::actor_select_action_softmax_temperature_decay) {
-        float training_progress = iteration_ * 1.0f / config::zero_end_iteration;
+        float training_progress = config::zero_current_iteration * 1.0f / config::zero_end_iteration;
         float temperature = (training_progress < 0.5 ? 1.0f : (training_progress < 0.75 ? 0.5f : 0.25f));
         job_command += "actor_select_action_softmax_temperature=" + std::to_string(temperature) + ":";
     }

@@ -41,6 +41,7 @@ std::string zero_training_directory = "";
 int zero_num_games_per_iteration = 2000;
 int zero_start_iteration = 0;
 int zero_end_iteration = 100;
+int zero_current_iteration = 0;
 int zero_replay_buffer = 20;
 float zero_disable_resign_ratio = 0.1;
 int zero_actor_intermediate_sequence_length = 0;
@@ -129,6 +130,7 @@ void setConfiguration(ConfigureLoader& cl)
     cl.addParameter("zero_num_games_per_iteration", zero_num_games_per_iteration, "the nunmber of games to play in each iteration", "Zero");
     cl.addParameter("zero_start_iteration", zero_start_iteration, "the first iteration of training; usually 1 unless continuing with previous training", "Zero");
     cl.addParameter("zero_end_iteration", zero_end_iteration, "the last iteration of training", "Zero");
+    cl.addParameter("zero_current_iteration", zero_current_iteration, "the current iteration of training; set by the zero server, not intended to be edited manually", "Zero");
     cl.addParameter("zero_replay_buffer", zero_replay_buffer, "hyperparameter for replay buffer; replay buffer stores (zero_replay_buffer x zero_num_games_per_iteration) games/sequences", "Zero");
     cl.addParameter("zero_disable_resign_ratio", zero_disable_resign_ratio, "the probability to keep playing when the winrate is below actor_resign_threshold", "Zero");                                                       // ref: AZ, Sec. Methods
     cl.addParameter("zero_actor_intermediate_sequence_length", zero_actor_intermediate_sequence_length, "the max sequence length when running self-play; usually 0 (unlimited) for board games, 200 for atari games", "Zero"); // ref: MZ

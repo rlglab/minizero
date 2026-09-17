@@ -110,19 +110,133 @@ if [[ ${run_stage,} == "r" ]]; then
 	new_configure_file=$(basename ${train_dir}).cfg
 	${sp_executable_file} -gen ${train_dir}/${new_configure_file} -conf_file ${configure_file} -conf_str "${overwrite_conf_str}" 2>/dev/null
 
+	# keep a tagged backup of the config used from this starting iteration
+	mkdir -p ${train_dir}/cfg
+	cp ${train_dir}/${new_configure_file} ${train_dir}/cfg/${new_configure_file%.cfg}_${zero_start_iteration}.cfg
+
 	# setup initial weight
 	cuda_devices=$(echo ${gpu_list} | awk '{ split($0, chars, ""); printf(chars[1]); for(i=2; i<=length(chars); ++i) { printf(","chars[i]); } }')
 	echo "train \"\" -1 -1" | CUDA_VISIBLE_DEVICES=${cuda_devices} PYTHONPATH=. python ${op_executable_file} ${game_type} ${train_dir} ${train_dir}/${new_configure_file} >/dev/null 2>&1
 elif [[ ${run_stage,} == "c" ]]; then
-	zero_start_iteration=$(ls ${train_dir}/model/ | grep ".pt$" | wc -l)
-	model_file=$(ls ${train_dir}/model/ | grep ".pt$" | sort -V | tail -n1)
 	new_configure_file=$(basename ${train_dir}/*.cfg)
-	echo y | ${sp_executable_file} -gen ${train_dir}/${new_configure_file} -conf_file ${train_dir}/${new_configure_file} -conf_str "${overwrite_conf_str}" 2>/dev/null
 
-	# friendly notification if continuing training
-	read -n1 -p "Continue training from iteration: ${zero_start_iteration}, model file: ${model_file}, configuration: ${train_dir}/${new_configure_file}. Sure? (y/n) " yn
+	# resolve the requested starting iteration (-conf_str takes precedence over the config file);
+	# 0 (or unset) means continue from the latest model, a positive number loads that iteration
+	if [[ ":${overwrite_conf_str}:" == *":zero_start_iteration="* ]]; then
+		req_start_iteration=$(echo ":${overwrite_conf_str}:" | grep -oE 'zero_start_iteration=[^:]*' | tail -n1 | cut -d= -f2 | tr -d '[:space:]')
+	else
+		req_start_iteration=$(grep -E "^[[:space:]]*zero_start_iteration=" ${configure_file} | tail -n1 | cut -d= -f2 | cut -d'#' -f1 | tr -d '[:space:]')
+	fi
+
+	models=($(ls ${train_dir}/model/ 2>/dev/null | grep "\.pt$" | sort -V))
+	if [[ ${#models[@]} -eq 0 ]]; then
+		echo "Error: Model files not found! No models found in ${train_dir}/model/."
+		exit 1
+	fi
+
+	if [[ -z ${req_start_iteration} || ${req_start_iteration} -eq 0 ]]; then
+		# 0 (or unset): continue from the latest existing model
+		zero_start_iteration=${#models[@]}
+		model_file=${models[$((${#models[@]}-1))]}
+	else
+		# positive number: start from the given iteration and load its corresponding model
+		zero_start_iteration=${req_start_iteration}
+		msg_load_step=$((${zero_start_iteration}-1))
+		if [[ ${msg_load_step} -ge ${#models[@]} ]]; then
+			echo "Start from iteration: ${zero_start_iteration}, configuration: ${train_dir}/${new_configure_file}."
+			echo "Error: Model files not found! Expected model at index ${msg_load_step}, but only ${#models[@]} models found."
+			exit 1
+		fi
+		model_file=${models[${msg_load_step}]}
+	fi
+
+	# generate the in-dir config from the provided configure_file (overwriting the old one), forcing the
+	# resolved starting iteration through -conf_str (which overrides the file's value)
+	gen_conf_str="zero_start_iteration=${zero_start_iteration}"
+	[[ -n ${overwrite_conf_str} ]] && gen_conf_str="${gen_conf_str}:${overwrite_conf_str}"
+	echo y | ${sp_executable_file} -gen ${train_dir}/${new_configure_file} -conf_file ${configure_file} -conf_str "${gen_conf_str}" 2>/dev/null
+
+	# keep a tagged backup of the config used from this starting iteration
+	mkdir -p ${train_dir}/cfg
+	cp ${train_dir}/${new_configure_file} ${train_dir}/cfg/${new_configure_file%.cfg}_${zero_start_iteration}.cfg
+
+	read -n1 -p "Start from iteration: ${zero_start_iteration}, model file: ${model_file}, configuration: ${train_dir}/${new_configure_file}. Sure? (y/n) " yn
 	[[ ${yn,,} == "y" ]] || exit
 	echo ""
+
+	# collect models at or after the starting iteration. files are named weight_iter_<training_step>
+	# (not by iteration), but the -V sorted models[] index equals the iteration number, so select by
+	# index here. remove both the .pt (self-play) and matching .pkl (training snapshot); they are regenerated
+	models_to_remove=()
+	for idx in "${!models[@]}"; do
+		if [[ ${idx} -ge ${zero_start_iteration} ]]; then
+			pt_path="${train_dir}/model/${models[$idx]}"
+			pkl_path="${train_dir}/model/${models[$idx]%.pt}.pkl"
+			[[ -e ${pt_path} ]] && models_to_remove+=("${pt_path}")
+			[[ -e ${pkl_path} ]] && models_to_remove+=("${pkl_path}")
+		fi
+	done
+	last_model_iteration=$((${#models[@]}-1))
+
+	# collect stale config backups: those tagged with an iteration greater than the starting one.
+	# the backup tagged == starting iteration was just created above and is kept
+	cfg_backup_base="${train_dir}/cfg/${new_configure_file%.cfg}"
+	cfgs_to_remove=()
+	for cfg_path in ${cfg_backup_base}_*.cfg; do
+		[[ -e ${cfg_path} ]] || continue
+		cfg_iter=${cfg_path##*_}
+		cfg_iter=${cfg_iter%.cfg}
+		[[ ${cfg_iter} =~ ^[0-9]+$ ]] || continue
+		[[ ${cfg_iter} -gt ${zero_start_iteration} ]] && cfgs_to_remove+=("${cfg_path}")
+	done
+
+	# locate the first line for the starting iteration in each log; everything from it onward is stale
+	log_files=("${train_dir}/Training.log" "${train_dir}/op.log")
+	logs_to_trim=()
+	log_cut_lines=()
+	for log_file in "${log_files[@]}"; do
+		[[ -f ${log_file} ]] || continue
+		cut_line=$(grep -Fn "[Iteration] =====${zero_start_iteration}=====" ${log_file} | head -n1 | cut -d: -f1)
+		if [[ -n ${cut_line} ]]; then
+			logs_to_trim+=("${log_file}")
+			log_cut_lines+=("${cut_line}")
+		fi
+	done
+
+	# ask before removing anything
+	if [[ ${#models_to_remove[@]} -gt 0 || ${#cfgs_to_remove[@]} -gt 0 || ${#logs_to_trim[@]} -gt 0 ]]; then
+		echo "The following will be removed to restart from iteration ${zero_start_iteration}:"
+		if [[ ${#models_to_remove[@]} -gt 0 ]]; then
+			echo "  - model files: iteration ${zero_start_iteration} to ${last_model_iteration} (${#models_to_remove[@]} files, .pt + .pkl)"
+		fi
+		if [[ ${#cfgs_to_remove[@]} -gt 0 ]]; then
+			echo "  - stale config backup(s):"
+			printf '      %s\n' "${cfgs_to_remove[@]}"
+		fi
+		for idx in "${!logs_to_trim[@]}"; do
+			echo "  - $(basename ${logs_to_trim[$idx]}): from line ${log_cut_lines[$idx]} onward"
+		done
+		read -n1 -p "Proceed with removal? (y/n) " del_yn
+		echo ""
+		if [[ ${del_yn,,} == "y" ]]; then
+			if [[ ${#models_to_remove[@]} -gt 0 ]]; then
+				rm -f "${models_to_remove[@]}"
+				echo "removed ${#models_to_remove[@]} model file(s)."
+			fi
+			if [[ ${#cfgs_to_remove[@]} -gt 0 ]]; then
+				rm -f "${cfgs_to_remove[@]}"
+				echo "removed ${#cfgs_to_remove[@]} config backup(s)."
+			fi
+			for idx in "${!logs_to_trim[@]}"; do
+				log_file="${logs_to_trim[$idx]}"
+				cut_line="${log_cut_lines[$idx]}"
+				head -n $((cut_line-1)) ${log_file} > ${log_file}.tmp && mv ${log_file}.tmp ${log_file}
+				echo "trimmed $(basename ${log_file}) to before iteration ${zero_start_iteration}."
+			done
+		else
+			echo "keep all models, config backups, and logs; skip removal."
+		fi
+	fi
 else
 	exit
 fi
