@@ -67,7 +67,12 @@ if [ "${image_overridden}" = false ]; then
 
 	cuda_version=$(nvidia-smi --query-gpu=cuda_version --format=csv,noheader 2>/dev/null | head -n1 | tr -d '[:space:]')
 	if ! echo "${cuda_version}" | grep -Eq '^[0-9]+(\.[0-9]+)?$'; then
-		cuda_version=$(nvidia-smi 2>/dev/null | sed -n 's/.*CUDA Version: \([0-9.]\+\).*/\1/p' | head -n1)
+		cuda_version=$(nvidia-smi 2>/dev/null | sed -nE 's/.*CUDA (UMD )?Version: ([0-9]+(\.[0-9]+)?).*/\2/p' | head -n1)
+	fi
+
+	if ! echo "${cuda_version}" | grep -Eq '^[0-9]+(\.[0-9]+)?$'; then
+		echo "Error: Cannot detect driver CUDA support. Select an image with --image." >&2
+		exit 1
 	fi
 
 	if [ -n "${cuda_version}" ] && awk -v v="${cuda_version}" 'BEGIN { split(v, a, "."); major = a[1] + 0; minor = a[2] + 0; exit !((major > 12) || (major == 12 && minor >= 9)) }'; then
