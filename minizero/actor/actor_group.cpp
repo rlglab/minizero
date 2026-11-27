@@ -199,9 +199,8 @@ void ActorGroup::handleIO()
 
 void ActorGroup::handleCommand()
 {
-    if (commands_.empty() || !getSharedData()->do_cpu_job_) { return; }
-
     std::lock_guard lock(getSharedData()->mutex_);
+    if (commands_.empty() || !getSharedData()->do_cpu_job_) { return; }
     while (!commands_.empty()) {
         const std::string command = commands_.front();
         commands_.pop_front();
