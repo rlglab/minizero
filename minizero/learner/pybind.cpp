@@ -198,8 +198,7 @@ PYBIND11_MODULE(minizero_py, m)
         .def(
             "update_priority", [](learner::DataLoader& data_loader, py::array_t<int>& sampled_index, py::array_t<float>& batch_values) {
                 data_loader.updatePriority(static_cast<int*>(sampled_index.request().ptr), static_cast<float*>(batch_values.request().ptr));
-            },
-            py::call_guard<py::gil_scoped_release>())
+            })
         .def(
             "sample_data", [](learner::DataLoader& data_loader, py::array_t<float>& features, py::array_t<float>& action_features, py::array_t<float>& policy, py::array_t<float>& value, py::array_t<float>& reward, py::array_t<float>& loss_scale, py::array_t<int>& sampled_index) {
                 data_loader.getSharedData()->getDataPtr()->features_ = static_cast<float*>(features.request().ptr);
@@ -210,6 +209,5 @@ PYBIND11_MODULE(minizero_py, m)
                 data_loader.getSharedData()->getDataPtr()->loss_scale_ = static_cast<float*>(loss_scale.request().ptr);
                 data_loader.getSharedData()->getDataPtr()->sampled_index_ = static_cast<int*>(sampled_index.request().ptr);
                 data_loader.sampleData();
-            },
-            py::call_guard<py::gil_scoped_release>());
+            });
 }
